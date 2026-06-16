@@ -1,51 +1,62 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card } from '../components/Card'
-import { supabase } from '../lib/supabase'
+import { SupabaseConfigNotice } from '../components/SupabaseConfigNotice'
+import { useAuth } from '../contexts/AuthContext'
 
 export function SignupPage() {
-  const supabaseReady = Boolean(supabase)
+  const navigate = useNavigate()
+  const { configured, signUp } = useAuth()
   const [displayName, setDisplayName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [status, setStatus] = useState<{ type: 'idle' | 'error' | 'success'; message?: string }>({ type: 'idle' })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const canSubmit = useMemo(() => {
-    return displayName.trim().length > 1 && phoneNumber.trim().length > 5 && email.includes('@') && password.length >= 8
-  }, [displayName, email, password.length, phoneNumber])
+    return (
+      displayName.trim().length > 1 &&
+      phoneNumber.trim().length > 5 &&
+      email.includes('@') &&
+      password.length >= 8 &&
+      !submitting
+    )
+  }, [displayName, email, password.length, phoneNumber, submitting])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setStatus({ type: 'idle' })
+    setError(null)
 
-    if (!supabaseReady) {
-      setStatus({
-        type: 'error',
-        message: 'Supabase is not configured in this environment yet.',
+    if (!configured) {
+      setError('Supabase is not configured in this environment yet.')
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      await signUp({
+        displayName,
+        phone: phoneNumber,
+        email,
+        password,
       })
-      return
+      navigate('/dashboard')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Sign up failed. Please try again.'
+      setError(message)
+    } finally {
+      setSubmitting(false)
     }
+  }
 
-    const { error } = await supabase!.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName,
-          phone_number: phoneNumber,
-        },
-      },
-    })
-
-    if (error) {
-      setStatus({ type: 'error', message: error.message })
-      return
-    }
-
-    setStatus({
-      type: 'success',
-      message: 'Account created. Check your email if confirmation is enabled.',
-    })
+  if (!configured) {
+    return (
+      <div className="grid gap-4">
+        <SupabaseConfigNotice />
+      </div>
+    )
   }
 
   return (
@@ -53,11 +64,6 @@ export function SignupPage() {
       <Card
         title="Sign up"
         description="Email/password MVP. Phone number is required for the WhatsApp group."
-        right={
-          <span className="text-xs font-semibold text-muted">
-            {supabaseReady ? 'Supabase ready' : 'Supabase not configured'}
-          </span>
-        }
       >
         <form className="grid gap-3" onSubmit={onSubmit}>
           <label className="grid gap-1">
@@ -68,6 +74,7 @@ export function SignupPage() {
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="e.g. Ben"
               autoComplete="nickname"
+              disabled={submitting}
             />
           </label>
 
@@ -79,6 +86,7 @@ export function SignupPage() {
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="e.g. +44..."
               autoComplete="tel"
+              disabled={submitting}
             />
           </label>
 
@@ -90,6 +98,7 @@ export function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
               autoComplete="email"
+              disabled={submitting}
             />
           </label>
 
@@ -102,6 +111,7 @@ export function SignupPage() {
               type="password"
               placeholder="Minimum 8 characters"
               autoComplete="new-password"
+              disabled={submitting}
             />
           </label>
 
@@ -110,28 +120,16 @@ export function SignupPage() {
             disabled={!canSubmit}
             className="mt-2 h-11 rounded-xl border border-accent bg-accent px-4 text-sm font-semibold text-bg disabled:opacity-50"
           >
-            Create account
+            {submitting ? 'Creating account...' : 'Create account'}
           </button>
 
-          {status.type !== 'idle' ? (
-            <div
-              className={[
-                'rounded-xl border px-3 py-2 text-sm',
-                status.type === 'success'
-                  ? 'border-success/40 bg-success/10 text-text'
-                  : 'border-border bg-surface-2 text-text',
-              ].join(' ')}
-            >
-              {status.message}
+          {error ? (
+            <div className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text">
+              {error}
             </div>
           ) : null}
-
-          <div className="text-xs text-muted">
-            This milestone only scaffolds auth. Player profiles and payments will be stored in the database schema.
-          </div>
         </form>
       </Card>
     </div>
   )
 }
-

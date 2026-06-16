@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { APP_NAME, CURRENT_GAME, CURRENT_POT_GBP } from '../lib/constants'
 
 const navItems: Array<{ to: string; label: string }> = [
@@ -16,6 +18,20 @@ function formatGBP(value: number) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { user, player, signOut } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Sign out failed', error)
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
   return (
     <div className="min-h-dvh bg-bg text-text">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-bg/85 backdrop-blur">
@@ -35,24 +51,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <nav className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    [
-                      'px-3 py-2 text-sm rounded-lg border border-transparent',
-                      isActive
-                        ? 'bg-surface border-border text-text'
-                        : 'text-muted hover:text-text hover:bg-surface/70',
-                    ].join(' ')
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
+            <div className="hidden md:flex items-center gap-2">
+              <nav className="flex items-center gap-1">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      [
+                        'px-3 py-2 text-sm rounded-lg border border-transparent',
+                        isActive
+                          ? 'bg-surface border-border text-text'
+                          : 'text-muted hover:text-text hover:bg-surface/70',
+                      ].join(' ')
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </nav>
+
+              {user ? (
+                <div className="ml-2 flex items-center gap-2 border-l border-border pl-2">
+                  <span className="max-w-[140px] truncate text-xs text-muted">
+                    {player?.display_name ?? user.email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleSignOut()}
+                    disabled={signingOut}
+                    className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
+                  >
+                    {signingOut ? 'Logging out...' : 'Log out'}
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>
@@ -65,6 +99,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="text-sm text-muted">
               Private survival pool app for a WhatsApp group. No Premier League branding.
             </div>
+
+            {user ? (
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                disabled={signingOut}
+                className="md:hidden rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
+              >
+                {signingOut ? 'Logging out...' : 'Log out'}
+              </button>
+            ) : null}
 
             <nav className="md:hidden grid grid-cols-2 gap-2">
               {navItems.map((item) => (
@@ -90,4 +135,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
-

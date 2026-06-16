@@ -2,13 +2,13 @@ export type UUID = string
 
 export type Player = {
   id: UUID
+  user_id: UUID
   created_at: string
   updated_at: string
   display_name: string
-  phone_number: string
+  phone: string | null
   email: string
   is_admin: boolean
-  status: 'active' | 'inactive'
 }
 
 export type Game = {

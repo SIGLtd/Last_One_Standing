@@ -1,7 +1,14 @@
--- Last One Standing (Premier League survival pool) - Milestone 1 draft schema
+-- Last One Standing (Premier League survival pool) - Milestone 2A schema
 -- Notes:
 -- - Keep policies simple for now; tighten later.
 -- - No external football APIs yet; fixtures/results can be entered manually.
+--
+-- Milestone 2A migration (if players table exists from Milestone 1):
+--   alter table players rename column auth_user_id to user_id;
+--   alter table players rename column phone_number to phone;
+--   alter table players alter column phone drop not null;
+--   alter table players drop column if exists status;
+--   drop policy if exists "players_read_all" on players;
 
 begin;
 
@@ -32,14 +39,13 @@ exception when duplicate_object then null; end $$;
 -- Core tables
 create table if not exists players (
   id uuid primary key default gen_random_uuid(),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  auth_user_id uuid unique, -- links to auth.users.id
+  user_id uuid not null unique references auth.users(id) on delete cascade,
   display_name text not null check (char_length(display_name) >= 2),
-  phone_number text not null check (char_length(phone_number) >= 6),
+  phone text,
   email text not null,
   is_admin boolean not null default false,
-  status text not null default 'active' check (status in ('active','inactive'))
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists games (
@@ -159,15 +165,25 @@ alter table selections enable row level security;
 alter table historical_results enable row level security;
 alter table admin_actions enable row level security;
 
--- Policies (draft)
--- Players: users can read everyone; update only their own profile (by auth_user_id)
+-- Policies (Milestone 2A)
+-- Players: users can read, insert, and update only their own profile
 drop policy if exists "players_read_all" on players;
-create policy "players_read_all" on players for select using (true);
+drop policy if exists "players_select_own" on players;
+create policy "players_select_own" on players for select
+using (auth.uid() = user_id);
+
+drop policy if exists "players_insert_own" on players;
+create policy "players_insert_own" on players for insert
+with check (auth.uid() = user_id);
 
 drop policy if exists "players_update_own" on players;
 create policy "players_update_own" on players for update
-using (auth.uid() = auth_user_id)
-with check (auth.uid() = auth_user_id);
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+-- Placeholder for later: admins can read all player profiles
+-- create policy "players_select_admin" on players for select
+-- using (exists (select 1 from players p where p.user_id = auth.uid() and p.is_admin = true));
 
 -- Most other tables: readable by all for now (private group); writes reserved for service role/admin later
 drop policy if exists "games_read_all" on games;
@@ -191,12 +207,12 @@ create policy "historical_results_read_all" on historical_results for select usi
 -- Selection writes: allow authenticated users to upsert their own selection rows (simple MVP)
 drop policy if exists "selections_insert_own" on selections;
 create policy "selections_insert_own" on selections for insert
-with check (auth.uid() = (select auth_user_id from players where players.id = selections.player_id));
+with check (auth.uid() = (select user_id from players where players.id = selections.player_id));
 
 drop policy if exists "selections_update_own" on selections;
 create policy "selections_update_own" on selections for update
-using (auth.uid() = (select auth_user_id from players where players.id = selections.player_id))
-with check (auth.uid() = (select auth_user_id from players where players.id = selections.player_id));
+using (auth.uid() = (select user_id from players where players.id = selections.player_id))
+with check (auth.uid() = (select user_id from players where players.id = selections.player_id));
 
 commit;
 

@@ -9,6 +9,10 @@ export function SupabaseConfigNotice() {
           <code className="rounded bg-surface-2 px-1 py-0.5 text-text">VITE_SUPABASE_ANON_KEY</code> in a local{' '}
           <code className="rounded bg-surface-2 px-1 py-0.5 text-text">.env</code> file, then restart the dev server.
         </p>
+        <p>
+          The URL must start with <code className="rounded bg-surface-2 px-1 py-0.5 text-text">https://</code> and the
+          anon key must be your project&apos;s full publishable key.
+        </p>
         <p>Do not commit secret keys. Use the Supabase project anon key only.</p>
       </div>
     </Card>

@@ -45,23 +45,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(isSupabaseConfigured)
 
   const loadPlayer = useCallback(async (authUser: User) => {
-    let profile = await fetchPlayerProfile(authUser.id)
-
-    if (!profile && authUser.email) {
-      const displayName = (authUser.user_metadata?.display_name as string | undefined)?.trim()
-      const phone = (authUser.user_metadata?.phone as string | undefined)?.trim() ?? ''
-
-      if (displayName) {
-        profile = await upsertPlayerProfile({
-          userId: authUser.id,
-          displayName,
-          phone,
-          email: authUser.email,
-        })
-      }
+    if (!supabase) {
+      setPlayer(null)
+      return
     }
 
-    setPlayer(profile)
+    try {
+      let profile = await fetchPlayerProfile(authUser.id)
+
+      if (!profile && authUser.email) {
+        const displayName = (authUser.user_metadata?.display_name as string | undefined)?.trim()
+        const phone = (authUser.user_metadata?.phone as string | undefined)?.trim() ?? ''
+
+        if (displayName) {
+          profile = await upsertPlayerProfile({
+            userId: authUser.id,
+            displayName,
+            phone,
+            email: authUser.email,
+          })
+        }
+      }
+
+      setPlayer(profile)
+    } catch (profileError) {
+      console.error('Failed to load player profile', profileError)
+      setPlayer(null)
+    }
   }, [])
 
   const refreshProfile = useCallback(async () => {
@@ -79,62 +89,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    const client = supabase
     let active = true
 
     async function init() {
-      const { data, error } = await supabase!.auth.getSession()
-      if (!active) return
+      try {
+        const { data, error } = await client.auth.getSession()
+        if (!active) return
 
-      if (error) {
-        console.error('Failed to load session', error)
-        setSession(null)
-        setUser(null)
-        setPlayer(null)
-        setLoading(false)
-        return
-      }
+        if (error) {
+          console.error('Failed to load session', error)
+          setSession(null)
+          setUser(null)
+          setPlayer(null)
+          return
+        }
 
-      const nextSession = data.session
-      setSession(nextSession)
-      setUser(nextSession?.user ?? null)
+        const nextSession = data.session
+        setSession(nextSession)
+        setUser(nextSession?.user ?? null)
 
-      if (nextSession?.user) {
-        try {
+        if (nextSession?.user) {
           await loadPlayer(nextSession.user)
-        } catch (profileError) {
-          console.error('Failed to load player profile', profileError)
+        } else {
           setPlayer(null)
         }
-      } else {
-        setPlayer(null)
+      } catch (sessionError) {
+        console.error('Failed to initialize auth session', sessionError)
+        if (active) {
+          setSession(null)
+          setUser(null)
+          setPlayer(null)
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
       }
-
-      setLoading(false)
     }
 
     void init()
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      setSession(nextSession)
-      setUser(nextSession?.user ?? null)
+    let subscription: { unsubscribe: () => void } | null = null
 
-      if (nextSession?.user) {
-        try {
+    try {
+      const {
+        data: { subscription: authSubscription },
+      } = client.auth.onAuthStateChange(async (_event, nextSession) => {
+        if (!active) return
+
+        setSession(nextSession)
+        setUser(nextSession?.user ?? null)
+
+        if (nextSession?.user) {
           await loadPlayer(nextSession.user)
-        } catch (profileError) {
-          console.error('Failed to load player profile', profileError)
+        } else {
           setPlayer(null)
         }
-      } else {
-        setPlayer(null)
-      }
 
+        setLoading(false)
+      })
+
+      subscription = authSubscription
+    } catch (listenerError) {
+      console.error('Failed to set up auth listener', listenerError)
       setLoading(false)
-    })
+    }
 
     return () => {
       active = false
-      authListener.subscription.unsubscribe()
+      subscription?.unsubscribe()
     }
   }, [loadPlayer])
 

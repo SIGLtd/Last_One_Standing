@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card } from '../components/Card'
 import { SupabaseConfigNotice } from '../components/SupabaseConfigNotice'
 import { useAuth } from '../contexts/AuthContext'
+import { getSupabaseConfigStatus } from '../lib/supabase'
 
 export function SignupPage() {
   const navigate = useNavigate()
@@ -54,7 +55,7 @@ export function SignupPage() {
   if (!configured) {
     return (
       <div className="grid gap-4">
-        <SupabaseConfigNotice />
+        <SupabaseConfigNotice status={getSupabaseConfigStatus()} />
       </div>
     )
   }

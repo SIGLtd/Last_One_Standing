@@ -61,16 +61,16 @@ export function SignupPage() {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="mx-auto grid max-w-md gap-4">
       <Card
         title="Sign up"
         description="Email/password MVP. Phone number is required for the WhatsApp group."
       >
         <form className="grid gap-3" onSubmit={onSubmit}>
           <label className="grid gap-1">
-            <span className="text-sm font-semibold">Display name</span>
+            <span className="text-sm font-bold text-ink">Display name</span>
             <input
-              className="h-11 rounded-xl border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-accent"
+              className="los-input"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="e.g. Ben"
@@ -80,9 +80,9 @@ export function SignupPage() {
           </label>
 
           <label className="grid gap-1">
-            <span className="text-sm font-semibold">Phone number</span>
+            <span className="text-sm font-bold text-ink">Phone number</span>
             <input
-              className="h-11 rounded-xl border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-accent"
+              className="los-input"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="e.g. +44..."
@@ -92,9 +92,9 @@ export function SignupPage() {
           </label>
 
           <label className="grid gap-1">
-            <span className="text-sm font-semibold">Email</span>
+            <span className="text-sm font-bold text-ink">Email</span>
             <input
-              className="h-11 rounded-xl border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-accent"
+              className="los-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
@@ -104,9 +104,9 @@ export function SignupPage() {
           </label>
 
           <label className="grid gap-1">
-            <span className="text-sm font-semibold">Password</span>
+            <span className="text-sm font-bold text-ink">Password</span>
             <input
-              className="h-11 rounded-xl border border-border bg-surface-2 px-3 text-sm text-text outline-none focus:border-accent"
+              className="los-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
@@ -116,19 +116,11 @@ export function SignupPage() {
             />
           </label>
 
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="mt-2 h-11 rounded-xl border border-accent bg-accent px-4 text-sm font-semibold text-bg disabled:opacity-50"
-          >
+          <button type="submit" disabled={!canSubmit} className="los-btn-primary mt-2 h-11 w-full">
             {submitting ? 'Creating account...' : 'Create account'}
           </button>
 
-          {error ? (
-            <div className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text">
-              {error}
-            </div>
-          ) : null}
+          {error ? <div className="los-alert los-alert-error">{error}</div> : null}
         </form>
       </Card>
     </div>

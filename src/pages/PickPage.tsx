@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
+import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { TEAMS_2026 } from '../config/teams'
 import { useAuth } from '../contexts/AuthContext'
@@ -128,7 +129,7 @@ export function PickPage() {
     return (
       <div className="grid gap-4">
         <Card title="Make your pick" description="Loading...">
-          <p className="text-sm text-muted">Please wait.</p>
+          <p className="text-sm text-muted-ink">Please wait.</p>
         </Card>
       </div>
     )
@@ -139,7 +140,7 @@ export function PickPage() {
       <div className="grid gap-4">
         <Card title="Make your pick" description="Login required">
           <div className="grid gap-3">
-            <p className="text-sm text-muted">Log in or sign up to make your pick.</p>
+            <p className="text-sm text-muted-ink">Log in or sign up to make your pick.</p>
             <div className="flex flex-wrap gap-2">
               <ButtonLink to="/login">Log in</ButtonLink>
               <ButtonLink to="/signup" variant="secondary">
@@ -156,7 +157,7 @@ export function PickPage() {
     return (
       <div className="grid gap-4">
         <Card title="Make your pick" description={`Game ${CURRENT_GAME}`}>
-          <p className="text-sm text-muted">You need verified entry before making a pick.</p>
+          <p className="text-sm text-muted-ink">You need verified entry before making a pick.</p>
         </Card>
       </div>
     )
@@ -166,7 +167,7 @@ export function PickPage() {
     return (
       <div className="grid gap-4">
         <Card title="Make your pick" description={`Game ${CURRENT_GAME}`}>
-          <p className="text-sm text-muted">No selection window is open yet.</p>
+          <p className="text-sm text-muted-ink">No selection window is open yet.</p>
         </Card>
       </div>
     )
@@ -177,45 +178,34 @@ export function PickPage() {
       <Card
         title="Make your pick"
         description={`Game ${CURRENT_GAME} • Window ${window.window_number}`}
-        right={
-          <span
-            className={[
-              'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
-              locked ? 'border-border bg-surface-2 text-muted' : 'border-success/30 bg-success/10 text-text',
-            ].join(' ')}
-          >
-            {locked ? 'Locked' : 'Open'}
-          </span>
-        }
+        right={<Badge variant={locked ? 'muted' : 'open'}>{locked ? 'Locked' : 'Open'}</Badge>}
       >
         <div className="grid gap-3">
-          <div className="rounded-xl border border-border bg-surface-2 p-3">
-            <div className="text-xs font-semibold text-muted">Deadline</div>
-            <div className="mt-1 text-sm text-text">{formatDateTime(window.deadline_at)}</div>
-            <div className="mt-2 text-xs text-muted">
-              Window runs {formatDateTime(window.start_at)} to {formatDateTime(window.end_at)}
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="los-panel p-3">
+              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Deadline</div>
+              <div className="mt-1 text-sm font-bold text-ink">{formatDateTime(window.deadline_at)}</div>
+              <div className="mt-2 text-xs text-muted-ink">
+                Window runs {formatDateTime(window.start_at)} to {formatDateTime(window.end_at)}
+              </div>
+            </div>
+
+            <div className="los-panel p-3">
+              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Selected team</div>
+              <div className="mt-1 text-lg font-extrabold text-purple">
+                {selectedTeam ? selectedTeam.name : 'No team selected'}
+              </div>
+              <div className="mt-2 text-xs text-muted-ink">
+                {locked
+                  ? 'Selection is read-only after lock.'
+                  : 'You can change your pick any time before the deadline.'}
+              </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-surface-2 p-3">
-            <div className="text-xs font-semibold text-muted">Selected team</div>
-            <div className="mt-1 text-sm text-text">{selectedTeam ? selectedTeam.name : 'No team selected'}</div>
-            <div className="mt-2 text-xs text-muted">
-              {locked
-                ? 'Selection is read-only after lock.'
-                : 'You can change your pick any time before the deadline.'}
-            </div>
-          </div>
+          {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
 
-          {pageError ? (
-            <div className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text">{pageError}</div>
-          ) : null}
-
-          {savedMessage ? (
-            <div className="rounded-xl border border-success/40 bg-success/10 px-3 py-2 text-sm text-text">
-              {savedMessage}
-            </div>
-          ) : null}
+          {savedMessage ? <div className="los-alert los-alert-success">{savedMessage}</div> : null}
 
           <div className="grid gap-2 md:grid-cols-2">
             {TEAMS_2026.map((team) => {
@@ -230,15 +220,13 @@ export function PickPage() {
                   disabled={disabled}
                   onClick={() => setSelectedTeamId(team.id)}
                   className={[
-                    'flex items-center justify-between rounded-xl border px-3 py-3 text-sm transition-colors',
-                    disabled
-                      ? 'border-border/60 bg-surface/30 text-muted opacity-70'
-                      : 'border-border bg-surface-2 text-text hover:bg-surface',
-                    isSelected ? 'outline outline-2 outline-accent' : '',
+                    'los-fixture-tile',
+                    disabled ? 'los-fixture-tile-used cursor-not-allowed' : 'cursor-pointer',
+                    isSelected ? 'los-fixture-tile-selected' : '',
                   ].join(' ')}
                 >
-                  <span className="font-semibold">{team.name}</span>
-                  <span className="text-xs font-semibold text-muted">
+                  <span className="font-bold text-ink">{team.name}</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">
                     {isUsed ? 'Used' : isSelected ? 'Selected' : 'Available'}
                   </span>
                 </button>
@@ -251,7 +239,7 @@ export function PickPage() {
               type="button"
               disabled={!selectedTeamId || saving}
               onClick={() => void handleSavePick()}
-              className="h-11 rounded-xl border border-accent bg-accent px-4 text-sm font-semibold text-bg disabled:opacity-50"
+              className="los-btn-primary h-11 w-full sm:w-auto"
             >
               {saving ? 'Saving...' : selection?.team_id ? 'Update pick' : 'Save pick'}
             </button>

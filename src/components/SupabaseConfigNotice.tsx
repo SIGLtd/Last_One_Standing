@@ -23,49 +23,49 @@ export function SupabaseConfigNotice({ status }: SupabaseConfigNoticeProps) {
 
   return (
     <Card title="Supabase not configured" description="Development configuration required">
-      <div className="grid gap-3 text-sm text-muted">
+      <div className="grid gap-3 text-sm text-muted-ink">
         <p>
-          Vite reads <code className="rounded bg-surface-2 px-1 py-0.5 text-text">.env.local</code> from the project
+          Vite reads <code className="rounded bg-surface-2 px-1 py-0.5 text-ink">.env.local</code> from the project
           root. Only variables prefixed with{' '}
-          <code className="rounded bg-surface-2 px-1 py-0.5 text-text">VITE_</code> are available to the app. Restart{' '}
-          <code className="rounded bg-surface-2 px-1 py-0.5 text-text">npm run dev</code> after changes.
+          <code className="rounded bg-surface-2 px-1 py-0.5 text-ink">VITE_</code> are available to the app. Restart{' '}
+          <code className="rounded bg-surface-2 px-1 py-0.5 text-ink">npm run dev</code> after changes.
         </p>
 
         {failedStatus ? (
-          <div className="grid gap-2 rounded-xl border border-border bg-surface-2 p-3">
-            <div className="text-xs font-semibold text-text">Checks failed</div>
+          <div className="los-panel grid gap-2 p-3">
+            <div className="text-xs font-extrabold uppercase tracking-wide text-purple">Checks failed</div>
             <ul className="grid gap-2">
               {failedStatus.issues.map((issue) => (
-                <li key={issue} className="text-sm text-muted">
+                <li key={issue} className="text-sm text-muted-ink">
                   {issueMessages[issue]}
                 </li>
               ))}
             </ul>
 
             {failedStatus.url ? (
-              <div className="text-xs text-muted">
-                URL value: <code className="text-text">{failedStatus.url}</code>
+              <div className="text-xs text-muted-ink">
+                URL value: <code className="text-ink">{failedStatus.url}</code>
               </div>
             ) : null}
 
             {failedStatus.maskedKey ? (
-              <div className="text-xs text-muted">
+              <div className="text-xs text-muted-ink">
                 Key detected
                 {failedStatus.usedKeyVar ? (
                   <>
                     {' '}
-                    via <code className="text-text">{failedStatus.usedKeyVar}</code>
+                    via <code className="text-ink">{failedStatus.usedKeyVar}</code>
                   </>
                 ) : null}
-                : <code className="text-text">{failedStatus.maskedKey}</code>
+                : <code className="text-ink">{failedStatus.maskedKey}</code>
               </div>
             ) : null}
           </div>
         ) : (
           <p>
-            Set <code className="rounded bg-surface-2 px-1 py-0.5 text-text">VITE_SUPABASE_URL</code> and{' '}
-            <code className="rounded bg-surface-2 px-1 py-0.5 text-text">VITE_SUPABASE_ANON_KEY</code> in{' '}
-            <code className="rounded bg-surface-2 px-1 py-0.5 text-text">.env.local</code>.
+            Set <code className="rounded bg-surface-2 px-1 py-0.5 text-ink">VITE_SUPABASE_URL</code> and{' '}
+            <code className="rounded bg-surface-2 px-1 py-0.5 text-ink">VITE_SUPABASE_ANON_KEY</code> in{' '}
+            <code className="rounded bg-surface-2 px-1 py-0.5 text-ink">.env.local</code>.
           </p>
         )}
 

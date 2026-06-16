@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
+import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -216,7 +217,7 @@ export function AdminPage() {
     return (
       <div className="grid gap-4">
         <Card title="Admin" description="Loading...">
-          <p className="text-sm text-muted">Please wait.</p>
+          <p className="text-sm text-muted-ink">Please wait.</p>
         </Card>
       </div>
     )
@@ -227,7 +228,7 @@ export function AdminPage() {
       <div className="grid gap-4">
         <Card title="Admin" description="Login required">
           <div className="grid gap-3">
-            <p className="text-sm text-muted">Log in with an admin account to access admin controls.</p>
+            <p className="text-sm text-muted-ink">Log in with an admin account to access admin controls.</p>
             <ButtonLink to="/login">Log in</ButtonLink>
           </div>
         </Card>
@@ -239,7 +240,7 @@ export function AdminPage() {
     return (
       <div className="grid gap-4">
         <Card title="Admin" description="Access denied">
-          <p className="text-sm text-muted">You do not have admin access.</p>
+          <p className="text-sm text-muted-ink">You do not have admin access.</p>
         </Card>
       </div>
     )
@@ -250,58 +251,46 @@ export function AdminPage() {
       <Card
         title="Admin"
         description="Payments and selection windows"
-        right={
-          <span className="inline-flex items-center rounded-full border border-border bg-surface-2 px-3 py-1 text-xs font-semibold text-muted">
-            Admin
-          </span>
-        }
+        right={<Badge variant="warning">Admin</Badge>}
       >
-        {pageError ? (
-          <div className="mb-4 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text">
-            {pageError}
-          </div>
-        ) : null}
+        {pageError ? <div className="mb-4 los-alert los-alert-error">{pageError}</div> : null}
 
         <div className="grid gap-4">
-          <section className="rounded-xl border border-border bg-surface-2 p-3">
-            <h2 className="text-sm font-semibold text-text">Current game summary</h2>
+          <section className="los-admin-section">
+            <h2 className="text-sm font-extrabold uppercase tracking-wide text-purple">Current game summary</h2>
             {game ? (
-              <div className="mt-2 grid gap-1 text-sm text-muted">
+              <div className="mt-2 grid gap-1 text-sm text-muted-ink">
                 <div>
                   Game {game.game_number} • {game.season}
                 </div>
                 <div>Status: {game.status}</div>
-                <div>Pot: {formatGBP(game.current_pot)}</div>
+                <div className="font-bold text-ink">Pot: {formatGBP(game.current_pot)}</div>
               </div>
             ) : (
-              <p className="mt-2 text-sm text-muted">Game 27 not found. Run the seed SQL in Supabase.</p>
+              <p className="mt-2 text-sm text-muted-ink">Game 27 not found. Run the seed SQL in Supabase.</p>
             )}
           </section>
 
-          <section className="rounded-xl border border-border bg-surface-2 p-3">
+          <section className="los-admin-section">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-text">Selection window</h2>
-              <button
-                type="button"
-                onClick={() => void handleCreateNewWindow()}
-                className="rounded-lg border border-border bg-surface px-3 py-1 text-xs hover:bg-surface-2"
-              >
+              <h2 className="text-sm font-extrabold uppercase tracking-wide text-purple">Selection window</h2>
+              <button type="button" onClick={() => void handleCreateNewWindow()} className="los-admin-btn">
                 New window
               </button>
             </div>
 
             {currentWindow ? (
-              <p className="mt-2 text-xs text-muted">
+              <p className="mt-2 text-xs text-muted-ink">
                 Current window: #{currentWindow.window_number} • status {currentWindow.status}
               </p>
             ) : (
-              <p className="mt-2 text-xs text-muted">No selection window created yet.</p>
+              <p className="mt-2 text-xs text-muted-ink">No selection window created yet.</p>
             )}
 
             {game ? (
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <label className="grid gap-1">
-                  <span className="text-xs font-semibold text-muted">Window number</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Window number</span>
                   <input
                     type="number"
                     min={1}
@@ -309,12 +298,12 @@ export function AdminPage() {
                     onChange={(e) =>
                       setWindowForm((prev) => ({ ...prev, window_number: Number(e.target.value) }))
                     }
-                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                    className="los-input !h-10"
                   />
                 </label>
 
                 <label className="grid gap-1">
-                  <span className="text-xs font-semibold text-muted">Status</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Status</span>
                   <select
                     value={windowForm.status}
                     onChange={(e) =>
@@ -323,7 +312,7 @@ export function AdminPage() {
                         status: e.target.value as SelectionWindowStatus,
                       }))
                     }
-                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                    className="los-input !h-10"
                   >
                     {windowStatuses.map((status) => (
                       <option key={status} value={status}>
@@ -334,32 +323,32 @@ export function AdminPage() {
                 </label>
 
                 <label className="grid gap-1">
-                  <span className="text-xs font-semibold text-muted">Start</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Start</span>
                   <input
                     type="datetime-local"
                     value={windowForm.start_at}
                     onChange={(e) => setWindowForm((prev) => ({ ...prev, start_at: e.target.value }))}
-                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                    className="los-input !h-10"
                   />
                 </label>
 
                 <label className="grid gap-1">
-                  <span className="text-xs font-semibold text-muted">End</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">End</span>
                   <input
                     type="datetime-local"
                     value={windowForm.end_at}
                     onChange={(e) => setWindowForm((prev) => ({ ...prev, end_at: e.target.value }))}
-                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                    className="los-input !h-10"
                   />
                 </label>
 
                 <label className="grid gap-1 md:col-span-2">
-                  <span className="text-xs font-semibold text-muted">Deadline</span>
+                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Deadline</span>
                   <input
                     type="datetime-local"
                     value={windowForm.deadline_at}
                     onChange={(e) => setWindowForm((prev) => ({ ...prev, deadline_at: e.target.value }))}
-                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                    className="los-input !h-10"
                   />
                 </label>
               </div>
@@ -371,7 +360,7 @@ export function AdminPage() {
                   type="button"
                   disabled={windowSaving}
                   onClick={() => void handleSaveWindow()}
-                  className="rounded-lg border border-accent bg-accent px-3 py-2 text-sm font-semibold text-bg disabled:opacity-50"
+                  className="los-btn-primary h-10 disabled:opacity-50"
                 >
                   {windowSaving ? 'Saving...' : editingWindowId ? 'Update window' : 'Create window'}
                 </button>
@@ -380,7 +369,7 @@ export function AdminPage() {
                     type="button"
                     disabled={windowSaving}
                     onClick={() => void handleLockWindow()}
-                    className="rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-2 disabled:opacity-50"
+                    className="los-btn-secondary h-10 disabled:opacity-50"
                   >
                     Lock window
                   </button>
@@ -389,14 +378,14 @@ export function AdminPage() {
             ) : null}
           </section>
 
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-text">Payments</h2>
+          <section className="los-admin-section">
+            <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wide text-purple">Payments</h2>
 
             {game ? (
               <div className="overflow-x-auto">
                 <table className="min-w-[960px] w-full border-separate border-spacing-0">
                   <thead>
-                    <tr className="text-left text-xs font-semibold text-muted">
+                    <tr className="text-left text-xs font-extrabold uppercase tracking-wide text-muted-ink">
                       <th className="border-b border-border px-3 py-3">Player</th>
                       <th className="border-b border-border px-3 py-3">Phone</th>
                       <th className="border-b border-border px-3 py-3">Email</th>
@@ -412,7 +401,7 @@ export function AdminPage() {
                   <tbody>
                     {entries.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="px-3 py-4 text-sm text-muted">
+                        <td colSpan={10} className="px-3 py-4 text-sm text-muted-ink">
                           No entries yet.
                         </td>
                       </tr>
@@ -421,29 +410,29 @@ export function AdminPage() {
                         const busy = actionId === row.id
                         return (
                           <tr key={row.id} className="text-sm">
-                            <td className="border-b border-border/70 px-3 py-3 font-semibold">
+                            <td className="border-b border-border/70 px-3 py-3 font-bold text-ink">
                               {row.player.display_name}
                             </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
                               {row.player.phone ?? '—'}
                             </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">{row.player.email}</td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">{row.player.email}</td>
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
                               {formatEntryType(row.entry_type)}
                             </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
                               {formatGBP(row.amount_due)}
                             </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
                               {row.payment_claimed ? 'Yes' : 'No'}
                             </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
                               {row.paid ? 'Yes' : 'No'}
                             </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
                               {row.paid_at ? new Date(row.paid_at).toLocaleString('en-GB') : '—'}
                             </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted">{row.status}</td>
+                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">{row.status}</td>
                             <td className="border-b border-border/70 px-3 py-3">
                               <div className="flex flex-wrap gap-1">
                                 {!row.paid ? (
@@ -451,7 +440,7 @@ export function AdminPage() {
                                     type="button"
                                     disabled={busy}
                                     onClick={() => void handleVerifyPayment(row.id)}
-                                    className="rounded-lg border border-border bg-surface px-2 py-1 text-xs hover:bg-surface-2 disabled:opacity-50"
+                                    className="los-admin-btn disabled:opacity-50"
                                   >
                                     Verify
                                   </button>
@@ -460,7 +449,7 @@ export function AdminPage() {
                                   type="button"
                                   disabled={busy}
                                   onClick={() => void handleSetEntryType(row.id, 'existing')}
-                                  className="rounded-lg border border-border bg-surface px-2 py-1 text-xs hover:bg-surface-2 disabled:opacity-50"
+                                  className="los-admin-btn disabled:opacity-50"
                                 >
                                   Existing
                                 </button>
@@ -468,7 +457,7 @@ export function AdminPage() {
                                   type="button"
                                   disabled={busy}
                                   onClick={() => void handleSetEntryType(row.id, 'newbie')}
-                                  className="rounded-lg border border-border bg-surface px-2 py-1 text-xs hover:bg-surface-2 disabled:opacity-50"
+                                  className="los-admin-btn disabled:opacity-50"
                                 >
                                   Newbie
                                 </button>
@@ -476,7 +465,7 @@ export function AdminPage() {
                                   type="button"
                                   disabled={busy}
                                   onClick={() => void handleSetEntryType(row.id, 'admin_comp')}
-                                  className="rounded-lg border border-border bg-surface px-2 py-1 text-xs hover:bg-surface-2 disabled:opacity-50"
+                                  className="los-admin-btn disabled:opacity-50"
                                 >
                                   Comp
                                 </button>
@@ -494,9 +483,9 @@ export function AdminPage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             {placeholderSections.map((s) => (
-              <div key={s.title} className="rounded-xl border border-border bg-surface-2 p-3">
-                <div className="text-sm font-semibold text-text">{s.title}</div>
-                <div className="mt-1 text-sm text-muted">{s.body}</div>
+              <div key={s.title} className="los-panel p-3">
+                <div className="text-sm font-bold text-purple">{s.title}</div>
+                <div className="mt-1 text-sm text-muted-ink">{s.body}</div>
               </div>
             ))}
           </div>

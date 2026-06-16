@@ -1,28 +1,39 @@
 @import "tailwindcss";
 
-/* App palette: dark navy + green + white + gold accent */
 :root {
-  --los-bg: #071225; /* navy 950-ish */
-  --los-surface: #0b1b34;
-  --los-surface-2: #0f2546;
-  --los-border: rgba(255, 255, 255, 0.08);
-  --los-text: rgba(255, 255, 255, 0.88);
-  --los-muted: rgba(255, 255, 255, 0.66);
-  --los-gold: #f5c542;
-  --los-green: #22c55e;
+  --los-purple: #37003c;
+  --los-purple-dark: #1b1022;
+  --los-cyan: #00ffea;
+  --los-magenta: #ff2882;
+  --los-lime: #d0ff00;
+  --los-white: #ffffff;
+  --los-grey: #f5f7fa;
+  --los-ink: #14121a;
+  --los-muted: #5c5668;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @theme {
-  --color-bg: var(--los-bg);
-  --color-surface: var(--los-surface);
-  --color-surface-2: var(--los-surface-2);
-  --color-border: var(--los-border);
-  --color-text: var(--los-text);
+  --font-sans: Inter, Arial, Helvetica, sans-serif;
+
+  --color-purple: var(--los-purple);
+  --color-purple-dark: var(--los-purple-dark);
+  --color-cyan: var(--los-cyan);
+  --color-magenta: var(--los-magenta);
+  --color-lime: var(--los-lime);
+  --color-surface-card: var(--los-grey);
+  --color-ink: var(--los-ink);
+  --color-muted-ink: var(--los-muted);
+
+  --color-bg: var(--los-purple-dark);
+  --color-surface: var(--los-white);
+  --color-surface-2: var(--los-grey);
+  --color-border: rgba(20, 18, 26, 0.1);
+  --color-text: var(--los-ink);
   --color-muted: var(--los-muted);
-  --color-accent: var(--los-gold);
-  --color-success: var(--los-green);
+  --color-accent: var(--los-magenta);
+  --color-success: var(--los-lime);
 }
 
 html,
@@ -32,10 +43,228 @@ body {
 
 body {
   margin: 0;
-  background: var(--los-bg);
-  color: var(--los-text);
+  font-family: var(--font-sans);
+  background: linear-gradient(165deg, var(--los-purple-dark) 0%, var(--los-purple) 48%, #2a0830 100%);
+  color: var(--los-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Shared UI primitives */
+.los-card {
+  border-radius: 1.5rem;
+  background: var(--los-white);
+  color: var(--los-ink);
+  box-shadow:
+    0 18px 40px rgba(27, 16, 34, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+
+.los-card-header {
+  border-bottom: 1px solid rgba(20, 18, 26, 0.08);
+  background: linear-gradient(90deg, rgba(55, 0, 60, 0.06), rgba(0, 255, 234, 0.08));
+}
+
+.los-panel {
+  border-radius: 1rem;
+  border: 1px solid rgba(20, 18, 26, 0.08);
+  background: var(--los-grey);
+}
+
+.los-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--los-purple-dark);
+  background: linear-gradient(135deg, var(--los-magenta), var(--los-cyan));
+  border: none;
+  box-shadow: 0 8px 20px rgba(255, 40, 130, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.los-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.los-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.los-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--los-purple);
+  background: transparent;
+  border: 2px solid var(--los-purple);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.los-btn-secondary:hover:not(:disabled) {
+  background: rgba(55, 0, 60, 0.06);
+}
+
+.los-input {
+  height: 2.75rem;
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(20, 18, 26, 0.14);
+  background: var(--los-white);
+  padding: 0 0.85rem;
+  font-size: 0.875rem;
+  color: var(--los-ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.los-input:focus {
+  border-color: var(--los-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 255, 234, 0.22);
+}
+
+.los-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.los-badge-success {
+  background: rgba(208, 255, 0, 0.22);
+  color: #2f3d00;
+  border: 1px solid rgba(208, 255, 0, 0.55);
+}
+
+.los-badge-warning {
+  background: rgba(255, 40, 130, 0.12);
+  color: #8b1348;
+  border: 1px solid rgba(255, 40, 130, 0.35);
+}
+
+.los-badge-muted {
+  background: rgba(20, 18, 26, 0.08);
+  color: var(--los-muted);
+  border: 1px solid rgba(20, 18, 26, 0.12);
+}
+
+.los-badge-open {
+  background: rgba(0, 255, 234, 0.16);
+  color: #0a5c56;
+  border: 1px solid rgba(0, 255, 234, 0.45);
+}
+
+.los-fixture-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 1rem;
+  border: 1px solid rgba(20, 18, 26, 0.1);
+  background: var(--los-white);
+  padding: 0.85rem 0.9rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.los-fixture-tile:hover:not(:disabled) {
+  border-color: rgba(0, 255, 234, 0.45);
+  box-shadow: 0 8px 18px rgba(27, 16, 34, 0.12);
+}
+
+.los-fixture-tile-selected {
+  border-color: var(--los-magenta);
+  box-shadow:
+    0 0 0 2px rgba(255, 40, 130, 0.25),
+    0 10px 22px rgba(255, 40, 130, 0.18);
+}
+
+.los-fixture-tile-used {
+  opacity: 0.62;
+  background: rgba(245, 247, 250, 0.9);
+}
+
+.los-alert {
+  border-radius: 0.9rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+}
+
+.los-alert-success {
+  border: 1px solid rgba(208, 255, 0, 0.45);
+  background: rgba(208, 255, 0, 0.14);
+  color: var(--los-ink);
+}
+
+.los-alert-error {
+  border: 1px solid rgba(255, 40, 130, 0.3);
+  background: rgba(255, 40, 130, 0.08);
+  color: var(--los-ink);
+}
+
+.los-admin-section {
+  border-radius: 1rem;
+  border: 1px solid rgba(20, 18, 26, 0.08);
+  background: var(--los-grey);
+  padding: 1rem;
+}
+
+.los-admin-btn {
+  border-radius: 0.65rem;
+  border: 1px solid rgba(55, 0, 60, 0.2);
+  background: var(--los-white);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--los-purple);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.los-admin-btn:hover:not(:disabled) {
+  background: rgba(55, 0, 60, 0.06);
+  border-color: rgba(55, 0, 60, 0.35);
+}
+
+.los-admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.los-result-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(20, 18, 26, 0.1);
+  background: var(--los-white);
+  padding: 0.85rem 1rem;
+  box-shadow: 0 6px 16px rgba(27, 16, 34, 0.08);
+}
+
+.los-result-card-current {
+  border-color: rgba(0, 255, 234, 0.45);
+  background: linear-gradient(135deg, rgba(0, 255, 234, 0.08), rgba(55, 0, 60, 0.04));
+  box-shadow:
+    0 10px 24px rgba(0, 255, 234, 0.12),
+    0 0 0 1px rgba(0, 255, 234, 0.2) inset;
+}
+
+.los-selection-row {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(20, 18, 26, 0.08);
+  background: var(--los-grey);
+  padding: 0.85rem 1rem;
 }

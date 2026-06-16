@@ -94,7 +94,7 @@ export function DashboardPage() {
     return (
       <div className="grid gap-4">
         <Card title="Dashboard" description="Loading your account...">
-          <p className="text-sm text-muted">Please wait.</p>
+          <p className="text-sm text-muted-ink">Please wait.</p>
         </Card>
       </div>
     )
@@ -105,7 +105,7 @@ export function DashboardPage() {
       <div className="grid gap-4">
         <Card title="Dashboard" description="You are not logged in">
           <div className="grid gap-3">
-            <p className="text-sm text-muted">Log in or create an account to view your player dashboard.</p>
+            <p className="text-sm text-muted-ink">Log in or create an account to view your player dashboard.</p>
             <div className="flex flex-wrap gap-2">
               <ButtonLink to="/login">Log in</ButtonLink>
               <ButtonLink to="/signup" variant="secondary">
@@ -134,36 +134,30 @@ export function DashboardPage() {
       >
         <div className="grid gap-4">
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-border bg-surface-2 p-3">
-              <div className="text-xs font-semibold text-muted">Display name</div>
-              <div className="mt-1 text-sm font-semibold text-text">{displayName}</div>
+            <div className="los-panel p-3">
+              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Display name</div>
+              <div className="mt-1 text-sm font-bold text-ink">{displayName}</div>
             </div>
 
-            <div className="rounded-xl border border-border bg-surface-2 p-3">
-              <div className="text-xs font-semibold text-muted">Phone</div>
-              <div className="mt-1 text-sm text-text">{phone}</div>
+            <div className="los-panel p-3">
+              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Phone</div>
+              <div className="mt-1 text-sm text-ink">{phone}</div>
             </div>
 
-            <div className="rounded-xl border border-border bg-surface-2 p-3">
-              <div className="text-xs font-semibold text-muted">Email</div>
-              <div className="mt-1 text-sm text-text">{email}</div>
+            <div className="los-panel p-3">
+              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Email</div>
+              <div className="mt-1 text-sm text-ink">{email}</div>
             </div>
           </div>
 
           {!player ? (
-            <div className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-muted">
-              Your auth account is active, but no linked player profile was found yet.
-            </div>
+            <div className="los-alert los-alert-error">Your auth account is active, but no linked player profile was found yet.</div>
           ) : null}
 
-          {pageError ? (
-            <div className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text">
-              {pageError}
-            </div>
-          ) : null}
+          {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
 
           {!game ? (
-            <div className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-muted">
+            <div className="los-panel px-3 py-3 text-sm text-muted-ink">
               Game 27 has not been seeded in the database yet. Ask an admin to run the Supabase seed SQL.
             </div>
           ) : player ? (

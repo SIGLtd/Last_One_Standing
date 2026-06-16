@@ -51,14 +51,18 @@ export type GameEntryWithPlayer = GameEntry & {
   player: Pick<Player, 'display_name' | 'phone' | 'email'>
 }
 
+export type SelectionWindowStatus = 'pending' | 'open' | 'locked' | 'resolving' | 'resolved'
+
 export type SelectionWindow = {
   id: UUID
-  created_at: string
   game_id: UUID
   window_number: number
-  opens_at: string
-  locks_at: string
-  status: 'upcoming' | 'open' | 'locked' | 'complete' | 'cancelled'
+  start_at: string
+  end_at: string
+  deadline_at: string
+  status: SelectionWindowStatus
+  created_at: string
+  updated_at: string
 }
 
 export type Team = {
@@ -79,14 +83,24 @@ export type Fixture = {
 
 export type Selection = {
   id: UUID
-  created_at: string
-  updated_at: string
   game_id: UUID
   window_id: UUID
   player_id: UUID
   team_id: string | null
-  status: 'no_pick' | 'submitted' | 'locked'
-  locked_at?: string | null
+  created_at: string
+  updated_at: string
+  locked_at: string | null
+  admin_corrected: boolean
+  corrected_by: UUID | null
+  correction_reason: string | null
+}
+
+export type WindowPickRow = {
+  player_id: UUID
+  display_name: string
+  team_id: string | null
+  locked_at: string | null
+  entry_status: EntryStatus
 }
 
 export type HistoricalResult = {

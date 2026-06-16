@@ -8,16 +8,23 @@ import {
   adminVerifyPayment,
   fetchCurrentGame,
 } from '../lib/gameEntries'
+import {
+  adminCreateSelectionWindow,
+  adminFetchSelectionWindows,
+  adminLockSelectionWindow,
+  adminUpdateSelectionWindow,
+} from '../lib/selections'
 import { formatGBP } from '../lib/constants'
-import type { EntryType, Game, GameEntryWithPlayer } from '../types'
+import type { EntryType, Game, GameEntryWithPlayer, SelectionWindow, SelectionWindowStatus } from '../types'
 
 const placeholderSections = [
-  { title: 'Selection window', body: 'Placeholder for opening/locking windows and deadlines.' },
   { title: 'Manual selection correction', body: 'Placeholder for correcting picks before/after lock with audit trail.' },
   { title: 'Result resolution', body: 'Placeholder for manual resolution until automation is added.' },
   { title: 'Historical results management', body: 'Placeholder for editing seeded history data.' },
   { title: 'WhatsApp report generator', body: 'Placeholder. No WhatsApp integration in this milestone.' },
 ] as const
+
+const windowStatuses: SelectionWindowStatus[] = ['pending', 'open', 'locked', 'resolving', 'resolved']
 
 function formatEntryType(entryType: EntryType) {
   switch (entryType) {
@@ -30,13 +37,40 @@ function formatEntryType(entryType: EntryType) {
   }
 }
 
+function toDateTimeLocalValue(iso: string) {
+  const date = new Date(iso)
+  const offset = date.getTimezoneOffset()
+  const local = new Date(date.getTime() - offset * 60_000)
+  return local.toISOString().slice(0, 16)
+}
+
+function defaultWindowForm(windowNumber: number) {
+  const start = new Date()
+  const end = new Date(start.getTime() + 48 * 60 * 60 * 1000)
+  const deadline = new Date(start.getTime() + 24 * 60 * 60 * 1000)
+
+  return {
+    window_number: windowNumber,
+    start_at: toDateTimeLocalValue(start.toISOString()),
+    end_at: toDateTimeLocalValue(end.toISOString()),
+    deadline_at: toDateTimeLocalValue(deadline.toISOString()),
+    status: 'open' as SelectionWindowStatus,
+  }
+}
+
 export function AdminPage() {
   const { user, player, loading } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [entries, setEntries] = useState<GameEntryWithPlayer[]>([])
+  const [windows, setWindows] = useState<SelectionWindow[]>([])
+  const [windowForm, setWindowForm] = useState(defaultWindowForm(1))
+  const [editingWindowId, setEditingWindowId] = useState<string | null>(null)
   const [pageLoading, setPageLoading] = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
   const [actionId, setActionId] = useState<string | null>(null)
+  const [windowSaving, setWindowSaving] = useState(false)
+
+  const currentWindow = windows[0] ?? null
 
   const loadAdminData = useCallback(async () => {
     if (!player?.is_admin) {
@@ -52,10 +86,30 @@ export function AdminPage() {
       setGame(currentGame)
 
       if (currentGame) {
-        const gameEntries = await adminFetchGameEntries(currentGame.id)
+        const [gameEntries, gameWindows] = await Promise.all([
+          adminFetchGameEntries(currentGame.id),
+          adminFetchSelectionWindows(currentGame.id),
+        ])
         setEntries(gameEntries)
+        setWindows(gameWindows)
+
+        const latest = gameWindows[0]
+        if (latest) {
+          setEditingWindowId(latest.id)
+          setWindowForm({
+            window_number: latest.window_number,
+            start_at: toDateTimeLocalValue(latest.start_at),
+            end_at: toDateTimeLocalValue(latest.end_at),
+            deadline_at: toDateTimeLocalValue(latest.deadline_at),
+            status: latest.status,
+          })
+        } else {
+          setEditingWindowId(null)
+          setWindowForm(defaultWindowForm(1))
+        }
       } else {
         setEntries([])
+        setWindows([])
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load admin data.'
@@ -79,8 +133,7 @@ export function AdminPage() {
 
     try {
       await adminVerifyPayment(entryId)
-      const gameEntries = await adminFetchGameEntries(game.id)
-      setEntries(gameEntries)
+      await loadAdminData()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to verify payment.'
       setPageError(message)
@@ -97,13 +150,65 @@ export function AdminPage() {
 
     try {
       await adminSetEntryType(entryId, entryType, game)
-      const gameEntries = await adminFetchGameEntries(game.id)
-      setEntries(gameEntries)
+      await loadAdminData()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update entry type.'
       setPageError(message)
     } finally {
       setActionId(null)
+    }
+  }
+
+  async function handleSaveWindow() {
+    if (!game) return
+
+    setWindowSaving(true)
+    setPageError(null)
+
+    const payload = {
+      window_number: windowForm.window_number,
+      start_at: new Date(windowForm.start_at).toISOString(),
+      end_at: new Date(windowForm.end_at).toISOString(),
+      deadline_at: new Date(windowForm.deadline_at).toISOString(),
+      status: windowForm.status,
+    }
+
+    try {
+      if (editingWindowId) {
+        await adminUpdateSelectionWindow(editingWindowId, payload)
+      } else {
+        await adminCreateSelectionWindow(game.id, payload)
+      }
+
+      await loadAdminData()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save selection window.'
+      setPageError(message)
+    } finally {
+      setWindowSaving(false)
+    }
+  }
+
+  async function handleCreateNewWindow() {
+    const nextNumber = (windows[0]?.window_number ?? 0) + 1
+    setEditingWindowId(null)
+    setWindowForm(defaultWindowForm(nextNumber))
+  }
+
+  async function handleLockWindow() {
+    if (!editingWindowId) return
+
+    setWindowSaving(true)
+    setPageError(null)
+
+    try {
+      await adminLockSelectionWindow(editingWindowId)
+      await loadAdminData()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to lock selection window.'
+      setPageError(message)
+    } finally {
+      setWindowSaving(false)
     }
   }
 
@@ -144,7 +249,7 @@ export function AdminPage() {
     <div className="grid gap-4">
       <Card
         title="Admin"
-        description="Payment verification and entry management"
+        description="Payments and selection windows"
         right={
           <span className="inline-flex items-center rounded-full border border-border bg-surface-2 px-3 py-1 text-xs font-semibold text-muted">
             Admin
@@ -162,22 +267,130 @@ export function AdminPage() {
             <h2 className="text-sm font-semibold text-text">Current game summary</h2>
             {game ? (
               <div className="mt-2 grid gap-1 text-sm text-muted">
-                <div>Game {game.game_number} • {game.season}</div>
+                <div>
+                  Game {game.game_number} • {game.season}
+                </div>
                 <div>Status: {game.status}</div>
                 <div>Pot: {formatGBP(game.current_pot)}</div>
-                <div>Returning fee: {formatGBP(game.standard_entry_fee)}</div>
-                <div>Newbie fee: {formatGBP(game.newbie_entry_fee)}</div>
               </div>
             ) : (
               <p className="mt-2 text-sm text-muted">Game 27 not found. Run the seed SQL in Supabase.</p>
             )}
           </section>
 
+          <section className="rounded-xl border border-border bg-surface-2 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-text">Selection window</h2>
+              <button
+                type="button"
+                onClick={() => void handleCreateNewWindow()}
+                className="rounded-lg border border-border bg-surface px-3 py-1 text-xs hover:bg-surface-2"
+              >
+                New window
+              </button>
+            </div>
+
+            {currentWindow ? (
+              <p className="mt-2 text-xs text-muted">
+                Current window: #{currentWindow.window_number} • status {currentWindow.status}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-muted">No selection window created yet.</p>
+            )}
+
+            {game ? (
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-muted">Window number</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={windowForm.window_number}
+                    onChange={(e) =>
+                      setWindowForm((prev) => ({ ...prev, window_number: Number(e.target.value) }))
+                    }
+                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                  />
+                </label>
+
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-muted">Status</span>
+                  <select
+                    value={windowForm.status}
+                    onChange={(e) =>
+                      setWindowForm((prev) => ({
+                        ...prev,
+                        status: e.target.value as SelectionWindowStatus,
+                      }))
+                    }
+                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                  >
+                    {windowStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-muted">Start</span>
+                  <input
+                    type="datetime-local"
+                    value={windowForm.start_at}
+                    onChange={(e) => setWindowForm((prev) => ({ ...prev, start_at: e.target.value }))}
+                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                  />
+                </label>
+
+                <label className="grid gap-1">
+                  <span className="text-xs font-semibold text-muted">End</span>
+                  <input
+                    type="datetime-local"
+                    value={windowForm.end_at}
+                    onChange={(e) => setWindowForm((prev) => ({ ...prev, end_at: e.target.value }))}
+                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                  />
+                </label>
+
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-xs font-semibold text-muted">Deadline</span>
+                  <input
+                    type="datetime-local"
+                    value={windowForm.deadline_at}
+                    onChange={(e) => setWindowForm((prev) => ({ ...prev, deadline_at: e.target.value }))}
+                    className="h-10 rounded-xl border border-border bg-surface px-3 text-sm"
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {game ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={windowSaving}
+                  onClick={() => void handleSaveWindow()}
+                  className="rounded-lg border border-accent bg-accent px-3 py-2 text-sm font-semibold text-bg disabled:opacity-50"
+                >
+                  {windowSaving ? 'Saving...' : editingWindowId ? 'Update window' : 'Create window'}
+                </button>
+                {editingWindowId ? (
+                  <button
+                    type="button"
+                    disabled={windowSaving}
+                    onClick={() => void handleLockWindow()}
+                    className="rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:bg-surface-2 disabled:opacity-50"
+                  >
+                    Lock window
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+
           <section>
             <h2 className="mb-3 text-sm font-semibold text-text">Payments</h2>
-            <p className="mb-3 text-xs text-muted">
-              Admin controls are UI-gated by player.is_admin. RLS admin policies must also be applied in Supabase.
-            </p>
 
             {game ? (
               <div className="overflow-x-auto">

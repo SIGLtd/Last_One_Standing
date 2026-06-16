@@ -28,11 +28,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type selection_window_status as enum ('upcoming','open','locked','complete','cancelled');
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  create type selection_status as enum ('no_pick','submitted','locked');
+  create type selection_window_status as enum ('pending','open','locked','resolving','resolved');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -94,14 +90,16 @@ create table if not exists game_entries (
 
 create table if not exists selection_windows (
   id uuid primary key default gen_random_uuid(),
-  created_at timestamptz not null default now(),
   game_id uuid not null references games(id) on delete cascade,
   window_number int not null check (window_number >= 1),
-  opens_at timestamptz not null,
-  locks_at timestamptz not null,
-  status selection_window_status not null default 'upcoming',
+  start_at timestamptz not null,
+  end_at timestamptz not null,
+  deadline_at timestamptz not null,
+  status selection_window_status not null default 'pending',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   unique (game_id, window_number),
-  check (locks_at > opens_at)
+  check (end_at > start_at and deadline_at >= start_at)
 );
 
 -- Teams are a static catalog (20 teams), but stored for relational integrity and history.
@@ -124,19 +122,18 @@ create table if not exists fixtures (
 
 create table if not exists selections (
   id uuid primary key default gen_random_uuid(),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
   game_id uuid not null references games(id) on delete cascade,
   window_id uuid not null references selection_windows(id) on delete cascade,
   player_id uuid not null references players(id) on delete cascade,
-  team_id text references teams(id),
-  status selection_status not null default 'no_pick',
+  team_id text,
   locked_at timestamptz,
+  admin_corrected boolean not null default false,
+  corrected_by uuid references players(id) on delete set null,
+  correction_reason text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
 
-  -- one selection per player per window
   unique (window_id, player_id),
-
-  -- no duplicate selected team per player per game (when team_id is set)
   constraint unique_team_per_player_per_game unique (game_id, player_id, team_id)
 );
 
@@ -175,6 +172,10 @@ for each row execute procedure set_updated_at();
 
 drop trigger if exists trg_game_entries_updated_at on game_entries;
 create trigger trg_game_entries_updated_at before update on game_entries
+for each row execute procedure set_updated_at();
+
+drop trigger if exists trg_selection_windows_updated_at on selection_windows;
+create trigger trg_selection_windows_updated_at before update on selection_windows
 for each row execute procedure set_updated_at();
 
 drop trigger if exists trg_selections_updated_at on selections;
@@ -260,10 +261,25 @@ create policy "game_entries_update_admin" on game_entries for update
 using (public.is_admin())
 with check (public.is_admin());
 
--- Most other tables: readable by all for now (private group); writes reserved for service role/admin later
+drop policy if exists "game_entries_read_all" on game_entries;
+create policy "game_entries_read_all" on game_entries for select using (true);
+
+drop policy if exists "players_read_authenticated" on players;
+create policy "players_read_authenticated" on players for select using (auth.uid() is not null);
+
+drop policy if exists "players_read_all" on players;
+create policy "players_read_all" on players for select using (true);
 
 drop policy if exists "selection_windows_read_all" on selection_windows;
 create policy "selection_windows_read_all" on selection_windows for select using (true);
+
+drop policy if exists "selection_windows_insert_admin" on selection_windows;
+create policy "selection_windows_insert_admin" on selection_windows for insert
+with check (public.is_admin());
+
+drop policy if exists "selection_windows_update_admin" on selection_windows;
+create policy "selection_windows_update_admin" on selection_windows for update
+using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "teams_read_all" on teams;
 create policy "teams_read_all" on teams for select using (true);
@@ -274,18 +290,27 @@ create policy "fixtures_read_all" on fixtures for select using (true);
 drop policy if exists "selections_read_all" on selections;
 create policy "selections_read_all" on selections for select using (true);
 
-drop policy if exists "historical_results_read_all" on historical_results;
-create policy "historical_results_read_all" on historical_results for select using (true);
-
--- Selection writes: allow authenticated users to upsert their own selection rows (simple MVP)
 drop policy if exists "selections_insert_own" on selections;
 create policy "selections_insert_own" on selections for insert
 with check (auth.uid() = (select user_id from players where players.id = selections.player_id));
 
 drop policy if exists "selections_update_own" on selections;
 create policy "selections_update_own" on selections for update
-using (auth.uid() = (select user_id from players where players.id = selections.player_id))
-with check (auth.uid() = (select user_id from players where players.id = selections.player_id));
+using (
+  auth.uid() = (select user_id from players where players.id = selections.player_id)
+  and locked_at is null
+)
+with check (
+  auth.uid() = (select user_id from players where players.id = selections.player_id)
+  and locked_at is null
+);
+
+drop policy if exists "selections_update_admin" on selections;
+create policy "selections_update_admin" on selections for update
+using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "historical_results_read_all" on historical_results;
+create policy "historical_results_read_all" on historical_results for select using (true);
 
 -- Seed Game 27 (run once; safe to re-run with on conflict)
 insert into games (

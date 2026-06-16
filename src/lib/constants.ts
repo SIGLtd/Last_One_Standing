@@ -13,6 +13,13 @@ export const STATUS = {
   offSeason: true,
 } as const
 
+export const BANK_DETAILS = {
+  bank: 'Santander',
+  accountName: 'Iain Clark',
+  sortCode: '09-01-28',
+  accountNumber: '52706304',
+} as const
+
 export function formatGBP(value: number) {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(value)
 }

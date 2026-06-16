@@ -11,24 +11,44 @@ export type Player = {
   is_admin: boolean
 }
 
+export type EntryType = 'existing' | 'newbie' | 'admin_comp'
+
+export type EntryStatus = 'pending_payment' | 'active' | 'eliminated' | 'winner' | 'withdrawn'
+
 export type Game = {
   id: UUID
-  created_at: string
   game_number: number
-  pot_gbp: number
+  season: string
   status: 'off_season' | 'open' | 'in_progress' | 'complete' | 'rolled_over'
-  notes?: string | null
+  standard_entry_fee: number
+  newbie_entry_fee: number
+  rollover_contribution: number
+  opening_pot: number
+  current_pot: number
+  winner_player_id: UUID | null
+  result_type: string
+  created_at: string
+  opened_at: string | null
+  closed_at: string | null
 }
 
 export type GameEntry = {
   id: UUID
-  created_at: string
   game_id: UUID
   player_id: UUID
-  entry_type: 'returning' | 'new'
-  amount_due_gbp: number
-  amount_paid_gbp: number
-  payment_status: 'unpaid' | 'partial' | 'paid' | 'waived'
+  entry_type: EntryType
+  amount_due: number
+  payment_claimed: boolean
+  paid: boolean
+  paid_at: string | null
+  status: EntryStatus
+  eliminated_reason: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type GameEntryWithPlayer = GameEntry & {
+  player: Pick<Player, 'display_name' | 'phone' | 'email'>
 }
 
 export type SelectionWindow = {

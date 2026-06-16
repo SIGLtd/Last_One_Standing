@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* App palette: dark navy + green + white + gold accent */
+:root {
+  --los-bg: #071225; /* navy 950-ish */
+  --los-surface: #0b1b34;
+  --los-surface-2: #0f2546;
+  --los-border: rgba(255, 255, 255, 0.08);
+  --los-text: rgba(255, 255, 255, 0.88);
+  --los-muted: rgba(255, 255, 255, 0.66);
+  --los-gold: #f5c542;
+  --los-green: #22c55e;
+
+  color-scheme: dark;
+}
+
+@theme {
+  --color-bg: var(--los-bg);
+  --color-surface: var(--los-surface);
+  --color-surface-2: var(--los-surface-2);
+  --color-border: var(--los-border);
+  --color-text: var(--los-text);
+  --color-muted: var(--los-muted);
+  --color-accent: var(--los-gold);
+  --color-success: var(--los-green);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--los-bg);
+  color: var(--los-text);
+}
+
+* {
+  box-sizing: border-box;
+}

@@ -1,6 +1,9 @@
 import { getSupabaseOrThrow } from './supabase'
 import type { Selection, SelectionWindow, SelectionWindowStatus, WindowPickRow } from '../types'
 
+// Eligible fixture days for selections: Saturday and Sunday only (see ELIGIBLE_SELECTION_DAYS in constants).
+// Future fixture sync/API filtering should exclude Friday, Monday, and midweek games unless an organiser exception applies.
+
 export type SelectionWindowPayload = {
   window_number: number
   start_at: string

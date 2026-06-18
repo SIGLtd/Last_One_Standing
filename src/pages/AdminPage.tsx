@@ -15,7 +15,7 @@ import {
   adminLockSelectionWindow,
   adminUpdateSelectionWindow,
 } from '../lib/selections'
-import { formatGBP } from '../lib/constants'
+import { formatGBP, formatEligibleSelectionDays } from '../lib/constants'
 import type { EntryType, Game, GameEntryWithPlayer, SelectionWindow, SelectionWindowStatus } from '../types'
 
 const placeholderSections = [
@@ -286,6 +286,17 @@ export function AdminPage() {
             ) : (
               <p className="mt-2 text-xs text-muted-ink">No selection window created yet.</p>
             )}
+
+            <div className="mt-3 los-panel p-3 text-sm text-muted-ink">
+              <p className="font-bold text-purple">Saturday/Sunday rounds only</p>
+              <ul className="mt-2 grid gap-1 pl-4 list-disc">
+                <li>Create windows for {formatEligibleSelectionDays()} fixture rounds only.</li>
+                <li>Do not include Friday or Monday games.</li>
+                <li>
+                  Deadline should be 1 hour before the first eligible {formatEligibleSelectionDays()} kickoff.
+                </li>
+              </ul>
+            </div>
 
             {game ? (
               <div className="mt-3 grid gap-3 md:grid-cols-2">

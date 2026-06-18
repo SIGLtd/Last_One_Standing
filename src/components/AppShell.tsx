@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto max-w-6xl px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <NavLink to="/" className="flex min-w-0 items-center gap-3">
-              <AppLogo className="h-11 w-11 shrink-0" />
+              <AppLogo onDark className="h-7 w-auto max-w-[9.5rem]" />
               <div className="min-w-0">
                 <div className="truncate text-base font-extrabold tracking-tight text-white">{APP_NAME}</div>
                 <div className="text-xs font-semibold text-cyan/90">
@@ -107,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <footer className="hidden border-t border-white/10 bg-purple-dark/90 py-5 md:block">
         <div className="mx-auto max-w-6xl px-4 text-sm text-white/70">
-          Private survival pool app for a WhatsApp group. No Premier League branding.
+          Private survival pool app for a WhatsApp group.
         </div>
       </footer>
 

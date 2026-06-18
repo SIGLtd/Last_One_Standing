@@ -1,5 +1,14 @@
 import { Card } from '../components/Card'
-import { APP_NAME, CURRENT_GAME, CURRENT_POT_GBP, FEES, formatGBP } from '../lib/constants'
+import {
+  APP_NAME,
+  CURRENT_GAME,
+  CURRENT_POT_GBP,
+  FEES,
+  formatEligibleSelectionDays,
+  formatGBP,
+} from '../lib/constants'
+
+const eligibleDays = formatEligibleSelectionDays()
 
 export function RulesPage() {
   const sections = [
@@ -12,9 +21,17 @@ export function RulesPage() {
       ],
     },
     {
+      title: 'Eligible fixtures',
+      items: [
+        `Eligible fixtures are ${eligibleDays} Premier League games only.`,
+        'Friday and Monday fixtures are excluded.',
+        'Tuesday, Wednesday, and Thursday fixtures are also excluded unless the organiser later creates a specific exceptional rule.',
+      ],
+    },
+    {
       title: 'Weekly picks',
       items: [
-        'Players pick one team each eligible weekend.',
+        `Players pick one team from the eligible ${eligibleDays} fixture set each selection window.`,
         'If the team wins, the player survives.',
         'If the team draws, loses, or no pick is made before the deadline, the player is eliminated.',
         'Each team can only be used once per player per game.',
@@ -24,7 +41,7 @@ export function RulesPage() {
     {
       title: 'Deadlines and locking',
       items: [
-        'Picks lock 1 hour before the first eligible weekend fixture.',
+        `Selection deadline is 1 hour before the first eligible ${eligibleDays} fixture in that selection window.`,
         'After lock, selections are read-only.',
       ],
     },

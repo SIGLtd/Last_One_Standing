@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card } from '../components/Card'
+import { AppLogo } from '../components/AppLogo'
 import { SupabaseConfigNotice } from '../components/SupabaseConfigNotice'
 import { useAuth } from '../contexts/AuthContext'
 import { getSupabaseConfigStatus } from '../lib/supabase'
@@ -62,6 +63,9 @@ export function SignupPage() {
 
   return (
     <div className="mx-auto grid max-w-md gap-4">
+      <div className="flex justify-center">
+        <AppLogo className="h-10 w-auto max-w-[12rem]" />
+      </div>
       <Card
         title="Sign up"
         description="Email/password MVP. Phone number is required for the WhatsApp group."

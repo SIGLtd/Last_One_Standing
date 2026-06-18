@@ -4,7 +4,7 @@ import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { TEAMS_2026 } from '../config/teams'
 import { useAuth } from '../contexts/AuthContext'
-import { CURRENT_GAME } from '../lib/constants'
+import { CURRENT_GAME, formatEligibleSelectionDays } from '../lib/constants'
 import { fetchCurrentGame, fetchMyGameEntry } from '../lib/gameEntries'
 import {
   fetchCurrentSelectionWindow,
@@ -206,6 +206,11 @@ export function PickPage() {
           {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
 
           {savedMessage ? <div className="los-alert los-alert-success">{savedMessage}</div> : null}
+
+          <p className="text-sm text-muted-ink">
+            Only teams playing in eligible {formatEligibleSelectionDays()} fixtures should be selected for this window.
+            Friday and Monday games are not eligible.
+          </p>
 
           <div className="grid gap-2 md:grid-cols-2">
             {TEAMS_2026.map((team) => {

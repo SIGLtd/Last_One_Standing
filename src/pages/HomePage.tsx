@@ -3,7 +3,7 @@ import { Card } from '../components/Card'
 import { Badge } from '../components/Badge'
 import { AppLogo } from '../components/AppLogo'
 import { PitchGraphic } from '../components/PitchGraphic'
-import { APP_NAME, CURRENT_GAME, CURRENT_POT_GBP, STATUS, formatGBP } from '../lib/constants'
+import { APP_NAME, CURRENT_GAME, CURRENT_POT_GBP, STATUS, formatEligibleSelectionDays, formatGBP } from '../lib/constants'
 
 export function HomePage() {
   return (
@@ -11,8 +11,8 @@ export function HomePage() {
       <section className="los-card overflow-hidden">
         <div className="grid gap-5 p-5 md:grid-cols-[1.1fr_0.9fr] md:items-center md:p-7">
           <div className="grid gap-4">
-            <div className="flex items-center gap-3">
-              <AppLogo className="h-14 w-14" />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <AppLogo className="h-10 w-auto max-w-[12rem] md:h-12 md:max-w-[14rem]" />
               <Badge variant={STATUS.offSeason ? 'warning' : 'open'}>
                 {STATUS.offSeason ? 'Off-season' : 'In season'}
               </Badge>
@@ -32,8 +32,9 @@ export function HomePage() {
               </div>
             </div>
             <p className="text-sm leading-relaxed text-muted-ink">
-              Pick one team each eligible weekend. Win and you survive. Draw, lose, or miss the deadline and you are
-              eliminated. Use each team only once per game.
+              Pick one team from eligible {formatEligibleSelectionDays()} Premier League fixtures each selection
+              window. Win and you survive. Draw, lose, or miss the deadline and you are eliminated. Use each team only
+              once per game.
             </p>
             <div className="flex flex-wrap gap-2">
               <ButtonLink to="/signup">Create account</ButtonLink>
@@ -46,6 +47,7 @@ export function HomePage() {
             </div>
           </div>
           <div className="rounded-2xl border border-purple/10 bg-gradient-to-br from-purple-dark to-purple p-4 shadow-inner">
+            <AppLogo onDark className="mx-auto mb-4 h-9 w-auto max-w-[11rem]" />
             <PitchGraphic className="h-auto w-full" />
           </div>
         </div>

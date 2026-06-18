@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card } from '../components/Card'
+import { AppLogo } from '../components/AppLogo'
 import { SupabaseConfigNotice } from '../components/SupabaseConfigNotice'
 import { useAuth } from '../contexts/AuthContext'
 import { getSupabaseConfigStatus } from '../lib/supabase'
@@ -50,6 +51,9 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto grid max-w-md gap-4">
+      <div className="flex justify-center">
+        <AppLogo className="h-10 w-auto max-w-[12rem]" />
+      </div>
       <Card title="Log in" description="Email/password login.">
         <form className="grid gap-3" onSubmit={onSubmit}>
           <label className="grid gap-1">

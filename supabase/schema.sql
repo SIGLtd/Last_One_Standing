@@ -2,6 +2,7 @@
 -- Notes:
 -- - Keep policies simple for now; tighten later.
 -- - No external football APIs yet; fixtures/results can be entered manually.
+-- - When fixtures are synced, include Saturday and Sunday Premier League games only (exclude Friday/Monday).
 --
 -- Milestone 2A migration (if players table exists from Milestone 1):
 --   alter table players rename column auth_user_id to user_id;

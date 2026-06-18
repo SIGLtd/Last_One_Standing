@@ -13,6 +13,16 @@ export const STATUS = {
   offSeason: true,
 } as const
 
+/** Eligible Premier League fixture days for weekly selections (organiser rule). */
+export const ELIGIBLE_SELECTION_DAYS = ['Saturday', 'Sunday'] as const
+
+export function formatEligibleSelectionDays(): string {
+  const days = [...ELIGIBLE_SELECTION_DAYS]
+  if (days.length === 0) return ''
+  if (days.length === 1) return days[0]
+  return `${days.slice(0, -1).join(', ')} and ${days.at(-1)}`
+}
+
 export const BANK_DETAILS = {
   bank: 'Santander',
   accountName: 'Iain Clark',

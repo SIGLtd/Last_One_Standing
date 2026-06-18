@@ -103,11 +103,15 @@ export type WindowPickRow = {
   entry_status: EntryStatus
 }
 
+export type HistoryResultType = 'winner' | 'rollover' | 'active'
+
 export type HistoricalResult = {
   id: string
   game_number: number
-  ended_at: string | null
-  outcome: 'winner_unknown' | 'rollover_or_winner_unknown' | 'rolled_over' | 'winner_declared' | 'in_progress'
+  season: string
+  result_type: HistoryResultType
+  winner_name: string | null
+  pot: number
   notes?: string | null
 }
 

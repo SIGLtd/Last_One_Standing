@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
+import { DataTable } from '../components/DataTable'
 import { TEAM_ID_TO_NAME } from '../config/teams'
 import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
@@ -66,100 +67,92 @@ export function CurrentPicksPage() {
 
   if (pageLoading) {
     return (
-      <div className="grid gap-4">
-        <Card title="Current picks" description="Loading...">
-          <p className="text-sm text-muted-ink">Please wait.</p>
-        </Card>
-      </div>
+      <Card title="Current picks" description="Loading…" compact>
+        <p className="text-xs text-muted-ink">Please wait.</p>
+      </Card>
     )
   }
 
   return (
-    <div className="grid gap-4">
-      <Card
-        title="Current picks"
-        description={
-          window
-            ? `Game ${CURRENT_GAME} • Window ${window.window_number} • Visible to everyone at all times`
-            : `Game ${CURRENT_GAME} • Visible to everyone at all times`
-        }
-        right={window ? <Badge variant="open">Live board</Badge> : undefined}
-      >
-        {pageError ? <div className="mb-4 los-alert los-alert-error">{pageError}</div> : null}
+    <Card
+      title="Current picks"
+      description={
+        window
+          ? `Game ${CURRENT_GAME} · Window ${window.window_number} · Open to all players`
+          : `Game ${CURRENT_GAME} · Open to all players`
+      }
+      compact
+    >
+      {pageError ? <div className="mb-2 los-alert los-alert-error">{pageError}</div> : null}
 
-        {!isSupabaseConfigured ? (
-          <p className="text-sm text-muted-ink">Supabase is not configured.</p>
-        ) : !window ? (
-          <p className="text-sm text-muted-ink">No selection window has been created yet.</p>
-        ) : (
-          <>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-[720px] w-full border-separate border-spacing-0">
-                <thead>
-                  <tr className="text-left text-xs font-extrabold uppercase tracking-wide text-muted-ink">
-                    <th className="border-b border-border px-3 py-3">Player</th>
-                    <th className="border-b border-border px-3 py-3">Selected team</th>
-                    <th className="border-b border-border px-3 py-3">Pick status</th>
-                    <th className="border-b border-border px-3 py-3">Survival status</th>
+      {!isSupabaseConfigured ? (
+        <p className="text-xs text-muted-ink">Supabase is not configured.</p>
+      ) : !window ? (
+        <p className="text-xs text-muted-ink">No selection window has been created yet.</p>
+      ) : (
+        <>
+          <div className="hidden md:block">
+            <DataTable minWidth="640px">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Pick</th>
+                  <th>Fixture / status</th>
+                  <th>Survival</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-muted-ink">
+                      No active players in Game {game?.game_number ?? CURRENT_GAME}.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-3 py-4 text-sm text-muted-ink">
-                        No active players in Game {game?.game_number ?? CURRENT_GAME} yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    rows.map((row) => {
-                      const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
-                      const statusLabel = getPickStatusLabel(row, window)
-                      return (
-                        <tr key={row.player_id} className="text-sm">
-                          <td className="border-b border-border/70 px-3 py-3 font-bold text-ink">{row.display_name}</td>
-                          <td className="border-b border-border/70 px-3 py-3 font-semibold text-purple">
-                            {teamName ?? <span className="font-normal text-muted-ink">No pick yet</span>}
-                          </td>
-                          <td className="border-b border-border/70 px-3 py-3">
-                            <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
-                          </td>
-                          <td className="border-b border-border/70 px-3 py-3 text-muted-ink">Placeholder</td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ) : (
+                  rows.map((row) => {
+                    const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
+                    const statusLabel = getPickStatusLabel(row, window)
+                    return (
+                      <tr key={row.player_id}>
+                        <td className="font-medium text-ink">{row.display_name}</td>
+                        <td className="font-medium">{teamName ?? <span className="text-muted-ink font-normal">—</span>}</td>
+                        <td>
+                          <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
+                        </td>
+                        <td className="text-muted-ink">—</td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </DataTable>
+          </div>
 
-            <div className="grid gap-2 md:hidden">
-              {rows.length === 0 ? (
-                <p className="text-sm text-muted-ink">
-                  No active players in Game {game?.game_number ?? CURRENT_GAME} yet.
-                </p>
-              ) : (
-                rows.map((row) => {
-                  const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
-                  const statusLabel = getPickStatusLabel(row, window)
-                  return (
-                    <div key={row.player_id} className="los-selection-row grid gap-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="font-bold text-ink">{row.display_name}</div>
-                        <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Team </span>
-                        <span className="font-bold text-purple">{teamName ?? 'No pick yet'}</span>
-                      </div>
-                      <div className="text-xs text-muted-ink">Survival status: Placeholder</div>
+          <div className="los-divider-list md:hidden">
+            {rows.length === 0 ? (
+              <div className="los-divider-row text-muted-ink">
+                No active players in Game {game?.game_number ?? CURRENT_GAME}.
+              </div>
+            ) : (
+              rows.map((row) => {
+                const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
+                const statusLabel = getPickStatusLabel(row, window)
+                return (
+                  <div key={row.player_id} className="los-divider-row">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-ink">{row.display_name}</span>
+                      <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
                     </div>
-                  )
-                })
-              )}
-            </div>
-          </>
-        )}
-      </Card>
-    </div>
+                    <div className="mt-0.5 text-muted-ink">
+                      Pick: <span className="text-ink">{teamName ?? '—'}</span>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </>
+      )}
+    </Card>
   )
 }

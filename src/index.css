@@ -7,9 +7,11 @@
   --los-magenta: #ff2882;
   --los-lime: #d0ff00;
   --los-white: #ffffff;
-  --los-grey: #f5f7fa;
+  --los-grey: #f4f5f7;
   --los-ink: #14121a;
-  --los-muted: #5c5668;
+  --los-muted: #6b6574;
+  --los-radius: 6px;
+  --los-radius-sm: 4px;
 
   color-scheme: light;
 }
@@ -29,11 +31,11 @@
   --color-bg: var(--los-purple-dark);
   --color-surface: var(--los-white);
   --color-surface-2: var(--los-grey);
-  --color-border: rgba(20, 18, 26, 0.1);
+  --color-border: rgba(20, 18, 26, 0.12);
   --color-text: var(--los-ink);
   --color-muted: var(--los-muted);
-  --color-accent: var(--los-magenta);
-  --color-success: var(--los-lime);
+  --color-accent: var(--los-purple);
+  --color-success: #1a6b4a;
 }
 
 html,
@@ -44,59 +46,106 @@ body {
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: linear-gradient(165deg, var(--los-purple-dark) 0%, var(--los-purple) 48%, #2a0830 100%);
+  background: var(--los-purple-dark);
   color: var(--los-ink);
   -webkit-font-smoothing: antialiased;
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* Shared UI primitives */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Page shell */
 .los-card {
-  border-radius: 1.5rem;
+  border-radius: var(--los-radius);
   background: var(--los-white);
   color: var(--los-ink);
-  box-shadow:
-    0 18px 40px rgba(27, 16, 34, 0.28),
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 2px rgba(20, 18, 26, 0.06);
 }
 
 .los-card-header {
-  border-bottom: 1px solid rgba(20, 18, 26, 0.08);
-  background: linear-gradient(90deg, rgba(55, 0, 60, 0.06), rgba(0, 255, 234, 0.08));
+  border-bottom: 1px solid var(--color-border);
+  background: var(--los-white);
+}
+
+.los-section-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--los-muted);
 }
 
 .los-panel {
-  border-radius: 1rem;
-  border: 1px solid rgba(20, 18, 26, 0.08);
+  border-radius: var(--los-radius-sm);
+  border: 1px solid var(--color-border);
   background: var(--los-grey);
 }
 
+.los-metric {
+  padding: 0.5rem 0.65rem;
+  border-right: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.los-metric:last-child {
+  border-right: none;
+}
+
+.los-metric-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--los-muted);
+}
+
+.los-metric-value {
+  margin-top: 0.15rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--los-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.los-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  border: 1px solid var(--color-border);
+  border-radius: var(--los-radius-sm);
+  background: var(--los-white);
+  overflow: hidden;
+}
+
+/* Buttons */
 .los-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.9rem;
-  padding: 0.65rem 1.1rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--los-purple-dark);
-  background: linear-gradient(135deg, var(--los-magenta), var(--los-cyan));
-  border: none;
-  box-shadow: 0 8px 20px rgba(255, 40, 130, 0.28);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  border-radius: var(--los-radius-sm);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--los-white);
+  background: var(--los-purple);
+  border: 1px solid var(--los-purple);
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .los-btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  filter: brightness(1.03);
+  background: #4a0a52;
+  border-color: #4a0a52;
 }
 
 .los-btn-primary:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -104,141 +153,158 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.9rem;
-  padding: 0.65rem 1.1rem;
-  font-size: 0.875rem;
-  font-weight: 700;
+  border-radius: var(--los-radius-sm);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--los-purple);
-  background: transparent;
-  border: 2px solid var(--los-purple);
-  transition: background 0.15s ease, color 0.15s ease;
+  background: var(--los-white);
+  border: 1px solid var(--color-border);
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .los-btn-secondary:hover:not(:disabled) {
-  background: rgba(55, 0, 60, 0.06);
+  background: var(--los-grey);
+  border-color: rgba(55, 0, 60, 0.25);
 }
 
 .los-input {
-  height: 2.75rem;
+  height: 2.25rem;
   width: 100%;
-  border-radius: 0.9rem;
-  border: 1px solid rgba(20, 18, 26, 0.14);
+  border-radius: var(--los-radius-sm);
+  border: 1px solid var(--color-border);
   background: var(--los-white);
-  padding: 0 0.85rem;
-  font-size: 0.875rem;
+  padding: 0 0.6rem;
+  font-size: 0.8125rem;
   color: var(--los-ink);
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.12s ease;
 }
 
 .los-input:focus {
-  border-color: var(--los-cyan);
-  box-shadow: 0 0 0 3px rgba(0, 255, 234, 0.22);
+  border-color: var(--los-purple);
 }
 
+/* Status pills */
 .los-badge {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  border-radius: var(--los-radius-sm);
+  padding: 0.1rem 0.4rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  line-height: 1.4;
 }
 
 .los-badge-success {
-  background: rgba(208, 255, 0, 0.22);
-  color: #2f3d00;
-  border: 1px solid rgba(208, 255, 0, 0.55);
+  background: rgba(26, 107, 74, 0.1);
+  color: var(--color-success);
+  border: 1px solid rgba(26, 107, 74, 0.2);
 }
 
 .los-badge-warning {
-  background: rgba(255, 40, 130, 0.12);
-  color: #8b1348;
-  border: 1px solid rgba(255, 40, 130, 0.35);
+  background: rgba(180, 83, 9, 0.08);
+  color: #9a3412;
+  border: 1px solid rgba(180, 83, 9, 0.18);
 }
 
 .los-badge-muted {
-  background: rgba(20, 18, 26, 0.08);
+  background: rgba(20, 18, 26, 0.05);
   color: var(--los-muted);
-  border: 1px solid rgba(20, 18, 26, 0.12);
+  border: 1px solid rgba(20, 18, 26, 0.1);
 }
 
 .los-badge-open {
-  background: rgba(0, 255, 234, 0.16);
-  color: #0a5c56;
-  border: 1px solid rgba(0, 255, 234, 0.45);
+  background: rgba(55, 0, 60, 0.08);
+  color: var(--los-purple);
+  border: 1px solid rgba(55, 0, 60, 0.15);
 }
 
+/* Pick tiles */
 .los-fixture-tile {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: 1rem;
-  border: 1px solid rgba(20, 18, 26, 0.1);
+  gap: 0.5rem;
+  border-radius: var(--los-radius-sm);
+  border: 1px solid var(--color-border);
   background: var(--los-white);
-  padding: 0.85rem 0.9rem;
-  font-size: 0.875rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8125rem;
+  text-align: left;
+  transition: border-color 0.12s ease, background 0.12s ease;
 }
 
 .los-fixture-tile:hover:not(:disabled) {
-  border-color: rgba(0, 255, 234, 0.45);
-  box-shadow: 0 8px 18px rgba(27, 16, 34, 0.12);
+  border-color: rgba(55, 0, 60, 0.3);
+  background: var(--los-grey);
 }
 
 .los-fixture-tile-selected {
-  border-color: var(--los-magenta);
-  box-shadow:
-    0 0 0 2px rgba(255, 40, 130, 0.25),
-    0 10px 22px rgba(255, 40, 130, 0.18);
+  border-color: var(--los-purple);
+  background: rgba(55, 0, 60, 0.04);
+  box-shadow: inset 3px 0 0 var(--los-purple);
 }
 
 .los-fixture-tile-used {
-  opacity: 0.62;
-  background: rgba(245, 247, 250, 0.9);
+  opacity: 0.55;
+  background: var(--los-grey);
 }
 
+/* Notices */
 .los-alert {
-  border-radius: 0.9rem;
-  padding: 0.65rem 0.85rem;
-  font-size: 0.875rem;
+  border-radius: var(--los-radius-sm);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-border);
 }
 
 .los-alert-success {
-  border: 1px solid rgba(208, 255, 0, 0.45);
-  background: rgba(208, 255, 0, 0.14);
+  border-color: rgba(26, 107, 74, 0.25);
+  background: rgba(26, 107, 74, 0.06);
   color: var(--los-ink);
 }
 
 .los-alert-error {
-  border: 1px solid rgba(255, 40, 130, 0.3);
-  background: rgba(255, 40, 130, 0.08);
+  border-color: rgba(185, 28, 28, 0.2);
+  background: rgba(185, 28, 28, 0.05);
   color: var(--los-ink);
 }
 
-.los-admin-section {
-  border-radius: 1rem;
-  border: 1px solid rgba(20, 18, 26, 0.08);
+.los-notice {
+  border-left: 3px solid var(--los-purple);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8125rem;
+  color: var(--los-muted);
   background: var(--los-grey);
-  padding: 1rem;
+}
+
+/* Admin */
+.los-admin-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.75rem;
+}
+
+.los-admin-section:first-child {
+  border-top: none;
+  padding-top: 0;
 }
 
 .los-admin-btn {
-  border-radius: 0.65rem;
-  border: 1px solid rgba(55, 0, 60, 0.2);
+  border-radius: var(--los-radius-sm);
+  border: 1px solid var(--color-border);
   background: var(--los-white);
-  padding: 0.35rem 0.65rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--los-purple);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--los-ink);
+  transition: background 0.12s ease;
 }
 
 .los-admin-btn:hover:not(:disabled) {
-  background: rgba(55, 0, 60, 0.06);
-  border-color: rgba(55, 0, 60, 0.35);
+  background: var(--los-grey);
 }
 
 .los-admin-btn:disabled {
@@ -246,25 +312,65 @@ body {
   cursor: not-allowed;
 }
 
-.los-result-card {
-  border-radius: 1rem;
-  border: 1px solid rgba(20, 18, 26, 0.1);
-  background: var(--los-white);
-  padding: 0.85rem 1rem;
-  box-shadow: 0 6px 16px rgba(27, 16, 34, 0.08);
+/* Data tables */
+.los-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
 }
 
-.los-result-card-current {
-  border-color: rgba(0, 255, 234, 0.45);
-  background: linear-gradient(135deg, rgba(0, 255, 234, 0.08), rgba(55, 0, 60, 0.04));
-  box-shadow:
-    0 10px 24px rgba(0, 255, 234, 0.12),
-    0 0 0 1px rgba(0, 255, 234, 0.2) inset;
+.los-data-table thead th {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--los-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
 }
 
-.los-selection-row {
-  border-radius: 0.9rem;
-  border: 1px solid rgba(20, 18, 26, 0.08);
-  background: var(--los-grey);
-  padding: 0.85rem 1rem;
+.los-data-table tbody td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(20, 18, 26, 0.06);
+  vertical-align: middle;
+}
+
+.los-data-table tbody tr:hover td {
+  background: rgba(20, 18, 26, 0.02);
+}
+
+.los-data-table thead th.num,
+.los-data-table tbody td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Divider lists (mobile) */
+.los-divider-list {
+  border: 1px solid var(--color-border);
+  border-radius: var(--los-radius-sm);
+  overflow: hidden;
+}
+
+.los-divider-row {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid rgba(20, 18, 26, 0.06);
+  font-size: 0.8125rem;
+}
+
+.los-divider-row:last-child {
+  border-bottom: none;
+}
+
+/* Rules */
+.los-rules-section {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.los-rules-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }

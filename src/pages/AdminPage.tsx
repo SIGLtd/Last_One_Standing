@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
+import { DataTable } from '../components/DataTable'
+import { MetricCell, MetricStrip } from '../components/MetricCell'
 import { useAuth } from '../contexts/AuthContext'
 import {
   adminFetchGameEntries,
@@ -215,93 +217,74 @@ export function AdminPage() {
 
   if (loading || pageLoading) {
     return (
-      <div className="grid gap-4">
-        <Card title="Admin" description="Loading...">
-          <p className="text-sm text-muted-ink">Please wait.</p>
-        </Card>
-      </div>
+      <Card title="Admin" description="Loading…" compact>
+        <p className="text-xs text-muted-ink">Please wait.</p>
+      </Card>
     )
   }
 
   if (!user) {
     return (
-      <div className="grid gap-4">
-        <Card title="Admin" description="Login required">
-          <div className="grid gap-3">
-            <p className="text-sm text-muted-ink">Log in with an admin account to access admin controls.</p>
-            <ButtonLink to="/login">Log in</ButtonLink>
-          </div>
-        </Card>
-      </div>
+      <Card title="Admin" description="Login required" compact>
+        <p className="text-xs text-muted-ink mb-2">Log in with an admin account.</p>
+        <ButtonLink to="/login">Log in</ButtonLink>
+      </Card>
     )
   }
 
   if (!player?.is_admin) {
     return (
-      <div className="grid gap-4">
-        <Card title="Admin" description="Access denied">
-          <p className="text-sm text-muted-ink">You do not have admin access.</p>
-        </Card>
-      </div>
+      <Card title="Admin" description="Access denied" compact>
+        <p className="text-xs text-muted-ink">You do not have admin access.</p>
+      </Card>
     )
   }
 
   return (
-    <div className="grid gap-4">
-      <Card
-        title="Admin"
-        description="Payments and selection windows"
-        right={<Badge variant="warning">Admin</Badge>}
-      >
-        {pageError ? <div className="mb-4 los-alert los-alert-error">{pageError}</div> : null}
+    <div className="grid gap-3">
+      <Card title="Admin" description="Operations console" right={<Badge variant="muted">Admin</Badge>} compact>
+        {pageError ? <div className="mb-2 los-alert los-alert-error">{pageError}</div> : null}
 
-        <div className="grid gap-4">
+        <div className="grid gap-3">
           <section className="los-admin-section">
-            <h2 className="text-sm font-extrabold uppercase tracking-wide text-purple">Current game summary</h2>
+            <h2 className="los-section-title">Game</h2>
             {game ? (
-              <div className="mt-2 grid gap-1 text-sm text-muted-ink">
-                <div>
-                  Game {game.game_number} • {game.season}
-                </div>
-                <div>Status: {game.status}</div>
-                <div className="font-bold text-ink">Pot: {formatGBP(game.current_pot)}</div>
-              </div>
+              <MetricStrip className="mt-2">
+                <MetricCell label="Game" value={game.game_number} />
+                <MetricCell label="Season" value={game.season} />
+                <MetricCell label="Status" value={game.status} />
+                <MetricCell label="Pot" value={formatGBP(game.current_pot)} />
+              </MetricStrip>
             ) : (
-              <p className="mt-2 text-sm text-muted-ink">Game 27 not found. Run the seed SQL in Supabase.</p>
+              <p className="mt-1 text-xs text-muted-ink">Game 27 not found. Run seed SQL.</p>
             )}
           </section>
 
           <section className="los-admin-section">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-purple">Selection window</h2>
+              <h2 className="los-section-title">Selection window</h2>
               <button type="button" onClick={() => void handleCreateNewWindow()} className="los-admin-btn">
                 New window
               </button>
             </div>
 
             {currentWindow ? (
-              <p className="mt-2 text-xs text-muted-ink">
-                Current window: #{currentWindow.window_number} • status {currentWindow.status}
+              <p className="mt-1 text-xs text-muted-ink">
+                Window #{currentWindow.window_number} · {currentWindow.status}
               </p>
             ) : (
-              <p className="mt-2 text-xs text-muted-ink">No selection window created yet.</p>
+              <p className="mt-1 text-xs text-muted-ink">No window created.</p>
             )}
 
-            <div className="mt-3 los-panel p-3 text-sm text-muted-ink">
-              <p className="font-bold text-purple">Saturday/Sunday rounds only</p>
-              <ul className="mt-2 grid gap-1 pl-4 list-disc">
-                <li>Create windows for {formatEligibleSelectionDays()} fixture rounds only.</li>
-                <li>Do not include Friday or Monday games.</li>
-                <li>
-                  Deadline should be 1 hour before the first eligible {formatEligibleSelectionDays()} kickoff.
-                </li>
-              </ul>
+            <div className="mt-2 los-notice text-xs">
+              {formatEligibleSelectionDays()} rounds only. No Friday/Monday. Deadline 1hr before first eligible
+              kickoff.
             </div>
 
             {game ? (
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1">
-                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Window number</span>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="grid gap-0.5">
+                  <span className="los-section-title">Window #</span>
                   <input
                     type="number"
                     min={1}
@@ -309,12 +292,12 @@ export function AdminPage() {
                     onChange={(e) =>
                       setWindowForm((prev) => ({ ...prev, window_number: Number(e.target.value) }))
                     }
-                    className="los-input !h-10"
+                    className="los-input !h-8"
                   />
                 </label>
 
-                <label className="grid gap-1">
-                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Status</span>
+                <label className="grid gap-0.5">
+                  <span className="los-section-title">Status</span>
                   <select
                     value={windowForm.status}
                     onChange={(e) =>
@@ -323,7 +306,7 @@ export function AdminPage() {
                         status: e.target.value as SelectionWindowStatus,
                       }))
                     }
-                    className="los-input !h-10"
+                    className="los-input !h-8"
                   >
                     {windowStatuses.map((status) => (
                       <option key={status} value={status}>
@@ -333,56 +316,56 @@ export function AdminPage() {
                   </select>
                 </label>
 
-                <label className="grid gap-1">
-                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Start</span>
+                <label className="grid gap-0.5">
+                  <span className="los-section-title">Start</span>
                   <input
                     type="datetime-local"
                     value={windowForm.start_at}
                     onChange={(e) => setWindowForm((prev) => ({ ...prev, start_at: e.target.value }))}
-                    className="los-input !h-10"
+                    className="los-input !h-8"
                   />
                 </label>
 
-                <label className="grid gap-1">
-                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">End</span>
+                <label className="grid gap-0.5">
+                  <span className="los-section-title">End</span>
                   <input
                     type="datetime-local"
                     value={windowForm.end_at}
                     onChange={(e) => setWindowForm((prev) => ({ ...prev, end_at: e.target.value }))}
-                    className="los-input !h-10"
+                    className="los-input !h-8"
                   />
                 </label>
 
-                <label className="grid gap-1 md:col-span-2">
-                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Deadline</span>
+                <label className="grid gap-0.5 sm:col-span-2">
+                  <span className="los-section-title">Deadline</span>
                   <input
                     type="datetime-local"
                     value={windowForm.deadline_at}
                     onChange={(e) => setWindowForm((prev) => ({ ...prev, deadline_at: e.target.value }))}
-                    className="los-input !h-10"
+                    className="los-input !h-8"
                   />
                 </label>
               </div>
             ) : null}
 
             {game ? (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={windowSaving}
                   onClick={() => void handleSaveWindow()}
-                  className="los-btn-primary h-10 disabled:opacity-50"
+                  className="los-btn-primary disabled:opacity-50"
                 >
-                  {windowSaving ? 'Saving...' : editingWindowId ? 'Update window' : 'Create window'}
+                  {windowSaving ? 'Saving…' : editingWindowId ? 'Update' : 'Create'}
                 </button>
                 {editingWindowId ? (
                   <button
                     type="button"
                     disabled={windowSaving}
                     onClick={() => void handleLockWindow()}
-                    className="los-btn-secondary h-10 disabled:opacity-50"
+                    className="los-btn-secondary disabled:opacity-50"
                   >
-                    Lock window
+                    Lock
                   </button>
                 ) : null}
               </div>
@@ -390,62 +373,49 @@ export function AdminPage() {
           </section>
 
           <section className="los-admin-section">
-            <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wide text-purple">Payments</h2>
+            <h2 className="los-section-title mb-2">Payments</h2>
 
             {game ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-[960px] w-full border-separate border-spacing-0">
-                  <thead>
-                    <tr className="text-left text-xs font-extrabold uppercase tracking-wide text-muted-ink">
-                      <th className="border-b border-border px-3 py-3">Player</th>
-                      <th className="border-b border-border px-3 py-3">Phone</th>
-                      <th className="border-b border-border px-3 py-3">Email</th>
-                      <th className="border-b border-border px-3 py-3">Entry type</th>
-                      <th className="border-b border-border px-3 py-3">Amount due</th>
-                      <th className="border-b border-border px-3 py-3">Claimed</th>
-                      <th className="border-b border-border px-3 py-3">Paid</th>
-                      <th className="border-b border-border px-3 py-3">Paid at</th>
-                      <th className="border-b border-border px-3 py-3">Status</th>
-                      <th className="border-b border-border px-3 py-3">Actions</th>
+              <DataTable minWidth="880px">
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th className="num">Due</th>
+                    <th>Claimed</th>
+                    <th>Paid</th>
+                    <th>Paid at</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="text-muted-ink">
+                        No entries.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {entries.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="px-3 py-4 text-sm text-muted-ink">
-                          No entries yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      entries.map((row) => {
-                        const busy = actionId === row.id
-                        return (
-                          <tr key={row.id} className="text-sm">
-                            <td className="border-b border-border/70 px-3 py-3 font-bold text-ink">
-                              {row.player.display_name}
-                            </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
-                              {row.player.phone ?? '—'}
-                            </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">{row.player.email}</td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
-                              {formatEntryType(row.entry_type)}
-                            </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
-                              {formatGBP(row.amount_due)}
-                            </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
-                              {row.payment_claimed ? 'Yes' : 'No'}
-                            </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
-                              {row.paid ? 'Yes' : 'No'}
-                            </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">
-                              {row.paid_at ? new Date(row.paid_at).toLocaleString('en-GB') : '—'}
-                            </td>
-                            <td className="border-b border-border/70 px-3 py-3 text-muted-ink">{row.status}</td>
-                            <td className="border-b border-border/70 px-3 py-3">
-                              <div className="flex flex-wrap gap-1">
+                  ) : (
+                    entries.map((row) => {
+                      const busy = actionId === row.id
+                      return (
+                        <tr key={row.id}>
+                          <td className="font-medium">{row.player.display_name}</td>
+                          <td className="text-muted-ink">{row.player.phone ?? '—'}</td>
+                          <td className="text-muted-ink">{row.player.email}</td>
+                          <td className="text-muted-ink">{formatEntryType(row.entry_type)}</td>
+                          <td className="num tabular-nums">{formatGBP(row.amount_due)}</td>
+                          <td className="text-muted-ink">{row.payment_claimed ? 'Y' : 'N'}</td>
+                          <td className="text-muted-ink">{row.paid ? 'Y' : 'N'}</td>
+                          <td className="text-muted-ink text-[0.6875rem]">
+                            {row.paid_at ? new Date(row.paid_at).toLocaleString('en-GB') : '—'}
+                          </td>
+                          <td className="text-muted-ink">{row.status}</td>
+                          <td>
+                            <div className="flex flex-wrap gap-0.5">
                                 {!row.paid ? (
                                   <button
                                     type="button"
@@ -480,23 +450,22 @@ export function AdminPage() {
                                 >
                                   Comp
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </DataTable>
             ) : null}
           </section>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="los-divider-list text-xs">
             {placeholderSections.map((s) => (
-              <div key={s.title} className="los-panel p-3">
-                <div className="text-sm font-bold text-purple">{s.title}</div>
-                <div className="mt-1 text-sm text-muted-ink">{s.body}</div>
+              <div key={s.title} className="los-divider-row">
+                <div className="font-medium text-ink">{s.title}</div>
+                <div className="mt-0.5 text-muted-ink">{s.body}</div>
               </div>
             ))}
           </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
 import { Card } from '../components/Card'
+import { MetricCell, MetricStrip } from '../components/MetricCell'
 import { PaymentStatusCard } from '../components/PaymentStatusCard'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -92,75 +93,68 @@ export function DashboardPage() {
 
   if (loading || pageLoading) {
     return (
-      <div className="grid gap-4">
-        <Card title="Dashboard" description="Loading your account...">
-          <p className="text-sm text-muted-ink">Please wait.</p>
-        </Card>
-      </div>
+      <Card title="Dashboard" description="Loading…" compact>
+        <p className="text-xs text-muted-ink">Please wait.</p>
+      </Card>
     )
   }
 
   if (!user) {
     return (
-      <div className="grid gap-4">
-        <Card title="Dashboard" description="You are not logged in">
-          <div className="grid gap-3">
-            <p className="text-sm text-muted-ink">Log in or create an account to view your player dashboard.</p>
-            <div className="flex flex-wrap gap-2">
-              <ButtonLink to="/login">Log in</ButtonLink>
-              <ButtonLink to="/signup" variant="secondary">
-                Sign up
-              </ButtonLink>
-            </div>
-          </div>
-        </Card>
-      </div>
+      <Card title="Dashboard" description="Not signed in" compact>
+        <p className="text-xs text-muted-ink mb-3">Log in or create an account to view your dashboard.</p>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink to="/login">Log in</ButtonLink>
+          <ButtonLink to="/signup" variant="secondary">
+            Sign up
+          </ButtonLink>
+        </div>
+      </Card>
     )
   }
 
   const displayName = player?.display_name ?? user.user_metadata?.display_name ?? 'Player'
-  const phone = player?.phone ?? 'Not set'
-  const email = player?.email ?? user.email ?? 'Not set'
+  const paymentLabel = entry?.paid ? 'Verified' : entry?.payment_claimed ? 'Pending verify' : entry ? 'Unpaid' : 'No entry'
+  const entryStatus = entry?.status ?? '—'
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       <Card
         title="Dashboard"
-        description={
-          game
-            ? `Game ${game.game_number} • Pot ${formatGBP(game.current_pot)}`
-            : 'Game 27 entry and payment'
-        }
+        description={game ? `Game ${game.game_number}` : 'Game 27'}
+        compact
       >
-        <div className="grid gap-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="los-panel p-3">
-              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Display name</div>
-              <div className="mt-1 text-sm font-bold text-ink">{displayName}</div>
-            </div>
+        <div className="grid gap-3">
+          {game ? (
+            <MetricStrip>
+              <MetricCell label="Game" value={game.game_number} />
+              <MetricCell label="Pot" value={formatGBP(game.current_pot)} />
+              <MetricCell label="Player" value={displayName} />
+              <MetricCell label="Payment" value={paymentLabel} />
+              <MetricCell label="Status" value={entryStatus} />
+            </MetricStrip>
+          ) : (
+            <div className="los-notice text-xs">Game 27 not seeded. Ask an admin to run the Supabase seed SQL.</div>
+          )}
 
-            <div className="los-panel p-3">
-              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Phone</div>
-              <div className="mt-1 text-sm text-ink">{phone}</div>
+          <div className="los-divider-list">
+            <div className="los-divider-row flex justify-between gap-2">
+              <span className="text-muted-ink">Phone</span>
+              <span className="text-ink">{player?.phone ?? 'Not set'}</span>
             </div>
-
-            <div className="los-panel p-3">
-              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Email</div>
-              <div className="mt-1 text-sm text-ink">{email}</div>
+            <div className="los-divider-row flex justify-between gap-2">
+              <span className="text-muted-ink">Email</span>
+              <span className="text-ink truncate">{player?.email ?? user.email ?? 'Not set'}</span>
             </div>
           </div>
 
           {!player ? (
-            <div className="los-alert los-alert-error">Your auth account is active, but no linked player profile was found yet.</div>
+            <div className="los-alert los-alert-error">Auth active but no linked player profile found.</div>
           ) : null}
 
           {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
 
-          {!game ? (
-            <div className="los-panel px-3 py-3 text-sm text-muted-ink">
-              Game 27 has not been seeded in the database yet. Ask an admin to run the Supabase seed SQL.
-            </div>
-          ) : player ? (
+          {game && player ? (
             <PaymentStatusCard
               game={game}
               entry={entry}

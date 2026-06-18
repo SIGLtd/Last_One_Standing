@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
+import { MetricCell, MetricStrip } from '../components/MetricCell'
 import { TEAMS_2026 } from '../config/teams'
 import { useAuth } from '../contexts/AuthContext'
 import { CURRENT_GAME, formatEligibleSelectionDays } from '../lib/constants'
@@ -17,7 +18,7 @@ import {
 import type { Game, GameEntry, Selection, SelectionWindow } from '../types'
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('en-GB')
+  return new Date(value).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 export function PickPage() {
@@ -99,9 +100,7 @@ export function PickPage() {
   )
 
   async function handleSavePick() {
-    if (!player || !game || !window || !selectedTeamId) {
-      return
-    }
+    if (!player || !game || !window || !selectedTeamId) return
 
     setSaving(true)
     setPageError(null)
@@ -127,130 +126,101 @@ export function PickPage() {
 
   if (authLoading || pageLoading) {
     return (
-      <div className="grid gap-4">
-        <Card title="Make your pick" description="Loading...">
-          <p className="text-sm text-muted-ink">Please wait.</p>
-        </Card>
-      </div>
+      <Card title="Make your pick" description="Loading…" compact>
+        <p className="text-xs text-muted-ink">Please wait.</p>
+      </Card>
     )
   }
 
   if (!user) {
     return (
-      <div className="grid gap-4">
-        <Card title="Make your pick" description="Login required">
-          <div className="grid gap-3">
-            <p className="text-sm text-muted-ink">Log in or sign up to make your pick.</p>
-            <div className="flex flex-wrap gap-2">
-              <ButtonLink to="/login">Log in</ButtonLink>
-              <ButtonLink to="/signup" variant="secondary">
-                Sign up
-              </ButtonLink>
-            </div>
-          </div>
-        </Card>
-      </div>
+      <Card title="Make your pick" description="Login required" compact>
+        <p className="text-xs text-muted-ink mb-2">Log in or sign up to make your pick.</p>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink to="/login">Log in</ButtonLink>
+          <ButtonLink to="/signup" variant="secondary">
+            Sign up
+          </ButtonLink>
+        </div>
+      </Card>
     )
   }
 
   if (!entry?.paid || entry.status !== 'active') {
     return (
-      <div className="grid gap-4">
-        <Card title="Make your pick" description={`Game ${CURRENT_GAME}`}>
-          <p className="text-sm text-muted-ink">You need verified entry before making a pick.</p>
-        </Card>
-      </div>
+      <Card title="Make your pick" description={`Game ${CURRENT_GAME}`} compact>
+        <p className="text-xs text-muted-ink">Verified entry required before making a pick.</p>
+      </Card>
     )
   }
 
   if (!window || window.status === 'pending') {
     return (
-      <div className="grid gap-4">
-        <Card title="Make your pick" description={`Game ${CURRENT_GAME}`}>
-          <p className="text-sm text-muted-ink">No selection window is open yet.</p>
-        </Card>
-      </div>
+      <Card title="Make your pick" description={`Game ${CURRENT_GAME}`} compact>
+        <p className="text-xs text-muted-ink">No selection window is open yet.</p>
+      </Card>
     )
   }
 
   return (
-    <div className="grid gap-4">
-      <Card
-        title="Make your pick"
-        description={`Game ${CURRENT_GAME} • Window ${window.window_number}`}
-        right={<Badge variant={locked ? 'muted' : 'open'}>{locked ? 'Locked' : 'Open'}</Badge>}
-      >
-        <div className="grid gap-3">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="los-panel p-3">
-              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Deadline</div>
-              <div className="mt-1 text-sm font-bold text-ink">{formatDateTime(window.deadline_at)}</div>
-              <div className="mt-2 text-xs text-muted-ink">
-                Window runs {formatDateTime(window.start_at)} to {formatDateTime(window.end_at)}
-              </div>
-            </div>
+    <Card
+      title="Make your pick"
+      description={`Game ${CURRENT_GAME} · Window ${window.window_number}`}
+      right={<Badge variant={locked ? 'muted' : 'open'}>{locked ? 'Locked' : 'Open'}</Badge>}
+      compact
+    >
+      <div className="grid gap-2">
+        <MetricStrip>
+          <MetricCell label="Deadline" value={formatDateTime(window.deadline_at)} />
+          <MetricCell label="Selected" value={selectedTeam?.name ?? '—'} />
+          <MetricCell label="Window" value={`${formatDateTime(window.start_at)} – ${formatDateTime(window.end_at)}`} />
+        </MetricStrip>
 
-            <div className="los-panel p-3">
-              <div className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">Selected team</div>
-              <div className="mt-1 text-lg font-extrabold text-purple">
-                {selectedTeam ? selectedTeam.name : 'No team selected'}
-              </div>
-              <div className="mt-2 text-xs text-muted-ink">
-                {locked
-                  ? 'Selection is read-only after lock.'
-                  : 'You can change your pick any time before the deadline.'}
-              </div>
-            </div>
-          </div>
+        {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
+        {savedMessage ? <div className="los-alert los-alert-success">{savedMessage}</div> : null}
 
-          {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
+        <p className="text-xs text-muted-ink">
+          Select from eligible {formatEligibleSelectionDays()} fixtures only. Friday and Monday games excluded.
+        </p>
 
-          {savedMessage ? <div className="los-alert los-alert-success">{savedMessage}</div> : null}
+        <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+          {TEAMS_2026.map((team) => {
+            const isUsed = usedTeamIds.includes(team.id)
+            const isSelected = selectedTeamId === team.id
+            const disabled = !canPick || locked || (isUsed && !isSelected)
 
-          <p className="text-sm text-muted-ink">
-            Only teams playing in eligible {formatEligibleSelectionDays()} fixtures should be selected for this window.
-            Friday and Monday games are not eligible.
-          </p>
-
-          <div className="grid gap-2 md:grid-cols-2">
-            {TEAMS_2026.map((team) => {
-              const isUsed = usedTeamIds.includes(team.id)
-              const isSelected = selectedTeamId === team.id
-              const disabled = !canPick || locked || (isUsed && !isSelected)
-
-              return (
-                <button
-                  key={team.id}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => setSelectedTeamId(team.id)}
-                  className={[
-                    'los-fixture-tile',
-                    disabled ? 'los-fixture-tile-used cursor-not-allowed' : 'cursor-pointer',
-                    isSelected ? 'los-fixture-tile-selected' : '',
-                  ].join(' ')}
-                >
-                  <span className="font-bold text-ink">{team.name}</span>
-                  <span className="text-xs font-extrabold uppercase tracking-wide text-muted-ink">
-                    {isUsed ? 'Used' : isSelected ? 'Selected' : 'Available'}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {canPick && !locked ? (
-            <button
-              type="button"
-              disabled={!selectedTeamId || saving}
-              onClick={() => void handleSavePick()}
-              className="los-btn-primary h-11 w-full sm:w-auto"
-            >
-              {saving ? 'Saving...' : selection?.team_id ? 'Update pick' : 'Save pick'}
-            </button>
-          ) : null}
+            return (
+              <button
+                key={team.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => setSelectedTeamId(team.id)}
+                className={[
+                  'los-fixture-tile',
+                  disabled ? 'los-fixture-tile-used cursor-not-allowed' : 'cursor-pointer',
+                  isSelected ? 'los-fixture-tile-selected' : '',
+                ].join(' ')}
+              >
+                <span className="font-medium text-ink">{team.name}</span>
+                <span className="text-[0.625rem] uppercase tracking-wide text-muted-ink">
+                  {isUsed ? 'Used' : isSelected ? 'Selected' : ''}
+                </span>
+              </button>
+            )
+          })}
         </div>
-      </Card>
-    </div>
+
+        {canPick && !locked ? (
+          <button
+            type="button"
+            disabled={!selectedTeamId || saving}
+            onClick={() => void handleSavePick()}
+            className="los-btn-primary w-fit"
+          >
+            {saving ? 'Saving…' : selection?.team_id ? 'Update pick' : 'Save pick'}
+          </button>
+        ) : null}
+      </div>
+    </Card>
   )
 }

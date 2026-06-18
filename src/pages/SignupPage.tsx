@@ -62,17 +62,14 @@ export function SignupPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-md gap-4">
-      <div className="flex justify-center">
-        <AppLogo className="h-10 w-auto max-w-[12rem]" />
+    <div className="mx-auto grid max-w-sm gap-2">
+      <div className="flex justify-center py-1">
+        <AppLogo losClassName="h-8 w-8" plClassName="h-6 w-auto max-w-[8rem]" />
       </div>
-      <Card
-        title="Sign up"
-        description="Email/password MVP. Phone number is required for the WhatsApp group."
-      >
-        <form className="grid gap-3" onSubmit={onSubmit}>
-          <label className="grid gap-1">
-            <span className="text-sm font-bold text-ink">Display name</span>
+      <Card title="Sign up" description="Phone required for WhatsApp group" compact>
+        <form className="grid gap-2" onSubmit={onSubmit}>
+          <label className="grid gap-0.5">
+            <span className="los-section-title">Display name</span>
             <input
               className="los-input"
               value={displayName}
@@ -83,8 +80,8 @@ export function SignupPage() {
             />
           </label>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-bold text-ink">Phone number</span>
+          <label className="grid gap-0.5">
+            <span className="los-section-title">Phone</span>
             <input
               className="los-input"
               value={phoneNumber}
@@ -95,8 +92,8 @@ export function SignupPage() {
             />
           </label>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-bold text-ink">Email</span>
+          <label className="grid gap-0.5">
+            <span className="los-section-title">Email</span>
             <input
               className="los-input"
               value={email}
@@ -107,8 +104,8 @@ export function SignupPage() {
             />
           </label>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-bold text-ink">Password</span>
+          <label className="grid gap-0.5">
+            <span className="los-section-title">Password</span>
             <input
               className="los-input"
               value={password}

@@ -50,14 +50,14 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto grid max-w-md gap-4">
-      <div className="flex justify-center">
-        <AppLogo className="h-10 w-auto max-w-[12rem]" />
+    <div className="mx-auto grid max-w-sm gap-2">
+      <div className="flex justify-center py-1">
+        <AppLogo losClassName="h-8 w-8" plClassName="h-6 w-auto max-w-[8rem]" />
       </div>
-      <Card title="Log in" description="Email/password login.">
-        <form className="grid gap-3" onSubmit={onSubmit}>
-          <label className="grid gap-1">
-            <span className="text-sm font-bold text-ink">Email</span>
+      <Card title="Log in" description="Email/password" compact>
+        <form className="grid gap-2" onSubmit={onSubmit}>
+          <label className="grid gap-0.5">
+            <span className="los-section-title">Email</span>
             <input
               className="los-input"
               value={email}
@@ -68,8 +68,8 @@ export function LoginPage() {
             />
           </label>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-bold text-ink">Password</span>
+          <label className="grid gap-0.5">
+            <span className="los-section-title">Password</span>
             <input
               className="los-input"
               value={password}

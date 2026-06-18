@@ -22,8 +22,8 @@ export function SupabaseConfigNotice({ status }: SupabaseConfigNoticeProps) {
   const failedStatus = status && !status.ok ? status : null
 
   return (
-    <Card title="Supabase not configured" description="Development configuration required">
-      <div className="grid gap-3 text-sm text-muted-ink">
+    <Card title="Supabase not configured" description="Dev setup required" compact>
+      <div className="grid gap-2 text-xs text-muted-ink">
         <p>
           Vite reads <code className="rounded bg-surface-2 px-1 py-0.5 text-ink">.env.local</code> from the project
           root. Only variables prefixed with{' '}
@@ -32,8 +32,8 @@ export function SupabaseConfigNotice({ status }: SupabaseConfigNoticeProps) {
         </p>
 
         {failedStatus ? (
-          <div className="los-panel grid gap-2 p-3">
-            <div className="text-xs font-extrabold uppercase tracking-wide text-purple">Checks failed</div>
+          <div className="los-notice grid gap-1">
+            <div className="los-section-title">Checks failed</div>
             <ul className="grid gap-2">
               {failedStatus.issues.map((issue) => (
                 <li key={issue} className="text-sm text-muted-ink">

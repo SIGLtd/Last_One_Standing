@@ -1,0 +1,25 @@
+{
+  "season": "2026/27",
+  "teams": [
+    { "id": "ars", "name": "Arsenal", "pl_names": ["Arsenal"] },
+    { "id": "avl", "name": "Aston Villa", "pl_names": ["Aston Villa"] },
+    { "id": "bou", "name": "AFC Bournemouth", "pl_names": ["AFC Bournemouth"] },
+    { "id": "bre", "name": "Brentford", "pl_names": ["Brentford"] },
+    { "id": "bha", "name": "Brighton & Hove Albion", "pl_names": ["Brighton & Hove Albion", "Brighton and Hove Albion"] },
+    { "id": "che", "name": "Chelsea", "pl_names": ["Chelsea"] },
+    { "id": "cov", "name": "Coventry City", "pl_names": ["Coventry City"] },
+    { "id": "cry", "name": "Crystal Palace", "pl_names": ["Crystal Palace"] },
+    { "id": "eve", "name": "Everton", "pl_names": ["Everton"] },
+    { "id": "ful", "name": "Fulham", "pl_names": ["Fulham"] },
+    { "id": "hul", "name": "Hull City", "pl_names": ["Hull City"] },
+    { "id": "ips", "name": "Ipswich Town", "pl_names": ["Ipswich Town"] },
+    { "id": "lee", "name": "Leeds United", "pl_names": ["Leeds United"] },
+    { "id": "liv", "name": "Liverpool", "pl_names": ["Liverpool"] },
+    { "id": "mci", "name": "Manchester City", "pl_names": ["Manchester City", "Man City"] },
+    { "id": "mun", "name": "Manchester United", "pl_names": ["Manchester United", "Man Utd"] },
+    { "id": "new", "name": "Newcastle United", "pl_names": ["Newcastle United"] },
+    { "id": "nfo", "name": "Nottingham Forest", "pl_names": ["Nottingham Forest", "Nott'm Forest"] },
+    { "id": "sun", "name": "Sunderland", "pl_names": ["Sunderland"] },
+    { "id": "tot", "name": "Tottenham Hotspur", "pl_names": ["Tottenham Hotspur", "Spurs"] }
+  ]
+}

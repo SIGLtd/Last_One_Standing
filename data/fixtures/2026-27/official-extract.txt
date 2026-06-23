@@ -1,0 +1,380 @@
+Friday 21 August 2026 20:00 Arsenal v Coventry City
+Saturday 22 August 12:30 Hull City v Manchester United
+Saturday 22 August Everton v Crystal Palace
+Saturday 22 August Ipswich Town v Sunderland
+Saturday 22 August Nottingham Forest v Leeds United
+Saturday 22 August 17:30 Brentford v Tottenham Hotspur
+Sunday 23 August 14:00 Brighton & Hove Albion v Aston Villa
+Sunday 23 August 14:00 Manchester City v AFC Bournemouth
+Sunday 23 August 16:30 Newcastle United v Liverpool
+Monday 24 August 20:00 Fulham v Chelsea
+Saturday 29 August AFC Bournemouth v Everton
+Saturday 29 August Aston Villa v Arsenal
+Saturday 29 August Chelsea v Brighton & Hove Albion
+Saturday 29 August Coventry City v Hull City
+Saturday 29 August Crystal Palace v Manchester City
+Saturday 29 August Leeds United v Brentford
+Saturday 29 August Liverpool v Nottingham Forest
+Saturday 29 August Manchester United v Ipswich Town
+Saturday 29 August Sunderland v Fulham
+Saturday 29 August Tottenham Hotspur v Newcastle United
+Saturday 5 September Arsenal v Chelsea
+Saturday 5 September Brentford v Sunderland
+Saturday 5 September Brighton & Hove Albion v Leeds United
+Saturday 5 September Everton v Manchester United
+Saturday 5 September Fulham v Crystal Palace
+Saturday 5 September Hull City v Aston Villa
+Saturday 5 September Ipswich Town v Liverpool
+Saturday 5 September Manchester City v Coventry City
+Saturday 5 September Newcastle United v AFC Bournemouth
+Saturday 5 September Nottingham Forest v Tottenham Hotspur
+Saturday 12 September AFC Bournemouth v Brentford
+Saturday 12 September Aston Villa v Nottingham Forest
+Saturday 12 September Chelsea v Hull City
+Saturday 12 September Coventry City v Brighton & Hove Albion
+Saturday 12 September Crystal Palace v Ipswich Town
+Saturday 12 September Leeds United v Newcastle United
+Saturday 12 September Liverpool v Fulham
+Saturday 12 September Manchester United v Manchester City
+Saturday 12 September Sunderland v Arsenal
+Saturday 12 September Tottenham Hotspur v Everton
+Saturday 19 September AFC Bournemouth v Liverpool
+Saturday 19 September Brentford v Chelsea
+Saturday 19 September Brighton & Hove Albion v Arsenal
+Saturday 19 September Everton v Ipswich Town
+Saturday 19 September Fulham v Manchester United
+Saturday 19 September Leeds United v Crystal Palace
+Saturday 19 September Manchester City v Sunderland
+Saturday 19 September Newcastle United v Hull City
+Saturday 19 September Nottingham Forest v Coventry City
+Saturday 19 September Tottenham Hotspur v Aston Villa
+Saturday 10 October Arsenal v Leeds United
+Saturday 10 October Aston Villa v Brentford
+Saturday 10 October Chelsea v AFC Bournemouth
+Saturday 10 October Coventry City v Newcastle United
+Saturday 10 October Crystal Palace v Nottingham Forest
+Saturday 10 October Hull City v Everton
+Saturday 10 October Ipswich Town v Fulham
+Saturday 10 October Liverpool v Manchester City
+Saturday 10 October Manchester United v Tottenham Hotspur
+Saturday 10 October Sunderland v Brighton & Hove Albion
+Saturday 17 October AFC Bournemouth v Sunderland
+Saturday 17 October Brentford v Liverpool
+Saturday 17 October Brighton & Hove Albion v Crystal Palace
+Saturday 17 October Everton v Chelsea
+Saturday 17 October Fulham v Hull City
+Saturday 17 October Leeds United v Manchester United
+Saturday 17 October Manchester City v Ipswich Town
+Saturday 17 October Newcastle United v Aston Villa
+Saturday 17 October Nottingham Forest v Arsenal
+Saturday 17 October Tottenham Hotspur v Coventry City
+Saturday 24 October Arsenal v Everton
+Saturday 24 October Aston Villa v Manchester City
+Saturday 24 October Chelsea v Tottenham Hotspur
+Saturday 24 October Coventry City v Fulham
+Saturday 24 October Crystal Palace v Newcastle United
+Saturday 24 October Hull City v Brentford
+Saturday 24 October Ipswich Town v Nottingham Forest
+Saturday 24 October Liverpool v Brighton & Hove Albion
+Saturday 24 October Manchester United v AFC Bournemouth
+Saturday 24 October Sunderland v Leeds United
+Saturday 31 October AFC Bournemouth v Leeds United
+Saturday 31 October Aston Villa v Fulham
+Saturday 31 October Brentford v Nottingham Forest
+Saturday 31 October Chelsea v Manchester United
+Saturday 31 October Coventry City v Sunderland
+Saturday 31 October Hull City v Ipswich Town
+Saturday 31 October Liverpool v Arsenal
+Saturday 31 October Manchester City v Brighton & Hove Albion
+Saturday 31 October Newcastle United v Everton
+Saturday 31 October Tottenham Hotspur v Crystal Palace
+Saturday 7 November Arsenal v Hull City
+Saturday 7 November Brighton & Hove Albion v Brentford
+Saturday 7 November Crystal Palace v Liverpool
+Saturday 7 November Everton v Coventry City
+Saturday 7 November Fulham v Newcastle United
+Saturday 7 November Ipswich Town v AFC Bournemouth
+Saturday 7 November Leeds United v Tottenham Hotspur
+Saturday 7 November Manchester United v Aston Villa
+Saturday 7 November Nottingham Forest v Manchester City
+Saturday 7 November Sunderland v Chelsea
+Saturday 21 November AFC Bournemouth v Nottingham Forest
+Saturday 21 November Aston Villa v Sunderland
+Saturday 21 November Brentford v Everton
+Saturday 21 November Chelsea v Leeds United
+Saturday 21 November Coventry City v Crystal Palace
+Saturday 21 November Hull City v Brighton & Hove Albion
+Saturday 21 November Liverpool v Manchester United
+Saturday 21 November Manchester City v Fulham
+Saturday 21 November Newcastle United v Arsenal
+Saturday 21 November Tottenham Hotspur v Ipswich Town
+Saturday 28 November Arsenal v Manchester City
+Saturday 28 November Brighton & Hove Albion v Newcastle United
+Saturday 28 November Crystal Palace v Hull City
+Saturday 28 November Everton v Liverpool
+Saturday 28 November Fulham v AFC Bournemouth
+Saturday 28 November Ipswich Town v Aston Villa
+Saturday 28 November Leeds United v Coventry City
+Saturday 28 November Manchester United v Brentford
+Saturday 28 November Nottingham Forest v Chelsea
+Saturday 28 November Sunderland v Tottenham Hotspur
+Wednesday 2 December AFC Bournemouth v Brighton & Hove Albion
+Wednesday 2 December Aston Villa v Everton
+Wednesday 2 December Brentford v Arsenal
+Wednesday 2 December Chelsea v Crystal Palace
+Wednesday 2 December Coventry City v Ipswich Town
+Wednesday 2 December Hull City v Nottingham Forest
+Wednesday 2 December Liverpool v Sunderland
+Wednesday 2 December Manchester City v Leeds United
+Wednesday 2 December Newcastle United v Manchester United
+Wednesday 2 December Tottenham Hotspur v Fulham
+Saturday 5 December AFC Bournemouth v Hull City
+Saturday 5 December Aston Villa v Crystal Palace
+Saturday 5 December Brentford v Manchester City
+Saturday 5 December Chelsea v Liverpool
+Saturday 5 December Everton v Fulham
+Saturday 5 December Leeds United v Ipswich Town
+Saturday 5 December Manchester United v Coventry City
+Saturday 5 December Newcastle United v Sunderland
+Saturday 5 December Nottingham Forest v Brighton & Hove Albion
+Saturday 5 December Tottenham Hotspur v Arsenal
+Saturday 12 December Arsenal v AFC Bournemouth
+Saturday 12 December Brighton & Hove Albion v Everton
+Saturday 12 December Coventry City v Aston Villa
+Saturday 12 December Crystal Palace v Manchester United
+Saturday 12 December Fulham v Brentford
+Saturday 12 December Hull City v Tottenham Hotspur
+Saturday 12 December Ipswich Town v Newcastle United
+Saturday 12 December Liverpool v Leeds United
+Saturday 12 December Manchester City v Chelsea
+Saturday 12 December Sunderland v Nottingham Forest
+Saturday 19 December AFC Bournemouth v Coventry City
+Saturday 19 December Arsenal v Manchester United
+Saturday 19 December Brentford v Newcastle United
+Saturday 19 December Brighton & Hove Albion v Ipswich Town
+Saturday 19 December Chelsea v Aston Villa
+Saturday 19 December Leeds United v Fulham
+Saturday 19 December Liverpool v Tottenham Hotspur
+Saturday 19 December Manchester City v Hull City
+Saturday 19 December Nottingham Forest v Everton
+Saturday 19 December Sunderland v Crystal Palace
+Saturday 26 December Aston Villa v Leeds United
+Saturday 26 December Coventry City v Chelsea
+Saturday 26 December Crystal Palace v Arsenal
+Saturday 26 December Everton v Sunderland
+Saturday 26 December Fulham v Brighton & Hove Albion
+Saturday 26 December Hull City v Liverpool
+Saturday 26 December Ipswich Town v Brentford
+Saturday 26 December Manchester United v Nottingham Forest
+Saturday 26 December Newcastle United v Manchester City
+Saturday 26 December Tottenham Hotspur v AFC Bournemouth
+Wednesday 30 December Aston Villa v Liverpool
+Wednesday 30 December Coventry City v Brentford
+Wednesday 30 December Crystal Palace v AFC Bournemouth
+Wednesday 30 December Everton v Manchester City
+Wednesday 30 December Fulham v Arsenal
+Wednesday 30 December Hull City v Leeds United
+Wednesday 30 December Ipswich Town v Chelsea
+Wednesday 30 December Manchester United v Sunderland
+Wednesday 30 December Newcastle United v Nottingham Forest
+Wednesday 30 December Tottenham Hotspur v Brighton & Hove Albion
+Saturday 2 January 2027 AFC Bournemouth v Aston Villa
+Saturday 2 January 2027 Arsenal v Ipswich Town
+Saturday 2 January 2027 Brentford v Crystal Palace
+Saturday 2 January 2027 Brighton & Hove Albion v Manchester United
+Saturday 2 January 2027 Chelsea v Newcastle United
+Saturday 2 January 2027 Leeds United v Everton
+Saturday 2 January 2027 Liverpool v Coventry City
+Saturday 2 January 2027 Manchester City v Tottenham Hotspur
+Saturday 2 January 2027 Nottingham Forest v Fulham
+Saturday 2 January 2027 Sunderland v Hull City
+Wednesday 6 January Arsenal v Brentford
+Wednesday 6 January Brighton & Hove Albion v AFC Bournemouth
+Wednesday 6 January Crystal Palace v Chelsea
+Wednesday 6 January Everton v Aston Villa
+Wednesday 6 January Fulham v Tottenham Hotspur
+Wednesday 6 January Ipswich Town v Coventry City
+Wednesday 6 January Leeds United v Manchester City
+Wednesday 6 January Manchester United v Newcastle United
+Wednesday 6 January Nottingham Forest v Hull City
+Wednesday 6 January Sunderland v Liverpool
+Saturday 16 January AFC Bournemouth v Ipswich Town
+Saturday 16 January Aston Villa v Manchester United
+Saturday 16 January Brentford v Brighton & Hove Albion
+Saturday 16 January Chelsea v Sunderland
+Saturday 16 January Coventry City v Everton
+Saturday 16 January Hull City v Arsenal
+Saturday 16 January Liverpool v Crystal Palace
+Saturday 16 January Manchester City v Nottingham Forest
+Saturday 16 January Newcastle United v Fulham
+Saturday 16 January Tottenham Hotspur v Leeds United
+Saturday 23 January Arsenal v Newcastle United
+Saturday 23 January Brighton & Hove Albion v Manchester City
+Saturday 23 January Crystal Palace v Tottenham Hotspur
+Saturday 23 January Everton v Brentford
+Saturday 23 January Fulham v Aston Villa
+Saturday 23 January Ipswich Town v Hull City
+Saturday 23 January Leeds United v Chelsea
+Saturday 23 January Manchester United v Liverpool
+Saturday 23 January Nottingham Forest v AFC Bournemouth
+Saturday 23 January Sunderland v Coventry City
+Saturday 30 January AFC Bournemouth v Fulham
+Saturday 30 January Aston Villa v Ipswich Town
+Saturday 30 January Brentford v Manchester United
+Saturday 30 January Chelsea v Nottingham Forest
+Saturday 30 January Coventry City v Leeds United
+Saturday 30 January Hull City v Crystal Palace
+Saturday 30 January Liverpool v Everton
+Saturday 30 January Manchester City v Arsenal
+Saturday 30 January Newcastle United v Brighton & Hove Albion
+Saturday 30 January Tottenham Hotspur v Sunderland
+Saturday 6 February Arsenal v Liverpool
+Saturday 6 February Brighton & Hove Albion v Hull City
+Saturday 6 February Crystal Palace v Coventry City
+Saturday 6 February Everton v Newcastle United
+Saturday 6 February Fulham v Manchester City
+Saturday 6 February Ipswich Town v Tottenham Hotspur
+Saturday 6 February Leeds United v AFC Bournemouth
+Saturday 6 February Manchester United v Chelsea
+Saturday 6 February Nottingham Forest v Brentford
+Saturday 6 February Sunderland v Aston Villa
+Wednesday 10 February Aston Villa v AFC Bournemouth
+Wednesday 10 February Coventry City v Liverpool
+Wednesday 10 February Crystal Palace v Brentford
+Wednesday 10 February Everton v Leeds United
+Wednesday 10 February Fulham v Nottingham Forest
+Wednesday 10 February Hull City v Sunderland
+Wednesday 10 February Ipswich Town v Arsenal
+Wednesday 10 February Manchester United v Brighton & Hove Albion
+Wednesday 10 February Newcastle United v Chelsea
+Wednesday 10 February Tottenham Hotspur v Manchester City
+Saturday 20 February AFC Bournemouth v Crystal Palace
+Saturday 20 February Arsenal v Fulham
+Saturday 20 February Brentford v Coventry City
+Saturday 20 February Brighton & Hove Albion v Tottenham Hotspur
+Saturday 20 February Chelsea v Ipswich Town
+Saturday 20 February Leeds United v Aston Villa
+Saturday 20 February Liverpool v Hull City
+Saturday 20 February Manchester City v Newcastle United
+Saturday 20 February Nottingham Forest v Manchester United
+Saturday 20 February Sunderland v Everton
+Saturday 27 February Aston Villa v Chelsea
+Saturday 27 February Coventry City v AFC Bournemouth
+Saturday 27 February Crystal Palace v Sunderland
+Saturday 27 February Everton v Nottingham Forest
+Saturday 27 February Fulham v Leeds United
+Saturday 27 February Hull City v Manchester City
+Saturday 27 February Ipswich Town v Brighton & Hove Albion
+Saturday 27 February Manchester United v Arsenal
+Saturday 27 February Newcastle United v Brentford
+Saturday 27 February Tottenham Hotspur v Liverpool
+Wednesday 3 March AFC Bournemouth v Tottenham Hotspur
+Wednesday 3 March Arsenal v Crystal Palace
+Wednesday 3 March Brentford v Ipswich Town
+Wednesday 3 March Brighton & Hove Albion v Fulham
+Wednesday 3 March Chelsea v Coventry City
+Wednesday 3 March Leeds United v Hull City
+Wednesday 3 March Liverpool v Aston Villa
+Wednesday 3 March Manchester City v Everton
+Wednesday 3 March Nottingham Forest v Newcastle United
+Wednesday 3 March Sunderland v Manchester United
+Saturday 13 March AFC Bournemouth v Newcastle United
+Saturday 13 March Aston Villa v Hull City
+Saturday 13 March Chelsea v Arsenal
+Saturday 13 March Coventry City v Manchester City
+Saturday 13 March Crystal Palace v Fulham
+Saturday 13 March Leeds United v Brighton & Hove Albion
+Saturday 13 March Liverpool v Ipswich Town
+Saturday 13 March Manchester United v Everton
+Saturday 13 March Sunderland v Brentford
+Saturday 13 March Tottenham Hotspur v Nottingham Forest
+Saturday 20 March Arsenal v Sunderland
+Saturday 20 March Brentford v AFC Bournemouth
+Saturday 20 March Brighton & Hove Albion v Coventry City
+Saturday 20 March Everton v Tottenham Hotspur
+Saturday 20 March Fulham v Liverpool
+Saturday 20 March Hull City v Chelsea
+Saturday 20 March Ipswich Town v Crystal Palace
+Saturday 20 March Manchester City v Manchester United
+Saturday 20 March Newcastle United v Leeds United
+Saturday 20 March Nottingham Forest v Aston Villa
+Saturday 10 April AFC Bournemouth v Manchester City
+Saturday 10 April Aston Villa v Brighton & Hove Albion
+Saturday 10 April Chelsea v Fulham
+Saturday 10 April Coventry City v Arsenal
+Saturday 10 April Crystal Palace v Everton
+Saturday 10 April Leeds United v Nottingham Forest
+Saturday 10 April Liverpool v Newcastle United
+Saturday 10 April Manchester United v Hull City
+Saturday 10 April Sunderland v Ipswich Town
+Saturday 10 April Tottenham Hotspur v Brentford
+Saturday 17 April Arsenal v Aston Villa
+Saturday 17 April Brentford v Leeds United
+Saturday 17 April Brighton & Hove Albion v Chelsea
+Saturday 17 April Everton v AFC Bournemouth
+Saturday 17 April Fulham v Sunderland
+Saturday 17 April Hull City v Coventry City
+Saturday 17 April Ipswich Town v Manchester United
+Saturday 17 April Manchester City v Crystal Palace
+Saturday 17 April Newcastle United v Tottenham Hotspur
+Saturday 17 April Nottingham Forest v Liverpool
+Saturday 24 April AFC Bournemouth v Arsenal
+Saturday 24 April Aston Villa v Coventry City
+Saturday 24 April Brentford v Fulham
+Saturday 24 April Chelsea v Manchester City
+Saturday 24 April Everton v Brighton & Hove Albion
+Saturday 24 April Leeds United v Liverpool
+Saturday 24 April Manchester United v Crystal Palace
+Saturday 24 April Newcastle United v Ipswich Town
+Saturday 24 April Nottingham Forest v Sunderland
+Saturday 24 April Tottenham Hotspur v Hull City
+Saturday 1 May Arsenal v Tottenham Hotspur
+Saturday 1 May Brighton & Hove Albion v Nottingham Forest
+Saturday 1 May Coventry City v Manchester United
+Saturday 1 May Crystal Palace v Aston Villa
+Saturday 1 May Fulham v Everton
+Saturday 1 May Hull City v AFC Bournemouth
+Saturday 1 May Ipswich Town v Leeds United
+Saturday 1 May Liverpool v Chelsea
+Saturday 1 May Manchester City v Brentford
+Saturday 1 May Sunderland v Newcastle United
+Saturday 8 May AFC Bournemouth v Manchester United
+Saturday 8 May Brentford v Aston Villa
+Saturday 8 May Brighton & Hove Albion v Sunderland
+Saturday 8 May Everton v Hull City
+Saturday 8 May Fulham v Ipswich Town
+Saturday 8 May Leeds United v Arsenal
+Saturday 8 May Manchester City v Liverpool
+Saturday 8 May Newcastle United v Coventry City
+Saturday 8 May Nottingham Forest v Crystal Palace
+Saturday 8 May Tottenham Hotspur v Chelsea
+Saturday 15 May Arsenal v Nottingham Forest
+Saturday 15 May Aston Villa v Newcastle United
+Saturday 15 May Chelsea v Everton
+Saturday 15 May Coventry City v Tottenham Hotspur
+Saturday 15 May Crystal Palace v Brighton & Hove Albion
+Saturday 15 May Hull City v Fulham
+Saturday 15 May Ipswich Town v Manchester City
+Saturday 15 May Liverpool v Brentford
+Saturday 15 May Manchester United v Leeds United
+Saturday 15 May Sunderland v AFC Bournemouth
+Sunday 23 May AFC Bournemouth v Chelsea
+Sunday 23 May Brentford v Hull City
+Sunday 23 May Brighton & Hove Albion v Liverpool
+Sunday 23 May Everton v Arsenal
+Sunday 23 May Fulham v Coventry City
+Sunday 23 May Leeds United v Sunderland
+Sunday 23 May Manchester City v Aston Villa
+Sunday 23 May Newcastle United v Crystal Palace
+Sunday 23 May Nottingham Forest v Ipswich Town
+Sunday 23 May Tottenham Hotspur v Manchester United
+Sunday 30 May Arsenal v Brighton & Hove Albion
+Sunday 30 May Aston Villa v Tottenham Hotspur
+Sunday 30 May Chelsea v Brentford
+Sunday 30 May Coventry City v Nottingham Forest
+Sunday 30 May Crystal Palace v Leeds United
+Sunday 30 May Hull City v Newcastle United
+Sunday 30 May Ipswich Town v Everton
+Sunday 30 May Liverpool v AFC Bournemouth
+Sunday 30 May Manchester United v Fulham
+Sunday 30 May Sunderland v Manchester City

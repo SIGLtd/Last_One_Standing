@@ -65,6 +65,80 @@ export type SelectionWindow = {
   updated_at: string
 }
 
+export type SelectionWindowWithMeta = SelectionWindow & {
+  eligible_sat_date: string | null
+  eligible_sun_date: string | null
+  review_outcome: 'deferred' | 'rejected' | null
+  sync_run_id: UUID | null
+  earliest_kickoff_at: string | null
+  approved_at: string | null
+  approved_by_player_id: UUID | null
+}
+
+export type SeasonFixture = {
+  id: UUID
+  season: string
+  source_fixture_id: string | null
+  canonical_key: string
+  home_team_id: string
+  away_team_id: string
+  kickoff_at: string
+  original_kickoff_at: string
+  status: 'scheduled' | 'in_play' | 'finished' | 'postponed' | 'cancelled'
+  home_score: number | null
+  away_score: number | null
+  result_status: string
+  source_name: string
+  source_url: string | null
+  source_retrieved_at: string | null
+  eligibility_override: 'none' | 'force_eligible' | 'force_ineligible'
+  created_at: string
+  updated_at: string
+}
+
+export type SelectionWindowEligibleFixture = {
+  id: UUID
+  window_id: UUID
+  season_fixture_id: UUID
+  home_team_id: string
+  away_team_id: string
+  home_team_name: string
+  away_team_name: string
+  kickoff_at: string
+  snapshot_kickoff_at: string
+  fixture_status: SeasonFixture['status']
+  created_at: string
+}
+
+export type FixtureSyncRun = {
+  id: UUID
+  source_type: 'manual' | 'official_import' | 'api_football'
+  source_url: string | null
+  retrieved_at: string
+  validation_status: 'running' | 'passed' | 'failed'
+  run_result: string
+  fixture_total: number
+  changes_detected: number
+  error_summary: string | null
+  game_id: UUID | null
+  target_sat_date: string | null
+  target_sun_date: string | null
+  created_at: string
+}
+
+export type FixtureChangeEvent = {
+  id: UUID
+  sync_run_id: UUID
+  season_fixture_id: UUID | null
+  change_type: string
+  old_values: Record<string, unknown>
+  new_values: Record<string, unknown>
+  affects_open_window: boolean
+  affected_window_id: UUID | null
+  resolution_status: 'pending' | 'acknowledged' | 'resolved' | 'ignored'
+  created_at: string
+}
+
 export type Team = {
   id: string
   name: string
@@ -87,6 +161,7 @@ export type Selection = {
   window_id: UUID
   player_id: UUID
   team_id: string | null
+  season_fixture_id: UUID | null
   created_at: string
   updated_at: string
   locked_at: string | null

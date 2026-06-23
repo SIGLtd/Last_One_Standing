@@ -1,0 +1,11 @@
+{
+  "season": "2026/27",
+  "baseline_type": "official_initial_schedule",
+  "source_name": "premier_league_official",
+  "source_url": "https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season/",
+  "source_published_date": "2026-06-19",
+  "source_retrieved_at": "2026-06-23T00:00:00.000Z",
+  "validated_at": "2026-06-23T00:00:00.000Z",
+  "provider_change_detection": "deferred_until_api_football_monitoring_enabled",
+  "notes": "Kick-off times follow Premier League release guidance: weekend matches default 15:00 UK unless a time is stated; midweek defaults 20:00 UK unless stated. This artefact is an initial schedule baseline; later provider changes are detected separately and never silently alter approved player snapshots."
+}

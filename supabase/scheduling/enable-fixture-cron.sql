@@ -1,0 +1,67 @@
+-- Fixture reconciliation cron (DO NOT ENABLE until CEO approves recurring monitoring)
+--
+-- Prerequisites:
+--   1. Edge Function `reconcile-fixtures` deployed with --no-verify-jwt
+--      (function performs its own admin JWT + scheduler secret checks)
+--   2. Supabase secret LOS_SCHEDULER_SECRET set (Dashboard → Edge Functions → Secrets)
+--   3. Vault entries created (run once as postgres / via SQL editor):
+--
+-- insert into vault.secrets (name, secret)
+-- values
+--   ('los_project_url', '<https://YOUR_PROJECT_REF.supabase.co>'),
+--   ('los_scheduler_secret', '<same value as LOS_SCHEDULER_SECRET>');
+--
+-- The secret values must NEVER be committed to this repository.
+--
+-- London execution guard: the Edge Function no-ops unless the local hour matches
+-- the schedule slot (Monday/Friday 09:00, Saturday 06:00 Europe/London).
+--
+-- Example pg_cron job (commented — enable only after migration + edge deploy + Vault setup):
+
+-- select cron.schedule(
+--   'los-monday-fixture-scan',
+--   '0 7 * * 1',
+--   $$
+--   select net.http_post(
+--     url := (select decrypted_secret from vault.decrypted_secrets where name = 'los_project_url')
+--            || '/functions/v1/reconcile-fixtures',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'x-los-scheduler-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'los_scheduler_secret')
+--     ),
+--     body := jsonb_build_object('schedule', 'monday')
+--   );
+--   $$
+-- );
+--
+-- select cron.schedule(
+--   'los-friday-fixture-scan',
+--   '0 7 * * 5',
+--   $$
+--   select net.http_post(
+--     url := (select decrypted_secret from vault.decrypted_secrets where name = 'los_project_url')
+--            || '/functions/v1/reconcile-fixtures',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'x-los-scheduler-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'los_scheduler_secret')
+--     ),
+--     body := jsonb_build_object('schedule', 'friday')
+--   );
+--   $$
+-- );
+--
+-- select cron.schedule(
+--   'los-saturday-early-fixture-scan',
+--   '0 5 * * 6',
+--   $$
+--   select net.http_post(
+--     url := (select decrypted_secret from vault.decrypted_secrets where name = 'los_project_url')
+--            || '/functions/v1/reconcile-fixtures',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'x-los-scheduler-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'los_scheduler_secret')
+--     ),
+--     body := jsonb_build_object('schedule', 'saturday_early')
+--   );
+--   $$
+-- );

@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:fixtures": "tsx scripts/build-fixture-artefact.ts",
+    "validate:fixtures": "tsx scripts/validate-fixtures.ts",
+    "import:fixtures:dry-run": "tsx scripts/import-fixtures-dry-run.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -27,9 +31,12 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "luxon": "^3.5.0",
     "tailwindcss": "^4.3.1",
+    "tsx": "^4.19.2",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^3.0.5"
   }
 }

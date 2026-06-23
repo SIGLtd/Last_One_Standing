@@ -3,32 +3,33 @@ import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
-import { TEAMS_2026 } from '../config/teams'
 import { useAuth } from '../contexts/AuthContext'
-import { CURRENT_GAME, formatEligibleSelectionDays } from '../lib/constants'
+import { CURRENT_GAME } from '../lib/constants'
+import {
+  buildSelectableTeamOptions,
+  fetchOpenSelectionWindow,
+  fetchWindowEligibleFixtures,
+  formatLondonDateTime,
+} from '../lib/fixtureOps'
 import { fetchCurrentGame, fetchMyGameEntry } from '../lib/gameEntries'
 import {
-  fetchCurrentSelectionWindow,
+  fetchFinallyUsedTeamIds,
   fetchMySelection,
-  fetchUsedTeamIds,
   isWindowEditable,
   isWindowLocked,
   saveSelection,
 } from '../lib/selections'
-import type { Game, GameEntry, Selection, SelectionWindow } from '../types'
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
-}
+import type { Game, GameEntry, Selection, SelectionWindowWithMeta } from '../types'
 
 export function PickPage() {
   const { user, player, loading: authLoading, configured } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
-  const [window, setWindow] = useState<SelectionWindow | null>(null)
+  const [window, setWindow] = useState<SelectionWindowWithMeta | null>(null)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [usedTeamIds, setUsedTeamIds] = useState<string[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
+  const [teamOptions, setTeamOptions] = useState<ReturnType<typeof buildSelectableTeamOptions>>([])
   const [pageLoading, setPageLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
@@ -55,27 +56,31 @@ export function PickPage() {
         setEntry(null)
         setWindow(null)
         setSelection(null)
+        setTeamOptions([])
         return
       }
 
-      const [myEntry, currentWindow] = await Promise.all([
+      const [myEntry, openWindow] = await Promise.all([
         fetchMyGameEntry(player.id, currentGame.id),
-        fetchCurrentSelectionWindow(currentGame.id),
+        fetchOpenSelectionWindow(currentGame.id),
       ])
 
       setEntry(myEntry)
-      setWindow(currentWindow)
+      setWindow(openWindow)
 
-      if (currentWindow) {
-        const [mySelection, usedTeams] = await Promise.all([
-          fetchMySelection(player.id, currentGame.id, currentWindow.id),
-          fetchUsedTeamIds(player.id, currentGame.id, currentWindow.id),
+      if (openWindow) {
+        const [fixtures, mySelection, usedTeams] = await Promise.all([
+          fetchWindowEligibleFixtures(openWindow.id),
+          fetchMySelection(player.id, currentGame.id, openWindow.id),
+          fetchFinallyUsedTeamIds(player.id, currentGame.id),
         ])
 
+        setTeamOptions(buildSelectableTeamOptions(fixtures))
         setSelection(mySelection)
         setUsedTeamIds(usedTeams)
         setSelectedTeamId(mySelection?.team_id ?? null)
       } else {
+        setTeamOptions([])
         setSelection(null)
         setUsedTeamIds([])
         setSelectedTeamId(null)
@@ -89,33 +94,25 @@ export function PickPage() {
   }, [configured, player])
 
   useEffect(() => {
-    if (!authLoading) {
-      void loadPickPage()
-    }
+    if (!authLoading) void loadPickPage()
   }, [authLoading, loadPickPage])
 
-  const selectedTeam = useMemo(
-    () => TEAMS_2026.find((team) => team.id === selectedTeamId) ?? null,
-    [selectedTeamId],
+  const selectedOption = useMemo(
+    () => teamOptions.find((team) => team.team_id === selectedTeamId) ?? null,
+    [selectedTeamId, teamOptions],
   )
 
   async function handleSavePick() {
-    if (!player || !game || !window || !selectedTeamId) return
+    if (!window || !selectedTeamId) return
 
     setSaving(true)
     setPageError(null)
     setSavedMessage(null)
 
     try {
-      const saved = await saveSelection({
-        gameId: game.id,
-        windowId: window.id,
-        playerId: player.id,
-        teamId: selectedTeamId,
-        window,
-      })
+      const saved = await saveSelection({ windowId: window.id, teamId: selectedTeamId })
       setSelection(saved)
-      setSavedMessage(`Saved ${selectedTeam?.name ?? 'pick'} for window ${window.window_number}.`)
+      setSavedMessage(`Saved ${selectedOption?.team_name ?? 'pick'} for window ${window.window_number}.`)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save pick.'
       setPageError(message)
@@ -154,10 +151,10 @@ export function PickPage() {
     )
   }
 
-  if (!window || window.status === 'pending') {
+  if (!window) {
     return (
       <Card title="Make your pick" description={`Game ${CURRENT_GAME}`} compact>
-        <p className="text-xs text-muted-ink">No selection window is open yet.</p>
+        <p className="text-xs text-muted-ink">No open selection window is available yet.</p>
       </Card>
     )
   }
@@ -165,43 +162,53 @@ export function PickPage() {
   return (
     <Card
       title="Make your pick"
-      description={`Game ${CURRENT_GAME} · Window ${window.window_number}`}
+      description={`Game ${game?.game_number ?? CURRENT_GAME} · Window ${window.window_number}`}
       right={<Badge variant={locked ? 'muted' : 'open'}>{locked ? 'Locked' : 'Open'}</Badge>}
       compact
     >
       <div className="grid gap-2">
         <MetricStrip>
-          <MetricCell label="Deadline" value={formatDateTime(window.deadline_at)} />
-          <MetricCell label="Selected" value={selectedTeam?.name ?? '—'} />
-          <MetricCell label="Window" value={`${formatDateTime(window.start_at)} – ${formatDateTime(window.end_at)}`} />
+          <MetricCell label="Deadline" value={formatLondonDateTime(window.deadline_at)} />
+          <MetricCell label="Selected" value={selectedOption?.team_name ?? '—'} />
+          <MetricCell
+            label="Weekend"
+            value={
+              window.eligible_sat_date && window.eligible_sun_date
+                ? `${window.eligible_sat_date} – ${window.eligible_sun_date}`
+                : '—'
+            }
+          />
         </MetricStrip>
 
         {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
         {savedMessage ? <div className="los-alert los-alert-success">{savedMessage}</div> : null}
 
         <p className="text-xs text-muted-ink">
-          Select from eligible {formatEligibleSelectionDays()} fixtures only. Friday and Monday games excluded.
+          Choose a team from the approved Saturday and Sunday fixtures for this window.
         </p>
 
-        <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-          {TEAMS_2026.map((team) => {
-            const isUsed = usedTeamIds.includes(team.id)
-            const isSelected = selectedTeamId === team.id
+        <div className="grid gap-1">
+          {teamOptions.map((team) => {
+            const isUsed = usedTeamIds.includes(team.team_id)
+            const isSelected = selectedTeamId === team.team_id
             const disabled = !canPick || locked || (isUsed && !isSelected)
 
             return (
               <button
-                key={team.id}
+                key={team.team_id}
                 type="button"
                 disabled={disabled}
-                onClick={() => setSelectedTeamId(team.id)}
+                onClick={() => setSelectedTeamId(team.team_id)}
                 className={[
-                  'los-fixture-tile',
+                  'los-fixture-tile !flex !flex-col !items-start !gap-0.5 !h-auto !py-2',
                   disabled ? 'los-fixture-tile-used cursor-not-allowed' : 'cursor-pointer',
                   isSelected ? 'los-fixture-tile-selected' : '',
                 ].join(' ')}
               >
-                <span className="font-medium text-ink">{team.name}</span>
+                <span className="font-medium text-ink">{team.team_name}</span>
+                <span className="text-[0.6875rem] text-muted-ink">
+                  {team.venue} vs {team.opponent_name} · {team.kickoff_london}
+                </span>
                 <span className="text-[0.625rem] uppercase tracking-wide text-muted-ink">
                   {isUsed ? 'Used' : isSelected ? 'Selected' : ''}
                 </span>

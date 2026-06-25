@@ -112,7 +112,7 @@ export type SelectionWindowEligibleFixture = {
 
 export type FixtureSyncRun = {
   id: UUID
-  source_type: 'manual' | 'official_import' | 'api_football'
+  source_type: 'manual' | 'official_import' | 'api_football' | 'football_data'
   source_url: string | null
   retrieved_at: string
   validation_status: 'running' | 'passed' | 'failed'

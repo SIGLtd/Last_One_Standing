@@ -1,5 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { DateTime } from 'https://esm.sh/luxon@3.5.0'
+import {
+  checkFootballDataReadiness,
+  FOOTBALL_DATA_API_BASE,
+  loadNormalizedSeasonMatches,
+  LOS_SEASON_LABEL,
+  PL_COMPETITION_CODE,
+  type NormalizedProviderMatch,
+} from './footballDataProvider.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,12 +15,16 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type, x-los-scheduler-secret',
 }
 
+const OFFICIAL_BASELINE_URL =
+  'https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season/'
+
 type ReconcileBody = {
-  action?: 'reconcile' | 'status'
+  action?: 'reconcile' | 'status' | 'provider_check' | 'provider_sync' | 'map_provider_ids'
   targetSatDate?: string
   targetSunDate?: string
-  sourceType?: 'manual' | 'api_football'
+  sourceType?: 'manual' | 'football_data'
   schedule?: 'monday' | 'friday' | 'saturday_early'
+  createCandidateWindow?: boolean
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -59,7 +71,22 @@ function shouldExecuteScheduledScan(
 type Caller =
   | { kind: 'admin'; playerId: string }
   | { kind: 'scheduler' }
+  | { kind: 'service' }
   | { kind: 'unauthorized'; reason: string }
+
+function isServiceRoleBearer(token: string): boolean {
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.trim() ?? ''
+  if (serviceKey && timingSafeEqual(token, serviceKey)) return true
+
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return false
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.role === 'service_role'
+  } catch {
+    return false
+  }
+}
 
 async function resolveCaller(req: Request, admin: ReturnType<typeof createClient>): Promise<Caller> {
   const schedulerSecret = Deno.env.get('LOS_SCHEDULER_SECRET')?.trim() ?? ''
@@ -81,6 +108,11 @@ async function resolveCaller(req: Request, admin: ReturnType<typeof createClient
     return { kind: 'unauthorized', reason: 'UNAUTHORIZED' }
   }
 
+  const token = authHeader.slice(7)
+  if (isServiceRoleBearer(token)) {
+    return { kind: 'service' }
+  }
+
   const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
     global: { headers: { Authorization: authHeader } },
   })
@@ -97,25 +129,229 @@ async function resolveCaller(req: Request, admin: ReturnType<typeof createClient
   return { kind: 'admin', playerId: player.id }
 }
 
+type ProviderSyncResult = {
+  changesDetected: number
+  masterUpdated: number
+  providerMapped: number
+}
+
+async function applyProviderMatches(
+  admin: ReturnType<typeof createClient>,
+  syncRunId: string,
+  gameId: string,
+  providerMatches: NormalizedProviderMatch[],
+): Promise<ProviderSyncResult> {
+  let changesDetected = 0
+  let masterUpdated = 0
+  let providerMapped = 0
+
+  for (const item of providerMatches) {
+    const { data: existing } = await admin
+      .from('season_fixtures')
+      .select('*')
+      .eq('season', LOS_SEASON_LABEL)
+      .eq('canonical_key', item.canonicalKey)
+      .maybeSingle()
+
+    if (!existing) continue
+
+    const kickoff = item.kickoffAt
+    const status = item.status
+
+    const { data: openWindows } = await admin
+      .from('selection_windows')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('status', 'open')
+      .gte('window_number', 2)
+
+    const kickoffChanged = existing.kickoff_at !== kickoff
+    const statusChanged = existing.status !== status
+    const scoreChanged =
+      item.homeScore != null &&
+      item.awayScore != null &&
+      (existing.home_score !== item.homeScore || existing.away_score !== item.awayScore)
+
+    const affectsOpen =
+      (openWindows ?? []).length > 0 && existing && (kickoffChanged || statusChanged)
+
+    if (affectsOpen) {
+      await admin.from('fixture_change_events').insert({
+        sync_run_id: syncRunId,
+        season_fixture_id: existing.id,
+        change_type: kickoffChanged ? 'kickoff_change' : 'status_change',
+        old_values: {
+          kickoff_at: existing.kickoff_at,
+          status: existing.status,
+          home_score: existing.home_score,
+          away_score: existing.away_score,
+        },
+        new_values: {
+          kickoff_at: kickoff,
+          status,
+          home_score: item.homeScore,
+          away_score: item.awayScore,
+        },
+        affects_open_window: true,
+        affected_window_id: openWindows?.[0]?.id ?? null,
+      })
+      changesDetected += 1
+      continue
+    }
+
+    const shouldMapProviderId = !existing.source_fixture_id && item.providerFixtureId
+    const row = {
+      season: LOS_SEASON_LABEL,
+      source_fixture_id: existing.source_fixture_id ?? item.providerFixtureId,
+      canonical_key: item.canonicalKey,
+      home_team_id: item.homeTeamId,
+      away_team_id: item.awayTeamId,
+      kickoff_at: kickoff,
+      original_kickoff_at: existing.original_kickoff_at ?? kickoff,
+      status,
+      home_score: item.homeScore ?? existing.home_score,
+      away_score: item.awayScore ?? existing.away_score,
+      result_status: item.resultStatus !== 'pending' ? item.resultStatus : existing.result_status,
+      source_name: existing.source_name === 'premier_league_official' ? existing.source_name : 'football_data',
+      source_url: `${FOOTBALL_DATA_API_BASE}/competitions/${PL_COMPETITION_CODE}/matches`,
+      source_retrieved_at: new Date().toISOString(),
+      last_changed_at:
+        existing && (kickoffChanged || statusChanged || scoreChanged)
+          ? new Date().toISOString()
+          : existing?.last_changed_at,
+      rescheduled_count:
+        existing && kickoffChanged ? (existing.rescheduled_count ?? 0) + 1 : (existing?.rescheduled_count ?? 0),
+    }
+
+    const { error: upsertError } = await admin.from('season_fixtures').upsert(row, { onConflict: 'season,canonical_key' })
+    if (!upsertError) {
+      masterUpdated += 1
+      if (shouldMapProviderId) providerMapped += 1
+    }
+
+    if (existing && (kickoffChanged || statusChanged || scoreChanged)) {
+      changesDetected += 1
+      const changeType = kickoffChanged
+        ? 'kickoff_change'
+        : status === 'postponed'
+          ? 'postponed'
+          : status === 'cancelled'
+            ? 'cancelled'
+            : 'status_change'
+
+      await admin.from('fixture_change_events').insert({
+        sync_run_id: syncRunId,
+        season_fixture_id: existing.id,
+        change_type: changeType,
+        old_values: {
+          kickoff_at: existing.kickoff_at,
+          status: existing.status,
+          home_score: existing.home_score,
+          away_score: existing.away_score,
+        },
+        new_values: {
+          kickoff_at: kickoff,
+          status,
+          home_score: item.homeScore,
+          away_score: item.awayScore,
+        },
+        affects_open_window: false,
+      })
+    }
+  }
+
+  return { changesDetected, masterUpdated, providerMapped }
+}
+
+async function mapProviderIdsOnly(
+  admin: ReturnType<typeof createClient>,
+  providerMatches: NormalizedProviderMatch[],
+): Promise<{ mapped: number; skipped: number }> {
+  let mapped = 0
+  let skipped = 0
+
+  for (const item of providerMatches) {
+    const { data: existing } = await admin
+      .from('season_fixtures')
+      .select('id, source_fixture_id, canonical_key')
+      .eq('season', LOS_SEASON_LABEL)
+      .eq('canonical_key', item.canonicalKey)
+      .maybeSingle()
+
+    if (!existing) {
+      skipped += 1
+      continue
+    }
+    if (existing.source_fixture_id) {
+      skipped += 1
+      continue
+    }
+
+    const { error } = await admin
+      .from('season_fixtures')
+      .update({
+        source_fixture_id: item.providerFixtureId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .is('source_fixture_id', null)
+
+    if (!error) mapped += 1
+    else skipped += 1
+  }
+
+  return { mapped, skipped }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const apiFootballKey = Deno.env.get('API_FOOTBALL_KEY')
+    const footballDataKey = Deno.env.get('FOOTBALL_DATA_API_KEY')?.trim() ?? ''
     const admin = createClient(supabaseUrl, serviceKey)
 
     const caller = await resolveCaller(req, admin)
     if (caller.kind === 'unauthorized') return json({ error: caller.reason }, caller.reason === 'ADMIN_REQUIRED' ? 403 : 401)
 
     const body = (await req.json().catch(() => ({}))) as ReconcileBody
+    const action = body.action ?? (req.method === 'GET' ? 'status' : 'reconcile')
 
-    if (body.action === 'status' || req.method === 'GET') {
-      if (caller.kind !== 'admin') return json({ error: 'ADMIN_REQUIRED' }, 403)
+    if (action === 'status' || req.method === 'GET') {
+      if (caller.kind !== 'admin' && caller.kind !== 'service') return json({ error: 'ADMIN_REQUIRED' }, 403)
       return json({
-        providerConfigured: Boolean(apiFootballKey),
+        providerConfigured: Boolean(footballDataKey),
+        provider: 'football-data.org',
         schedulerConfigured: Boolean(Deno.env.get('LOS_SCHEDULER_SECRET')),
+      })
+    }
+
+    if (action === 'provider_check') {
+      if (caller.kind !== 'admin' && caller.kind !== 'service') return json({ error: 'ADMIN_REQUIRED' }, 403)
+      if (!footballDataKey) return json({ result: 'provider_not_configured' })
+      const readiness = await checkFootballDataReadiness(footballDataKey)
+      return json({
+        result: readiness.keyAccepted ? 'ready' : 'provider_auth_failed',
+        endpointStrategy: {
+          competition: `${FOOTBALL_DATA_API_BASE}/competitions/${PL_COMPETITION_CODE}`,
+          seasonMatches: `${FOOTBALL_DATA_API_BASE}/competitions/${PL_COMPETITION_CODE}/matches?season=${LOS_SEASON_LABEL.slice(0, 4)}`,
+          authHeader: 'X-Auth-Token',
+        },
+        readiness,
+      })
+    }
+
+    if (action === 'map_provider_ids') {
+      if (caller.kind !== 'admin' && caller.kind !== 'service') return json({ error: 'ADMIN_REQUIRED' }, 403)
+      if (!footballDataKey) return json({ result: 'provider_not_configured' })
+
+      const providerMatches = await loadNormalizedSeasonMatches(footballDataKey)
+      const mapping = await mapProviderIdsOnly(admin, providerMatches)
+      return json({
+        result: 'provider_ids_mapped',
+        providerMatchCount: providerMatches.length,
+        ...mapping,
       })
     }
 
@@ -125,15 +361,15 @@ Deno.serve(async (req) => {
       if (!shouldExecuteScheduledScan(nowLondon.hour, nowLondon.minute, schedule)) {
         return json({ result: 'schedule_guard_skipped', schedule })
       }
-      if (!apiFootballKey) {
+      if (!footballDataKey) {
         return json({ result: 'provider_not_configured' })
       }
     }
 
     const sourceType =
       caller.kind === 'scheduler'
-        ? 'api_football'
-        : body.sourceType ?? (apiFootballKey ? 'api_football' : 'manual')
+        ? 'football_data'
+        : body.sourceType ?? (footballDataKey ? 'football_data' : 'manual')
 
     const weekend =
       body.targetSatDate && body.targetSunDate
@@ -145,14 +381,16 @@ Deno.serve(async (req) => {
       return json({ result: 'game_not_live', weekend })
     }
 
+    const createCandidateWindow = action === 'reconcile' && body.createCandidateWindow !== false
+
     const { data: syncRun, error: syncError } = await admin
       .from('fixture_sync_runs')
       .insert({
         source_type: sourceType,
         source_url:
-          sourceType === 'api_football'
-            ? 'https://v3.football.api-sports.io'
-            : 'https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season/',
+          sourceType === 'football_data'
+            ? `${FOOTBALL_DATA_API_BASE}/competitions/${PL_COMPETITION_CODE}/matches`
+            : OFFICIAL_BASELINE_URL,
         validation_status: 'running',
         run_result: 'running',
         game_id: game.id,
@@ -167,104 +405,52 @@ Deno.serve(async (req) => {
 
     let changesDetected = 0
     let masterUpdated = 0
+    let providerMapped = 0
 
-    if (sourceType === 'api_football' && apiFootballKey) {
-      const response = await fetch('https://v3.football.api-sports.io/fixtures?league=39&season=2026', {
-        headers: { 'x-apisports-key': apiFootballKey },
-      })
-      if (!response.ok) {
+    if (sourceType === 'football_data' && footballDataKey) {
+      const providerMatches = await loadNormalizedSeasonMatches(footballDataKey)
+      if (providerMatches.length === 0) {
         await admin
           .from('fixture_sync_runs')
           .update({
             validation_status: 'failed',
-            run_result: 'source_failed',
-            error_summary: `API Football HTTP ${response.status}`,
+            run_result: 'source_empty',
+            error_summary: 'football-data.org returned no normalised matches for season',
           })
           .eq('id', syncRun.id)
-        return json({ result: 'source_failed', syncRunId: syncRun.id })
+        return json({ result: 'source_empty', syncRunId: syncRun.id })
       }
 
-      const payload = await response.json()
-      for (const item of payload.response ?? []) {
-        const fixture = item.fixture
-        const teams = item.teams
-        const homeCode = mapApiTeamToId(teams.home.name)
-        const awayCode = mapApiTeamToId(teams.away.name)
-        if (!homeCode || !awayCode) continue
-
-        const kickoff = fixture.date
-        const canonical = `2026/27|${homeCode}|${awayCode}|${londonDate(kickoff)}`
-        const { data: existing } = await admin
-          .from('season_fixtures')
-          .select('*')
-          .eq('season', '2026/27')
-          .eq('canonical_key', canonical)
-          .maybeSingle()
-
-        const status = mapApiStatus(fixture.status.short)
-        const { data: openWindows } = await admin
-          .from('selection_windows')
-          .select('id')
-          .eq('game_id', game.id)
-          .eq('status', 'open')
-          .gte('window_number', 2)
-
-        const affectsOpen =
-          (openWindows ?? []).length > 0 &&
-          existing &&
-          (existing.kickoff_at !== kickoff || existing.status !== status)
-
-        if (affectsOpen) {
-          await admin.from('fixture_change_events').insert({
-            sync_run_id: syncRun.id,
-            season_fixture_id: existing.id,
-            change_type: existing.kickoff_at !== kickoff ? 'kickoff_change' : 'status_change',
-            old_values: { kickoff_at: existing.kickoff_at, status: existing.status },
-            new_values: { kickoff_at: kickoff, status },
-            affects_open_window: true,
-            affected_window_id: openWindows?.[0]?.id ?? null,
-          })
-          changesDetected += 1
-          continue
-        }
-
-        const row = {
-          season: '2026/27',
-          source_fixture_id: String(fixture.id),
-          canonical_key: canonical,
-          home_team_id: homeCode,
-          away_team_id: awayCode,
-          kickoff_at: kickoff,
-          original_kickoff_at: existing?.original_kickoff_at ?? kickoff,
-          status,
-          source_name: 'api_football',
-          source_url: 'https://v3.football.api-sports.io',
-          source_retrieved_at: new Date().toISOString(),
-          last_changed_at:
-            existing && existing.kickoff_at !== kickoff ? new Date().toISOString() : existing?.last_changed_at,
-          rescheduled_count:
-            existing && existing.kickoff_at !== kickoff
-              ? (existing.rescheduled_count ?? 0) + 1
-              : (existing?.rescheduled_count ?? 0),
-        }
-
-        const { error: upsertError } = await admin.from('season_fixtures').upsert(row, { onConflict: 'season,canonical_key' })
-        if (!upsertError) masterUpdated += 1
-        if (existing && (existing.kickoff_at !== kickoff || existing.status !== status)) {
-          changesDetected += 1
-          await admin.from('fixture_change_events').insert({
-            sync_run_id: syncRun.id,
-            season_fixture_id: existing.id,
-            change_type: existing.kickoff_at !== kickoff ? 'kickoff_change' : 'status_change',
-            old_values: { kickoff_at: existing.kickoff_at, status: existing.status },
-            new_values: { kickoff_at: kickoff, status },
-            affects_open_window: false,
-          })
-        }
-      }
+      const syncResult = await applyProviderMatches(admin, syncRun.id, game.id, providerMatches)
+      changesDetected = syncResult.changesDetected
+      masterUpdated = syncResult.masterUpdated
+      providerMapped = syncResult.providerMapped
     }
 
-    const { data: masterFixtures } = await admin.from('season_fixtures').select('*').eq('season', '2026/27')
+    if (action === 'provider_sync' || !createCandidateWindow) {
+      await admin
+        .from('fixture_sync_runs')
+        .update({
+          validation_status: 'passed',
+          run_result: 'provider_sync_complete',
+          fixture_total: masterUpdated,
+          changes_detected: changesDetected,
+          error_summary: providerMapped > 0 ? `provider_ids_mapped:${providerMapped}` : null,
+        })
+        .eq('id', syncRun.id)
+
+      return json({
+        result: 'provider_sync_complete',
+        weekend,
+        masterUpdated,
+        changesDetected,
+        providerMapped,
+        syncRunId: syncRun.id,
+        providerConfigured: Boolean(footballDataKey),
+      })
+    }
+
+    const { data: masterFixtures } = await admin.from('season_fixtures').select('*').eq('season', LOS_SEASON_LABEL)
 
     const eligible = (masterFixtures ?? []).filter(
       (f) =>
@@ -397,7 +583,7 @@ Deno.serve(async (req) => {
       masterUpdated,
       changesDetected,
       syncRunId: syncRun.id,
-      providerConfigured: Boolean(apiFootballKey),
+      providerConfigured: Boolean(footballDataKey),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
@@ -412,49 +598,4 @@ function json(body: unknown, status = 200) {
   })
 }
 
-function mapApiStatus(short: string): string {
-  const map: Record<string, string> = {
-    NS: 'scheduled',
-    TBD: 'scheduled',
-    PST: 'postponed',
-    CANC: 'cancelled',
-    '1H': 'in_play',
-    HT: 'in_play',
-    '2H': 'in_play',
-    FT: 'finished',
-    AET: 'finished',
-    PEN: 'finished',
-  }
-  return map[short] ?? 'scheduled'
-}
-
-function mapApiTeamToId(name: string): string | null {
-  const map: Record<string, string> = {
-    Arsenal: 'ars',
-    'Aston Villa': 'avl',
-    Bournemouth: 'bou',
-    'AFC Bournemouth': 'bou',
-    Brentford: 'bre',
-    Brighton: 'bha',
-    'Brighton and Hove Albion': 'bha',
-    Chelsea: 'che',
-    'Coventry City': 'cov',
-    'Crystal Palace': 'cry',
-    Everton: 'eve',
-    Fulham: 'ful',
-    'Hull City': 'hul',
-    'Ipswich Town': 'ips',
-    'Leeds United': 'lee',
-    Leeds: 'lee',
-    Liverpool: 'liv',
-    'Manchester City': 'mci',
-    'Manchester United': 'mun',
-    'Newcastle United': 'new',
-    Newcastle: 'new',
-    'Nottingham Forest': 'nfo',
-    Sunderland: 'sun',
-    'Tottenham Hotspur': 'tot',
-    Tottenham: 'tot',
-  }
-  return map[name] ?? null
-}
+export { shouldExecuteScheduledScan, timingSafeEqual }

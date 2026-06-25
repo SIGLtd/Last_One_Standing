@@ -6,6 +6,6 @@
   "source_published_date": "2026-06-19",
   "source_retrieved_at": "2026-06-23T00:00:00.000Z",
   "validated_at": "2026-06-23T00:00:00.000Z",
-  "provider_change_detection": "deferred_until_api_football_monitoring_enabled",
+  "provider_change_detection": "football_data_org_server_side_via_reconcile_fixtures",
   "notes": "Kick-off times follow Premier League release guidance: weekend matches default 15:00 UK unless a time is stated; midweek defaults 20:00 UK unless stated. This artefact is an initial schedule baseline; later provider changes are detected separately and never silently alter approved player snapshots."
 }

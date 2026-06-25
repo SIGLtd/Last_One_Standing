@@ -11,6 +11,10 @@
     "build:fixtures": "tsx scripts/build-fixture-artefact.ts",
     "validate:fixtures": "tsx scripts/validate-fixtures.ts",
     "import:fixtures:dry-run": "tsx scripts/import-fixtures-dry-run.ts",
+    "import:fixtures": "tsx scripts/import-season-fixtures.ts",
+    "import:fixtures:gate": "tsx scripts/import-season-fixtures.ts --dry-run",
+    "generate:import-sql": "tsx scripts/generate-import-sql.ts",
+    "verify:production-fixtures": "tsx scripts/verify-production-fixtures.ts",
     "test": "vitest run"
   },
   "dependencies": {

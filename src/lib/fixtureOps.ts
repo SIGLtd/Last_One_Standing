@@ -149,7 +149,7 @@ export async function fetchFixtureOpsStatus(): Promise<{
 export async function invokeFixtureReconciliation(input?: {
   targetSatDate?: string
   targetSunDate?: string
-  sourceType?: 'manual' | 'api_football'
+  sourceType?: 'manual' | 'football_data'
 }) {
   const client = getSupabaseOrThrow()
   const { data, error } = await client.functions.invoke('reconcile-fixtures', { body: input ?? {} })

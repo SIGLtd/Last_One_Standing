@@ -229,8 +229,10 @@ describe('acceptance matrix', () => {
 
   it('20. provider-key-absent manual reconciliation path', () => {
     const edgeSource = readFileSync(join(root, 'supabase', 'functions', 'reconcile-fixtures', 'index.ts'), 'utf8')
-    expect(edgeSource).toContain("body.sourceType ?? (apiFootballKey ? 'api_football' : 'manual')")
+    expect(edgeSource).toContain("body.sourceType ?? (footballDataKey ? 'football_data' : 'manual')")
     expect(edgeSource).toContain("result: 'provider_not_configured'")
+    expect(edgeSource).toContain('FOOTBALL_DATA_API_KEY')
+    expect(edgeSource).not.toContain('API_FOOTBALL_KEY')
   })
 
   it('21. provider change detection records an event but does not mutate an approved snapshot', () => {
@@ -240,7 +242,7 @@ describe('acceptance matrix', () => {
     expect(edgeSource).toMatch(/affectsOpen[\s\S]*continue/)
     const meta = JSON.parse(readFileSync(metaPath, 'utf8')) as Record<string, string>
     expect(meta.baseline_type).toBe('official_initial_schedule')
-    expect(meta.provider_change_detection).toContain('deferred')
+    expect(meta.provider_change_detection).toContain('football_data')
   })
 })
 

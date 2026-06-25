@@ -43,6 +43,61 @@ body {
   height: 100%;
 }
 
+.los-splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--los-purple-dark);
+  opacity: 1;
+  transition: opacity 450ms ease;
+}
+
+.los-splash-overlay--fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.los-splash-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--los-purple-dark);
+}
+
+.los-splash-static {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  background: radial-gradient(circle at center, rgba(55, 0, 60, 0.35), var(--los-purple-dark) 70%);
+}
+
+.los-splash-skip {
+  position: absolute;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  border-radius: var(--los-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(27, 16, 34, 0.72);
+  color: var(--los-white);
+  padding: 0.55rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+}
+
+.los-splash-skip:hover {
+  background: rgba(55, 0, 60, 0.85);
+}
+
+.los-splash-app-shell {
+  visibility: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);

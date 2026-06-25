@@ -43,3 +43,6 @@ index-DJKT*.js
 temp-netlify-data.json
 supabase/.temp/
 supabase/.temp.bak/
+
+# Source landing video duplicate (deployable copy lives in public/media/)
+/LOS-Landing-video.mp4

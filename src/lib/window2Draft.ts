@@ -14,7 +14,8 @@ export const WINDOW2_PROPOSED_DEADLINE_UTC = '2026-08-22T10:30:00.000Z'
 export const WINDOW2_PLANNED_WEEKEND_LABEL = '22–23 August 2026'
 export const WINDOW2_DRAFT_ORGANISER_NOTE =
   'Draft only. Fixture snapshot will be revalidated before publication.'
-export const WINDOW2_UPCOMING_PLAYER_MESSAGE = `The first live LOS weekend is planned for ${WINDOW2_PLANNED_WEEKEND_LABEL}. Team picks are not open yet.`
+
+export { PLAYER_PICKS_NOT_OPEN_MESSAGE as WINDOW2_UPCOMING_PLAYER_MESSAGE } from './preLaunch'
 
 export type DraftSnapshotComparison = {
   matchesMaster: boolean

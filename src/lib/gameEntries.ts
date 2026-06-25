@@ -13,6 +13,13 @@ export function getAmountDue(entryType: EntryType, game: Game): number {
   }
 }
 
+export async function adminFetchRegisteredPlayerCount(): Promise<number> {
+  const client = getSupabaseOrThrow()
+  const { count, error } = await client.from('players').select('*', { count: 'exact', head: true })
+  if (error) throw error
+  return count ?? 0
+}
+
 export async function fetchCurrentGame(): Promise<Game | null> {
   const client = getSupabaseOrThrow()
   const { data, error } = await client

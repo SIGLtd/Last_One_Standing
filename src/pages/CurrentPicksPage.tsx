@@ -5,6 +5,7 @@ import { DataTable } from '../components/DataTable'
 import { TEAM_ID_TO_NAME } from '../config/teams'
 import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
+import { CURRENT_PICKS_PRE_LAUNCH_MESSAGE } from '../lib/preLaunch'
 import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks, getPickStatusLabel } from '../lib/selections'
 import { isSupabaseConfigured } from '../lib/supabase'
 import type { Game, SelectionWindow, WindowPickRow } from '../types'
@@ -83,12 +84,21 @@ export function CurrentPicksPage() {
       }
       compact
     >
-      {pageError ? <div className="mb-2 los-alert los-alert-error">{pageError}</div> : null}
+      {pageError ? (
+        <div className="mb-2 los-alert los-alert-error">
+          {pageError}
+          <button type="button" onClick={() => void loadPicks()} className="ml-2 underline">
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       {!isSupabaseConfigured ? (
         <p className="text-xs text-muted-ink">Supabase is not configured.</p>
       ) : !window ? (
-        <p className="text-xs text-muted-ink">No selection window has been created yet.</p>
+        <div className="grid gap-2">
+          <p className="text-xs text-muted-ink">{CURRENT_PICKS_PRE_LAUNCH_MESSAGE}</p>
+        </div>
       ) : (
         <>
           <div className="hidden md:block">

@@ -12,7 +12,11 @@ import {
 } from '../lib/gameEntries'
 import { formatGBP } from '../lib/constants'
 import { fetchPlannedOperationalWindow } from '../lib/fixtureOps'
-import { WINDOW2_UPCOMING_PLAYER_MESSAGE } from '../lib/window2Draft'
+import {
+  derivePlayerPreLaunchState,
+  PLAYER_COMPLETE_ENTRY_MESSAGE,
+  PLAYER_ENTERED_WAITING_MESSAGE,
+} from '../lib/preLaunch'
 import type { Game, GameEntry, SelectionWindowWithMeta } from '../types'
 
 export function DashboardPage() {
@@ -29,6 +33,7 @@ export function DashboardPage() {
     if (!player) {
       setGame(null)
       setEntry(null)
+      setPlannedWindow(null)
       setPageLoading(false)
       return
     }
@@ -124,6 +129,7 @@ export function DashboardPage() {
   const displayName = player?.display_name ?? user.user_metadata?.display_name ?? 'Player'
   const paymentLabel = entry?.paid ? 'Verified' : entry?.payment_claimed ? 'Pending verify' : entry ? 'Unpaid' : 'No entry'
   const entryStatus = entry?.status ?? '—'
+  const preLaunchState = derivePlayerPreLaunchState(entry)
 
   return (
     <div className="grid gap-3">
@@ -160,10 +166,31 @@ export function DashboardPage() {
             <div className="los-alert los-alert-error">Auth active but no linked player profile found.</div>
           ) : null}
 
-          {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
+          {pageError ? (
+            <div className="los-alert los-alert-error">
+              {pageError}
+              <button type="button" onClick={() => void loadDashboard()} className="ml-2 underline">
+                Retry
+              </button>
+            </div>
+          ) : null}
 
-          {entry?.paid && entry.status === 'active' && plannedWindow ? (
-            <div className="los-notice text-xs">{WINDOW2_UPCOMING_PLAYER_MESSAGE}</div>
+          {preLaunchState === 'no_entry' || preLaunchState === 'awaiting_payment' || preLaunchState === 'awaiting_verification' ? (
+            <div className="los-notice text-xs">{PLAYER_COMPLETE_ENTRY_MESSAGE}</div>
+          ) : null}
+
+          {preLaunchState === 'entered_waiting' && plannedWindow ? (
+            <div className="grid gap-2">
+              <div className="los-alert los-alert-success text-xs">{PLAYER_ENTERED_WAITING_MESSAGE}</div>
+              <div className="flex flex-wrap gap-2">
+                <ButtonLink to="/rules" variant="secondary">
+                  View rules
+                </ButtonLink>
+                <ButtonLink to="/current-picks" variant="secondary">
+                  Current picks
+                </ButtonLink>
+              </div>
+            </div>
           ) : null}
 
           {game && player ? (

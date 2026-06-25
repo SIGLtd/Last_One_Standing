@@ -27,10 +27,10 @@ function getPaymentBadgeVariant(entry: GameEntry): 'success' | 'warning' | 'mute
 }
 
 function getNextAction(entry: GameEntry | null, hasEntry: boolean) {
-  if (!hasEntry || !entry) return 'Enter Game 27 to create your entry.'
-  if (entry.paid) return 'Await selection window.'
-  if (entry.payment_claimed) return 'Await admin verification.'
-  return 'Pay by bank transfer and mark as sent.'
+  if (!hasEntry || !entry) return 'Enter Game 27 on your dashboard, then pay by bank transfer.'
+  if (entry.paid) return 'Return when the organiser opens the first live round to make your pick.'
+  if (entry.payment_claimed) return 'Await admin payment verification on your dashboard.'
+  return 'Pay by bank transfer on your dashboard, then mark as sent.'
 }
 
 type PaymentStatusCardProps = {

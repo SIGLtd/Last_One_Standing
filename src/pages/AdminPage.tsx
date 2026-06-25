@@ -4,6 +4,7 @@ import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { DataTable } from '../components/DataTable'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
+import { LaunchReadinessPanel } from '../components/LaunchReadinessPanel'
 import { Window2DraftPanel } from '../components/Window2DraftPanel'
 import { Window2ReadinessPreviewPanel } from '../components/Window2ReadinessPreviewPanel'
 import { useAuth } from '../contexts/AuthContext'
@@ -22,6 +23,7 @@ import {
 } from '../lib/fixtureOps'
 import { buildWindow2ReadinessPreview, type Window2ReadinessPreview } from '../lib/window2Preview'
 import { compareDraftSnapshotToMaster, WINDOW2_NUMBER } from '../lib/window2Draft'
+import { buildLaunchReadinessStats } from '../lib/preLaunch'
 import {
   adminFetchSelectionWindows,
   adminLockSelectionWindow,
@@ -29,6 +31,7 @@ import {
 import { isProtectedHistoricWindow } from '../lib/windowGuards'
 import {
   adminFetchGameEntries,
+  adminFetchRegisteredPlayerCount,
   adminSetEntryType,
   adminVerifyPayment,
   fetchCurrentGame,
@@ -82,6 +85,7 @@ export function AdminPage() {
   const [schedulerConfigured, setSchedulerConfigured] = useState(false)
   const [window2Preview, setWindow2Preview] = useState<Window2ReadinessPreview | null>(null)
   const [seasonFixtures, setSeasonFixtures] = useState<SeasonFixture[]>([])
+  const [registeredPlayerCount, setRegisteredPlayerCount] = useState(0)
 
   const openWindow = windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
 
@@ -99,7 +103,8 @@ export function AdminPage() {
       setGame(currentGame)
 
       if (currentGame) {
-        const [gameEntries, gameWindows, pending, runs, alerts, opsStatus, seasonFixtures] = await Promise.all([
+        const [gameEntries, gameWindows, pending, runs, alerts, opsStatus, seasonFixtures, playerCount] =
+          await Promise.all([
           adminFetchGameEntries(currentGame.id),
           adminFetchSelectionWindows(currentGame.id) as Promise<SelectionWindowWithMeta[]>,
           fetchPendingCandidateWindows(currentGame.id),
@@ -107,6 +112,7 @@ export function AdminPage() {
           fetchFixtureChangeAlerts(),
           fetchFixtureOpsStatus().catch(() => ({ providerConfigured: false, schedulerConfigured: false })),
           fetchSeasonFixtures('2026/27'),
+          adminFetchRegisteredPlayerCount(),
         ])
         setEntries(gameEntries)
         setWindows(gameWindows)
@@ -117,6 +123,7 @@ export function AdminPage() {
         setSchedulerConfigured(opsStatus.schedulerConfigured)
         setWindow2Preview(buildWindow2ReadinessPreview(seasonFixtures, gameWindows))
         setSeasonFixtures(seasonFixtures)
+        setRegisteredPlayerCount(playerCount)
 
         const fixtureMap: Record<string, SelectionWindowEligibleFixture[]> = {}
         for (const candidate of pending) {
@@ -134,6 +141,7 @@ export function AdminPage() {
         setSchedulerConfigured(false)
         setWindow2Preview(null)
         setSeasonFixtures([])
+        setRegisteredPlayerCount(0)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load admin data.'
@@ -255,6 +263,15 @@ export function AdminPage() {
       ? compareDraftSnapshotToMaster(window2Snapshot, seasonFixtures)
       : null
 
+  const launchReadiness = game
+    ? buildLaunchReadinessStats({
+        registeredPlayerCount,
+        entries,
+        game,
+        windows,
+      })
+    : null
+
   if (loading || pageLoading) {
     return (
       <Card title="Admin" description="Loading…" compact>
@@ -300,6 +317,8 @@ export function AdminPage() {
               <p className="mt-1 text-xs text-muted-ink">Game 27 not found. Run seed SQL.</p>
             )}
           </section>
+
+          {launchReadiness ? <LaunchReadinessPanel stats={launchReadiness} /> : null}
 
           <section className="los-admin-section">
             <h2 className="los-section-title">Fixture operations</h2>

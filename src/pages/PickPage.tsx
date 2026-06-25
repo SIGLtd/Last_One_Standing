@@ -12,7 +12,10 @@ import {
   fetchWindowEligibleFixtures,
   formatLondonDateTime,
 } from '../lib/fixtureOps'
-import { WINDOW2_UPCOMING_PLAYER_MESSAGE } from '../lib/window2Draft'
+import {
+  PLAYER_COMPLETE_ENTRY_MESSAGE,
+  PLAYER_PICKS_NOT_OPEN_MESSAGE,
+} from '../lib/preLaunch'
 import { fetchCurrentGame, fetchMyGameEntry } from '../lib/gameEntries'
 import {
   fetchFinallyUsedTeamIds,
@@ -90,7 +93,6 @@ export function PickPage() {
         setSelection(null)
         setUsedTeamIds([])
         setSelectedTeamId(null)
-        setPlannedWindow(null)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load pick page.'
@@ -153,7 +155,8 @@ export function PickPage() {
   if (!entry?.paid || entry.status !== 'active') {
     return (
       <Card title="Make your pick" description={`Game ${CURRENT_GAME}`} compact>
-        <p className="text-xs text-muted-ink">Verified entry required before making a pick.</p>
+        <p className="text-xs text-muted-ink mb-2">{PLAYER_COMPLETE_ENTRY_MESSAGE}</p>
+        <ButtonLink to="/dashboard">Go to dashboard</ButtonLink>
       </Card>
     )
   }
@@ -161,11 +164,21 @@ export function PickPage() {
   if (!window) {
     return (
       <Card title="Make your pick" description={`Game ${CURRENT_GAME}`} compact>
-        {plannedWindow ? (
-          <div className="los-notice text-xs">{WINDOW2_UPCOMING_PLAYER_MESSAGE}</div>
-        ) : (
-          <p className="text-xs text-muted-ink">No open selection window is available yet.</p>
-        )}
+        <div className="grid gap-2">
+          <div className="los-notice text-xs">
+            {plannedWindow ? PLAYER_PICKS_NOT_OPEN_MESSAGE : 'No open selection window is available yet.'}
+          </div>
+          {plannedWindow ? (
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink to="/rules" variant="secondary">
+                View rules
+              </ButtonLink>
+              <ButtonLink to="/current-picks" variant="secondary">
+                Current picks
+              </ButtonLink>
+            </div>
+          ) : null}
+        </div>
       </Card>
     )
   }

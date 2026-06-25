@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card } from '../components/Card'
 import { AppLogo } from '../components/AppLogo'
+import { PreLaunchNotice } from '../components/PreLaunchNotice'
 import { SupabaseConfigNotice } from '../components/SupabaseConfigNotice'
 import { useAuth } from '../contexts/AuthContext'
 import { getSupabaseConfigStatus } from '../lib/supabase'
@@ -67,6 +68,7 @@ export function SignupPage() {
         <AppLogo losClassName="h-8 w-8" plClassName="h-6 w-auto max-w-[8rem]" />
       </div>
       <Card title="Sign up" description="Phone required for WhatsApp group" compact>
+        <PreLaunchNotice title="Before you join" className="mb-3" />
         <form className="grid gap-2" onSubmit={onSubmit}>
           <label className="grid gap-0.5">
             <span className="los-section-title">Display name</span>

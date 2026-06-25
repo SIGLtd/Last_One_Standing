@@ -10,7 +10,14 @@ import {
 } from './window2Draft'
 import { buildWindow2ReadinessPreview, resolveTeamName } from './window2Preview'
 import { isOperationalWindowNumber } from './windowGuards'
-import { formatLondonDateTime } from './fixtureOps'
+
+function formatLondonDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
+    timeZone: 'Europe/London',
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+}
 
 const EARLIEST_HOME_TEAM_ID = 'hul'
 const EARLIEST_AWAY_TEAM_ID = 'mun'

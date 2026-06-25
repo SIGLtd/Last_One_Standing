@@ -14,8 +14,11 @@ import {
 } from '../lib/fixtureOps'
 import {
   PLAYER_COMPLETE_ENTRY_MESSAGE,
-  PLAYER_PICKS_NOT_OPEN_MESSAGE,
-} from '../lib/preLaunch'
+  ROUND1_DEADLINE_PLAYER_LABEL,
+  ROUND1_PUBLIC_LABEL,
+  ROUND1_WEEKEND_LABEL,
+  operationalWindowToRoundLabel,
+} from '../lib/round1'
 import { fetchCurrentGame, fetchMyGameEntry } from '../lib/gameEntries'
 import {
   fetchFinallyUsedTeamIds,
@@ -163,10 +166,12 @@ export function PickPage() {
 
   if (!window) {
     return (
-      <Card title="Make your pick" description={`Game ${CURRENT_GAME}`} compact>
+      <Card title={`${ROUND1_PUBLIC_LABEL} pick`} description={`Game ${CURRENT_GAME}`} compact>
         <div className="grid gap-2">
           <div className="los-notice text-xs">
-            {plannedWindow ? PLAYER_PICKS_NOT_OPEN_MESSAGE : 'No open selection window is available yet.'}
+            {plannedWindow
+              ? `${ROUND1_PUBLIC_LABEL} is not open yet. Fixtures are planned for ${ROUND1_WEEKEND_LABEL}.`
+              : 'No live round is open yet. Check back when the organiser opens the round.'}
           </div>
           {plannedWindow ? (
             <div className="flex flex-wrap gap-2">
@@ -183,10 +188,12 @@ export function PickPage() {
     )
   }
 
+  const roundLabel = operationalWindowToRoundLabel(window.window_number)
+
   return (
     <Card
-      title="Make your pick"
-      description={`Game ${game?.game_number ?? CURRENT_GAME} · Window ${window.window_number}`}
+      title={`${roundLabel} pick`}
+      description={`Game ${game?.game_number ?? CURRENT_GAME} · ${ROUND1_WEEKEND_LABEL}`}
       right={<Badge variant={locked ? 'muted' : 'open'}>{locked ? 'Locked' : 'Open'}</Badge>}
       compact
     >
@@ -194,21 +201,15 @@ export function PickPage() {
         <MetricStrip>
           <MetricCell label="Deadline" value={formatLondonDateTime(window.deadline_at)} />
           <MetricCell label="Selected" value={selectedOption?.team_name ?? '—'} />
-          <MetricCell
-            label="Weekend"
-            value={
-              window.eligible_sat_date && window.eligible_sun_date
-                ? `${window.eligible_sat_date} – ${window.eligible_sun_date}`
-                : '—'
-            }
-          />
+          <MetricCell label="Round" value={roundLabel} />
         </MetricStrip>
 
         {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
         {savedMessage ? <div className="los-alert los-alert-success">{savedMessage}</div> : null}
 
         <p className="text-xs text-muted-ink">
-          Choose a team from the approved Saturday and Sunday fixtures for this window.
+          Choose a team from the approved fixtures on {ROUND1_WEEKEND_LABEL}. Deadline: {ROUND1_DEADLINE_PLAYER_LABEL}.
+          Fixtures follow the official Premier League release — check the app before the deadline.
         </p>
 
         <div className="grid gap-1">

@@ -15,7 +15,7 @@ export const WINDOW2_PLANNED_WEEKEND_LABEL = '22–23 August 2026'
 export const WINDOW2_DRAFT_ORGANISER_NOTE =
   'Draft only. Fixture snapshot will be revalidated before publication.'
 
-export { PLAYER_PICKS_NOT_OPEN_MESSAGE as WINDOW2_UPCOMING_PLAYER_MESSAGE } from './preLaunch'
+export { PLAYER_ROUND1_OPEN_MESSAGE as WINDOW2_UPCOMING_PLAYER_MESSAGE } from './round1'
 
 export type DraftSnapshotComparison = {
   matchesMaster: boolean

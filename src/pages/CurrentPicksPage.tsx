@@ -5,7 +5,12 @@ import { DataTable } from '../components/DataTable'
 import { TEAM_ID_TO_NAME } from '../config/teams'
 import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
-import { CURRENT_PICKS_PRE_LAUNCH_MESSAGE } from '../lib/preLaunch'
+import {
+  CURRENT_PICKS_ROUND_OPEN_INTRO,
+  ROUND1_PUBLIC_LABEL,
+  operationalWindowToRoundLabel,
+} from '../lib/round1'
+import { PUBLIC_PRE_LAUNCH_POINTS } from '../lib/preLaunch'
 import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks, getPickStatusLabel } from '../lib/selections'
 import { isSupabaseConfigured } from '../lib/supabase'
 import type { Game, SelectionWindow, WindowPickRow } from '../types'
@@ -74,12 +79,14 @@ export function CurrentPicksPage() {
     )
   }
 
+  const roundLabel = window ? operationalWindowToRoundLabel(window.window_number) : ROUND1_PUBLIC_LABEL
+
   return (
     <Card
       title="Current picks"
       description={
         window
-          ? `Game ${CURRENT_GAME} · Window ${window.window_number} · Open to all players`
+          ? `Game ${CURRENT_GAME} · ${roundLabel} · Open to all players`
           : `Game ${CURRENT_GAME} · Open to all players`
       }
       compact
@@ -97,10 +104,15 @@ export function CurrentPicksPage() {
         <p className="text-xs text-muted-ink">Supabase is not configured.</p>
       ) : !window ? (
         <div className="grid gap-2">
-          <p className="text-xs text-muted-ink">{CURRENT_PICKS_PRE_LAUNCH_MESSAGE}</p>
+          <p className="text-xs text-muted-ink">{PUBLIC_PRE_LAUNCH_POINTS[0]}</p>
+          <p className="text-xs text-muted-ink">
+            When {ROUND1_PUBLIC_LABEL} is live, every player&apos;s pick will appear here automatically — you do not need
+            to submit your own pick first to view others.
+          </p>
         </div>
       ) : (
         <>
+          <p className="mb-2 text-xs text-muted-ink">{CURRENT_PICKS_ROUND_OPEN_INTRO}</p>
           <div className="hidden md:block">
             <DataTable minWidth="640px">
               <thead>

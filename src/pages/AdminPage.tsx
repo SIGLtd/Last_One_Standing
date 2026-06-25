@@ -2,29 +2,29 @@ import { useCallback, useEffect, useState } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
-import { DataTable } from '../components/DataTable'
-import { MetricCell, MetricStrip } from '../components/MetricCell'
-import { LaunchReadinessPanel } from '../components/LaunchReadinessPanel'
-import { Window2DraftPanel } from '../components/Window2DraftPanel'
-import { Window2ReadinessPreviewPanel } from '../components/Window2ReadinessPreviewPanel'
+import { AdminAdvancedOperationsSection } from '../components/admin/AdminAdvancedOperationsSection'
+import { AdminCommunicationsSection } from '../components/admin/AdminCommunicationsSection'
+import { AdminPlayersPaymentsSection } from '../components/admin/AdminPlayersPaymentsSection'
+import { AdminRoundControlCard } from '../components/admin/AdminRoundControlCard'
+import { AdminThisRoundSection } from '../components/admin/AdminThisRoundSection'
 import { useAuth } from '../contexts/AuthContext'
+import { buildPlayerPaymentSummary, buildRoundControlStats } from '../lib/adminCockpit'
 import {
   adminApproveWindow,
-  adminReviewWindow,
   adminRefreshDraftWindowSnapshot,
+  adminReviewWindow,
   fetchFixtureChangeAlerts,
   fetchFixtureOpsStatus,
   fetchPendingCandidateWindows,
   fetchRecentSyncRuns,
   fetchSeasonFixtures,
   fetchWindowEligibleFixtures,
-  formatLondonDateTime,
   invokeFixtureReconciliation,
 } from '../lib/fixtureOps'
-import { buildWindow2ReadinessPreview, type Window2ReadinessPreview } from '../lib/window2Preview'
+import { buildWindow2ReadinessPreview } from '../lib/window2Preview'
 import { compareDraftSnapshotToMaster, WINDOW2_NUMBER } from '../lib/window2Draft'
-import { buildLaunchReadinessStats } from '../lib/preLaunch'
 import {
+  adminCountSelectionsForWindow,
   adminFetchSelectionWindows,
   adminLockSelectionWindow,
 } from '../lib/selections'
@@ -36,7 +36,6 @@ import {
   adminVerifyPayment,
   fetchCurrentGame,
 } from '../lib/gameEntries'
-import { formatGBP, formatEligibleSelectionDays } from '../lib/constants'
 import type {
   EntryType,
   FixtureChangeEvent,
@@ -48,28 +47,14 @@ import type {
   SeasonFixture,
 } from '../types'
 
-const placeholderSections = [
-  { title: 'Result resolution', body: 'Placeholder for manual resolution until automation is added.' },
-  { title: 'Historical results management', body: 'Placeholder for editing seeded history data.' },
-] as const
-
-function formatEntryType(entryType: EntryType) {
-  switch (entryType) {
-    case 'existing':
-      return 'Returning'
-    case 'newbie':
-      return 'Newbie'
-    case 'admin_comp':
-      return 'Admin comp'
-  }
-}
-
 export function AdminPage() {
   const { user, player, loading } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [entries, setEntries] = useState<GameEntryWithPlayer[]>([])
   const [windows, setWindows] = useState<SelectionWindowWithMeta[]>([])
   const [candidates, setCandidates] = useState<SelectionWindowWithMeta[]>([])
+  const [openFixtures, setOpenFixtures] = useState<SelectionWindowEligibleFixture[]>([])
+  const [selectionsMade, setSelectionsMade] = useState(0)
   const [candidateFixtures, setCandidateFixtures] = useState<Record<string, SelectionWindowEligibleFixture[]>>({})
   const [syncRuns, setSyncRuns] = useState<FixtureSyncRun[]>([])
   const [changeAlerts, setChangeAlerts] = useState<FixtureChangeEvent[]>([])
@@ -80,14 +65,16 @@ export function AdminPage() {
   const [reconcileMessage, setReconcileMessage] = useState<string | null>(null)
   const [testSatDate, setTestSatDate] = useState('')
   const [testSunDate, setTestSunDate] = useState('')
-
   const [providerConfigured, setProviderConfigured] = useState(false)
   const [schedulerConfigured, setSchedulerConfigured] = useState(false)
-  const [window2Preview, setWindow2Preview] = useState<Window2ReadinessPreview | null>(null)
+  const [window2Preview, setWindow2Preview] = useState(
+    null as ReturnType<typeof buildWindow2ReadinessPreview> | null,
+  )
   const [seasonFixtures, setSeasonFixtures] = useState<SeasonFixture[]>([])
   const [registeredPlayerCount, setRegisteredPlayerCount] = useState(0)
 
-  const openWindow = windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
+  const openWindow =
+    windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
 
   const loadAdminData = useCallback(async () => {
     if (!player?.is_admin) {
@@ -103,17 +90,18 @@ export function AdminPage() {
       setGame(currentGame)
 
       if (currentGame) {
-        const [gameEntries, gameWindows, pending, runs, alerts, opsStatus, seasonFixtures, playerCount] =
+        const [gameEntries, gameWindows, pending, runs, alerts, opsStatus, seasonRows, playerCount] =
           await Promise.all([
-          adminFetchGameEntries(currentGame.id),
-          adminFetchSelectionWindows(currentGame.id) as Promise<SelectionWindowWithMeta[]>,
-          fetchPendingCandidateWindows(currentGame.id),
-          fetchRecentSyncRuns(),
-          fetchFixtureChangeAlerts(),
-          fetchFixtureOpsStatus().catch(() => ({ providerConfigured: false, schedulerConfigured: false })),
-          fetchSeasonFixtures('2026/27'),
-          adminFetchRegisteredPlayerCount(),
-        ])
+            adminFetchGameEntries(currentGame.id),
+            adminFetchSelectionWindows(currentGame.id) as Promise<SelectionWindowWithMeta[]>,
+            fetchPendingCandidateWindows(currentGame.id),
+            fetchRecentSyncRuns(),
+            fetchFixtureChangeAlerts(),
+            fetchFixtureOpsStatus().catch(() => ({ providerConfigured: false, schedulerConfigured: false })),
+            fetchSeasonFixtures('2026/27'),
+            adminFetchRegisteredPlayerCount(),
+          ])
+
         setEntries(gameEntries)
         setWindows(gameWindows)
         setCandidates(pending)
@@ -121,9 +109,24 @@ export function AdminPage() {
         setChangeAlerts(alerts)
         setProviderConfigured(opsStatus.providerConfigured)
         setSchedulerConfigured(opsStatus.schedulerConfigured)
-        setWindow2Preview(buildWindow2ReadinessPreview(seasonFixtures, gameWindows))
-        setSeasonFixtures(seasonFixtures)
+        setWindow2Preview(buildWindow2ReadinessPreview(seasonRows, gameWindows))
+        setSeasonFixtures(seasonRows)
         setRegisteredPlayerCount(playerCount)
+
+        const liveWindow =
+          gameWindows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
+
+        if (liveWindow) {
+          const [fixtures, pickCount] = await Promise.all([
+            fetchWindowEligibleFixtures(liveWindow.id),
+            adminCountSelectionsForWindow(liveWindow.id),
+          ])
+          setOpenFixtures(fixtures)
+          setSelectionsMade(pickCount)
+        } else {
+          setOpenFixtures([])
+          setSelectionsMade(0)
+        }
 
         const fixtureMap: Record<string, SelectionWindowEligibleFixture[]> = {}
         for (const candidate of pending) {
@@ -134,6 +137,8 @@ export function AdminPage() {
         setEntries([])
         setWindows([])
         setCandidates([])
+        setOpenFixtures([])
+        setSelectionsMade(0)
         setSyncRuns([])
         setChangeAlerts([])
         setCandidateFixtures({})
@@ -256,25 +261,25 @@ export function AdminPage() {
   }
 
   const window2Draft = candidates.find((candidate) => candidate.window_number === WINDOW2_NUMBER) ?? null
-  const otherCandidates = candidates.filter((candidate) => candidate.window_number !== WINDOW2_NUMBER)
   const window2Snapshot = window2Draft ? (candidateFixtures[window2Draft.id] ?? []) : []
   const window2Comparison =
     window2Draft && seasonFixtures.length > 0
       ? compareDraftSnapshotToMaster(window2Snapshot, seasonFixtures)
       : null
 
-  const launchReadiness = game
-    ? buildLaunchReadinessStats({
-        registeredPlayerCount,
+  const paymentSummary = buildPlayerPaymentSummary(entries, registeredPlayerCount)
+  const roundControl = openWindow
+    ? buildRoundControlStats({
+        openWindow,
+        snapshotFixtures: openFixtures,
         entries,
-        game,
-        windows,
+        selectionsMade,
       })
     : null
 
   if (loading || pageLoading) {
     return (
-      <Card title="Admin" description="Loading…" compact>
+      <Card title="Organiser cockpit" description="Loading…" compact>
         <p className="text-xs text-muted-ink">Please wait.</p>
       </Card>
     )
@@ -282,7 +287,7 @@ export function AdminPage() {
 
   if (!user) {
     return (
-      <Card title="Admin" description="Login required" compact>
+      <Card title="Organiser cockpit" description="Login required" compact>
         <p className="text-xs text-muted-ink mb-2">Log in with an admin account.</p>
         <ButtonLink to="/login">Log in</ButtonLink>
       </Card>
@@ -291,7 +296,7 @@ export function AdminPage() {
 
   if (!player?.is_admin) {
     return (
-      <Card title="Admin" description="Access denied" compact>
+      <Card title="Organiser cockpit" description="Access denied" compact>
         <p className="text-xs text-muted-ink">You do not have admin access.</p>
       </Card>
     )
@@ -299,232 +304,76 @@ export function AdminPage() {
 
   return (
     <div className="grid gap-3">
-      <Card title="Admin" description="Operations console" right={<Badge variant="muted">Admin</Badge>} compact>
-        {pageError ? <div className="mb-2 los-alert los-alert-error">{pageError}</div> : null}
+      <Card
+        title="Organiser cockpit"
+        description={game ? `Game ${game.game_number}` : 'Game 27'}
+        right={<Badge variant="muted">Admin</Badge>}
+        compact
+      >
+        {pageError ? (
+          <div className="mb-2 los-alert los-alert-error">
+            {pageError}
+            <button type="button" onClick={() => void loadAdminData()} className="ml-2 underline">
+              Retry
+            </button>
+          </div>
+        ) : null}
         {reconcileMessage ? <div className="mb-2 los-alert los-alert-success">{reconcileMessage}</div> : null}
 
         <div className="grid gap-3">
-          <section className="los-admin-section">
-            <h2 className="los-section-title">Game</h2>
-            {game ? (
-              <MetricStrip className="mt-2">
-                <MetricCell label="Game" value={game.game_number} />
-                <MetricCell label="Season" value={game.season} />
-                <MetricCell label="Status" value={game.status} />
-                <MetricCell label="Pot" value={formatGBP(game.current_pot)} />
-              </MetricStrip>
-            ) : (
-              <p className="mt-1 text-xs text-muted-ink">Game 27 not found. Run seed SQL.</p>
-            )}
-          </section>
+          {roundControl ? <AdminRoundControlCard stats={roundControl} /> : (
+            <section className="los-admin-section los-cockpit-card">
+              <h2 className="los-section-title">Round control</h2>
+              <p className="mt-2 text-xs text-muted-ink">
+                No live round is open yet. Use advanced operations to revalidate and publish when ready.
+              </p>
+            </section>
+          )}
 
-          {launchReadiness ? <LaunchReadinessPanel stats={launchReadiness} /> : null}
-
-          <section className="los-admin-section">
-            <h2 className="los-section-title">Fixture operations</h2>
-            <p className="mt-1 text-xs text-muted-ink">
-              Provider monitoring:{' '}
-              {providerConfigured
-                ? 'configured (server-side API Football key present)'
-                : 'not configured — manual reconciliation from staged master fixtures only'}
-            </p>
-            <p className="mt-1 text-xs text-muted-ink">
-              Scheduled external monitoring: {schedulerConfigured ? 'credentials present' : 'not enabled'}
-            </p>
-            <p className="mt-1 text-xs text-muted-ink">
-              {formatEligibleSelectionDays()} windows only. Window 1 is a protected historic test placeholder and is
-              excluded from reconciliation, approval, and player picks.
-            </p>
-
-            {windows.some((w) => isProtectedHistoricWindow(w.window_number)) ? (
-              <div className="mt-2 los-notice text-xs">
-                Protected historic window #1 — test configuration only; no operational actions permitted.
-              </div>
-            ) : null}
-
-            {window2Preview ? <Window2ReadinessPreviewPanel preview={window2Preview} /> : null}
-
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={fixtureBusy}
-                onClick={() => void handleReconcile(false)}
-                className="los-btn-primary disabled:opacity-50"
-              >
-                {fixtureBusy ? 'Running…' : 'Run reconciliation'}
-              </button>
-            </div>
-
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <label className="grid gap-0.5">
-                <span className="los-section-title">Test Saturday</span>
-                <input type="date" value={testSatDate} onChange={(e) => setTestSatDate(e.target.value)} className="los-input !h-8" />
-              </label>
-              <label className="grid gap-0.5">
-                <span className="los-section-title">Test Sunday</span>
-                <input type="date" value={testSunDate} onChange={(e) => setTestSunDate(e.target.value)} className="los-input !h-8" />
-              </label>
-            </div>
-            <button
-              type="button"
-              disabled={fixtureBusy || !testSatDate || !testSunDate}
-              onClick={() => void handleReconcile(true)}
-              className="mt-2 los-btn-secondary disabled:opacity-50"
-            >
-              Run test weekend reconciliation
-            </button>
-
-            {changeAlerts.length > 0 ? (
-              <div className="mt-2 los-alert los-alert-error text-xs">
-                {changeAlerts.length} material fixture change alert(s) require organiser review.
-              </div>
-            ) : null}
-
-            {openWindow ? (
-              <div className="mt-2 los-notice text-xs">
-                Open window #{openWindow.window_number} · deadline {formatLondonDateTime(openWindow.deadline_at)}
-                <button type="button" onClick={() => void handleLockOpenWindow()} className="ml-2 los-admin-btn">
-                  Lock now
-                </button>
-              </div>
-            ) : null}
-
-            {window2Draft && window2Comparison ? (
-              <Window2DraftPanel
-                draftWindow={window2Draft}
-                snapshotFixtures={window2Snapshot}
-                comparison={window2Comparison}
-                busy={actionId === window2Draft.id}
-                onRevalidate={() => void handleRevalidateDraft(window2Draft.id)}
-                onApprove={() => void handleApproveCandidate(window2Draft.id)}
-                onDefer={() => void handleReviewCandidate(window2Draft.id, 'deferred')}
-                onReject={() => void handleReviewCandidate(window2Draft.id, 'rejected')}
+          {openWindow ? (
+            <>
+              <AdminThisRoundSection openWindow={openWindow} fixtures={openFixtures} />
+              <AdminPlayersPaymentsSection
+                entries={entries}
+                summary={paymentSummary}
+                actionId={actionId}
+                onVerifyPayment={(id) => void handleVerifyPayment(id)}
+                onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
               />
-            ) : null}
+              <AdminCommunicationsSection />
+            </>
+          ) : null}
 
-            {otherCandidates.length === 0 && !window2Draft ? (
-              <p className="mt-2 text-xs text-muted-ink">No pending candidate windows.</p>
-            ) : (
-              otherCandidates.map((candidate) => {
-                const fixtures = candidateFixtures[candidate.id] ?? []
-                const busy = actionId === candidate.id
-                return (
-                  <div key={candidate.id} className="mt-2 border-t border-border pt-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-xs font-medium text-ink">
-                        Candidate window #{candidate.window_number} · {candidate.eligible_sat_date} – {candidate.eligible_sun_date}
-                      </div>
-                      <Badge variant="warning">pending review</Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-ink">
-                      Deadline {formatLondonDateTime(candidate.deadline_at)} · {fixtures.length} fixtures
-                    </p>
-                    <div className="mt-1 max-h-40 overflow-y-auto text-xs text-muted-ink">
-                      {fixtures.map((f) => (
-                        <div key={f.id}>
-                          {formatLondonDateTime(f.kickoff_at)} · {f.home_team_name} v {f.away_team_name}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <button type="button" disabled={busy} onClick={() => void handleApproveCandidate(candidate.id)} className="los-btn-primary disabled:opacity-50">
-                        Approve
-                      </button>
-                      <button type="button" disabled={busy} onClick={() => void handleReviewCandidate(candidate.id, 'deferred')} className="los-admin-btn disabled:opacity-50">
-                        Defer
-                      </button>
-                      <button type="button" disabled={busy} onClick={() => void handleReviewCandidate(candidate.id, 'rejected')} className="los-admin-btn disabled:opacity-50">
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-
-            {syncRuns.length > 0 ? (
-              <div className="mt-2 text-xs text-muted-ink">
-                Latest sync: {syncRuns[0].run_result} · {syncRuns[0].validation_status} · {syncRuns[0].fixture_total} fixtures
-              </div>
-            ) : null}
-          </section>
-
-          <section className="los-admin-section">
-            <h2 className="los-section-title mb-2">Payments</h2>
-            {game ? (
-              <DataTable minWidth="880px">
-                <thead>
-                  <tr>
-                    <th>Player</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Type</th>
-                    <th className="num">Due</th>
-                    <th>Claimed</th>
-                    <th>Paid</th>
-                    <th>Paid at</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.length === 0 ? (
-                    <tr>
-                      <td colSpan={10} className="text-muted-ink">
-                        No entries.
-                      </td>
-                    </tr>
-                  ) : (
-                    entries.map((row) => {
-                      const busy = actionId === row.id
-                      return (
-                        <tr key={row.id}>
-                          <td className="font-medium">{row.player.display_name}</td>
-                          <td className="text-muted-ink">{row.player.phone ?? '—'}</td>
-                          <td className="text-muted-ink">{row.player.email}</td>
-                          <td className="text-muted-ink">{formatEntryType(row.entry_type)}</td>
-                          <td className="num tabular-nums">{formatGBP(row.amount_due)}</td>
-                          <td className="text-muted-ink">{row.payment_claimed ? 'Y' : 'N'}</td>
-                          <td className="text-muted-ink">{row.paid ? 'Y' : 'N'}</td>
-                          <td className="text-muted-ink text-[0.6875rem]">
-                            {row.paid_at ? new Date(row.paid_at).toLocaleString('en-GB') : '—'}
-                          </td>
-                          <td className="text-muted-ink">{row.status}</td>
-                          <td>
-                            <div className="flex flex-wrap gap-0.5">
-                              {!row.paid ? (
-                                <button type="button" disabled={busy} onClick={() => void handleVerifyPayment(row.id)} className="los-admin-btn disabled:opacity-50">
-                                  Verify
-                                </button>
-                              ) : null}
-                              <button type="button" disabled={busy} onClick={() => void handleSetEntryType(row.id, 'existing')} className="los-admin-btn disabled:opacity-50">
-                                Existing
-                              </button>
-                              <button type="button" disabled={busy} onClick={() => void handleSetEntryType(row.id, 'newbie')} className="los-admin-btn disabled:opacity-50">
-                                Newbie
-                              </button>
-                              <button type="button" disabled={busy} onClick={() => void handleSetEntryType(row.id, 'admin_comp')} className="los-admin-btn disabled:opacity-50">
-                                Comp
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </DataTable>
-            ) : null}
-          </section>
-
-          <div className="los-divider-list text-xs">
-            {placeholderSections.map((s) => (
-              <div key={s.title} className="los-divider-row">
-                <div className="font-medium text-ink">{s.title}</div>
-                <div className="mt-0.5 text-muted-ink">{s.body}</div>
-              </div>
-            ))}
-          </div>
+          <AdminAdvancedOperationsSection
+            game={game}
+            entries={entries}
+            windows={windows}
+            candidates={candidates}
+            candidateFixtures={candidateFixtures}
+            syncRuns={syncRuns}
+            changeAlerts={changeAlerts}
+            window2Preview={window2Preview}
+            seasonFixtures={seasonFixtures}
+            providerConfigured={providerConfigured}
+            schedulerConfigured={schedulerConfigured}
+            openWindow={openWindow}
+            window2Draft={window2Draft}
+            window2Comparison={window2Comparison}
+            window2Snapshot={window2Snapshot}
+            fixtureBusy={fixtureBusy}
+            actionId={actionId}
+            testSatDate={testSatDate}
+            testSunDate={testSunDate}
+            onTestSatDateChange={setTestSatDate}
+            onTestSunDateChange={setTestSunDate}
+            onReconcile={(testWeekend) => void handleReconcile(testWeekend)}
+            onLockOpenWindow={() => void handleLockOpenWindow()}
+            onRevalidateDraft={(id) => void handleRevalidateDraft(id)}
+            onApproveCandidate={(id) => void handleApproveCandidate(id)}
+            onReviewCandidate={(id, outcome) => void handleReviewCandidate(id, outcome)}
+            onVerifyPayment={(id) => void handleVerifyPayment(id)}
+            onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
+          />
         </div>
       </Card>
     </div>

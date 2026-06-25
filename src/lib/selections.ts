@@ -84,6 +84,17 @@ export async function adminLockSelectionWindow(windowId: string): Promise<Select
   return data as SelectionWindow
 }
 
+export async function adminCountSelectionsForWindow(windowId: string): Promise<number> {
+  const client = getSupabaseOrThrow()
+  const { count, error } = await client
+    .from('selections')
+    .select('*', { count: 'exact', head: true })
+    .eq('window_id', windowId)
+
+  if (error) throw error
+  return count ?? 0
+}
+
 export async function fetchFinallyUsedTeamIds(playerId: string, gameId: string): Promise<string[]> {
   const client = getSupabaseOrThrow()
   const { data: windows, error: windowError } = await client

@@ -11,19 +11,20 @@ import {
   fetchOrCreateGameEntry,
 } from '../lib/gameEntries'
 import { formatGBP } from '../lib/constants'
-import { fetchPlannedOperationalWindow } from '../lib/fixtureOps'
+import { fetchOpenSelectionWindow } from '../lib/fixtureOps'
 import {
-  derivePlayerPreLaunchState,
+  CURRENT_PICKS_ROUND_OPEN_INTRO,
   PLAYER_COMPLETE_ENTRY_MESSAGE,
-  PLAYER_ENTERED_WAITING_MESSAGE,
-} from '../lib/preLaunch'
+  PLAYER_ROUND1_OPEN_MESSAGE,
+  derivePlayerEntryState,
+} from '../lib/round1'
 import type { Game, GameEntry, SelectionWindowWithMeta } from '../types'
 
 export function DashboardPage() {
   const { user, player, loading } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
-  const [plannedWindow, setPlannedWindow] = useState<SelectionWindowWithMeta | null>(null)
+  const [openWindow, setOpenWindow] = useState<SelectionWindowWithMeta | null>(null)
   const [pageLoading, setPageLoading] = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
   const [claiming, setClaiming] = useState(false)
@@ -33,7 +34,7 @@ export function DashboardPage() {
     if (!player) {
       setGame(null)
       setEntry(null)
-      setPlannedWindow(null)
+      setOpenWindow(null)
       setPageLoading(false)
       return
     }
@@ -46,15 +47,15 @@ export function DashboardPage() {
       setGame(currentGame)
 
       if (currentGame) {
-        const [myEntry, pendingWindow] = await Promise.all([
+        const [myEntry, liveWindow] = await Promise.all([
           fetchMyGameEntry(player.id, currentGame.id),
-          fetchPlannedOperationalWindow(currentGame.id),
+          fetchOpenSelectionWindow(currentGame.id),
         ])
         setEntry(myEntry)
-        setPlannedWindow(pendingWindow)
+        setOpenWindow(liveWindow)
       } else {
         setEntry(null)
-        setPlannedWindow(null)
+        setOpenWindow(null)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load dashboard data.'
@@ -129,7 +130,8 @@ export function DashboardPage() {
   const displayName = player?.display_name ?? user.user_metadata?.display_name ?? 'Player'
   const paymentLabel = entry?.paid ? 'Verified' : entry?.payment_claimed ? 'Pending verify' : entry ? 'Unpaid' : 'No entry'
   const entryStatus = entry?.status ?? '—'
-  const preLaunchState = derivePlayerPreLaunchState(entry)
+  const roundIsOpen = Boolean(openWindow)
+  const entryState = derivePlayerEntryState(entry, roundIsOpen)
 
   return (
     <div className="grid gap-3">
@@ -175,21 +177,23 @@ export function DashboardPage() {
             </div>
           ) : null}
 
-          {preLaunchState === 'no_entry' || preLaunchState === 'awaiting_payment' || preLaunchState === 'awaiting_verification' ? (
+          {entryState === 'no_entry' || entryState === 'awaiting_payment' || entryState === 'awaiting_verification' ? (
             <div className="los-notice text-xs">{PLAYER_COMPLETE_ENTRY_MESSAGE}</div>
           ) : null}
 
-          {preLaunchState === 'entered_waiting' && plannedWindow ? (
+          {entryState === 'entered_can_pick' && roundIsOpen ? (
             <div className="grid gap-2">
-              <div className="los-alert los-alert-success text-xs">{PLAYER_ENTERED_WAITING_MESSAGE}</div>
+              <div className="los-alert los-alert-success text-xs">{PLAYER_ROUND1_OPEN_MESSAGE}</div>
               <div className="flex flex-wrap gap-2">
-                <ButtonLink to="/rules" variant="secondary">
-                  View rules
-                </ButtonLink>
+                <ButtonLink to="/pick">Make your pick</ButtonLink>
                 <ButtonLink to="/current-picks" variant="secondary">
                   Current picks
                 </ButtonLink>
+                <ButtonLink to="/rules" variant="secondary">
+                  Rules
+                </ButtonLink>
               </div>
+              <p className="text-xs text-muted-ink">{CURRENT_PICKS_ROUND_OPEN_INTRO}</p>
             </div>
           ) : null}
 
@@ -197,6 +201,7 @@ export function DashboardPage() {
             <PaymentStatusCard
               game={game}
               entry={entry}
+              roundIsOpen={roundIsOpen}
               claiming={claiming}
               creating={creating}
               onClaimPayment={entry ? () => void handleClaimPayment() : undefined}

@@ -312,6 +312,18 @@ body {
   cursor: not-allowed;
 }
 
+.los-tap-target {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+
+.los-cockpit-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--los-radius-sm);
+  padding: 0.75rem;
+  background: var(--los-white);
+}
+
 /* Data tables */
 .los-data-table {
   width: 100%;

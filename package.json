@@ -15,6 +15,7 @@
     "import:fixtures:gate": "tsx scripts/import-season-fixtures.ts --dry-run",
     "generate:import-sql": "tsx scripts/generate-import-sql.ts",
     "verify:production-fixtures": "tsx scripts/verify-production-fixtures.ts",
+    "publish:round1": "tsx scripts/publish-round1.ts",
     "test": "vitest run"
   },
   "dependencies": {

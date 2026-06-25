@@ -28,3 +28,18 @@ dist-ssr
 
 # Generated import SQL (run npm run generate:import-sql)
 scripts/generated/
+
+# Local diagnostics and probe artefacts
+los_diag/
+vite-*-dist/
+los_*.json
+los-*.txt
+*-deploy*.cjs
+probe-deploy.cjs
+check-prod.cjs
+analyze.cjs
+jun18-index.cjs
+index-DJKT*.js
+temp-netlify-data.json
+supabase/.temp/
+supabase/.temp.bak/

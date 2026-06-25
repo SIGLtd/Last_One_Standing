@@ -46,11 +46,34 @@ export async function fetchPendingCandidateWindows(gameId: string): Promise<Sele
     .eq('game_id', gameId)
     .eq('status', 'pending')
     .is('review_outcome', null)
-    .gte('window_number', 2)
+    .gte('window_number', MIN_OPERATIONAL_WINDOW_NUMBER)
     .order('window_number', { ascending: false })
 
   if (error) throw error
   return data ?? []
+}
+
+export async function fetchPlannedOperationalWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('selection_windows')
+    .select('*')
+    .eq('game_id', gameId)
+    .eq('status', 'pending')
+    .is('review_outcome', null)
+    .gte('window_number', MIN_OPERATIONAL_WINDOW_NUMBER)
+    .order('window_number', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export async function adminRefreshDraftWindowSnapshot(windowId: string): Promise<void> {
+  const client = getSupabaseOrThrow()
+  const { error } = await client.rpc('refresh_pending_window_snapshots', { p_window_id: windowId })
+  if (error) throw error
 }
 
 export async function fetchWindowEligibleFixtures(windowId: string): Promise<SelectionWindowEligibleFixture[]> {

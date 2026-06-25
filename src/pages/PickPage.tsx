@@ -8,9 +8,11 @@ import { CURRENT_GAME } from '../lib/constants'
 import {
   buildSelectableTeamOptions,
   fetchOpenSelectionWindow,
+  fetchPlannedOperationalWindow,
   fetchWindowEligibleFixtures,
   formatLondonDateTime,
 } from '../lib/fixtureOps'
+import { WINDOW2_UPCOMING_PLAYER_MESSAGE } from '../lib/window2Draft'
 import { fetchCurrentGame, fetchMyGameEntry } from '../lib/gameEntries'
 import {
   fetchFinallyUsedTeamIds,
@@ -26,6 +28,7 @@ export function PickPage() {
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
   const [window, setWindow] = useState<SelectionWindowWithMeta | null>(null)
+  const [plannedWindow, setPlannedWindow] = useState<SelectionWindowWithMeta | null>(null)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [usedTeamIds, setUsedTeamIds] = useState<string[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
@@ -55,18 +58,21 @@ export function PickPage() {
       if (!currentGame) {
         setEntry(null)
         setWindow(null)
+        setPlannedWindow(null)
         setSelection(null)
         setTeamOptions([])
         return
       }
 
-      const [myEntry, openWindow] = await Promise.all([
+      const [myEntry, openWindow, pendingWindow] = await Promise.all([
         fetchMyGameEntry(player.id, currentGame.id),
         fetchOpenSelectionWindow(currentGame.id),
+        fetchPlannedOperationalWindow(currentGame.id),
       ])
 
       setEntry(myEntry)
       setWindow(openWindow)
+      setPlannedWindow(pendingWindow)
 
       if (openWindow) {
         const [fixtures, mySelection, usedTeams] = await Promise.all([
@@ -84,6 +90,7 @@ export function PickPage() {
         setSelection(null)
         setUsedTeamIds([])
         setSelectedTeamId(null)
+        setPlannedWindow(null)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load pick page.'
@@ -154,7 +161,11 @@ export function PickPage() {
   if (!window) {
     return (
       <Card title="Make your pick" description={`Game ${CURRENT_GAME}`} compact>
-        <p className="text-xs text-muted-ink">No open selection window is available yet.</p>
+        {plannedWindow ? (
+          <div className="los-notice text-xs">{WINDOW2_UPCOMING_PLAYER_MESSAGE}</div>
+        ) : (
+          <p className="text-xs text-muted-ink">No open selection window is available yet.</p>
+        )}
       </Card>
     )
   }

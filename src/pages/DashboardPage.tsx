@@ -11,12 +11,15 @@ import {
   fetchOrCreateGameEntry,
 } from '../lib/gameEntries'
 import { formatGBP } from '../lib/constants'
-import type { Game, GameEntry } from '../types'
+import { fetchPlannedOperationalWindow } from '../lib/fixtureOps'
+import { WINDOW2_UPCOMING_PLAYER_MESSAGE } from '../lib/window2Draft'
+import type { Game, GameEntry, SelectionWindowWithMeta } from '../types'
 
 export function DashboardPage() {
   const { user, player, loading } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
+  const [plannedWindow, setPlannedWindow] = useState<SelectionWindowWithMeta | null>(null)
   const [pageLoading, setPageLoading] = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
   const [claiming, setClaiming] = useState(false)
@@ -38,10 +41,15 @@ export function DashboardPage() {
       setGame(currentGame)
 
       if (currentGame) {
-        const myEntry = await fetchMyGameEntry(player.id, currentGame.id)
+        const [myEntry, pendingWindow] = await Promise.all([
+          fetchMyGameEntry(player.id, currentGame.id),
+          fetchPlannedOperationalWindow(currentGame.id),
+        ])
         setEntry(myEntry)
+        setPlannedWindow(pendingWindow)
       } else {
         setEntry(null)
+        setPlannedWindow(null)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load dashboard data.'
@@ -153,6 +161,10 @@ export function DashboardPage() {
           ) : null}
 
           {pageError ? <div className="los-alert los-alert-error">{pageError}</div> : null}
+
+          {entry?.paid && entry.status === 'active' && plannedWindow ? (
+            <div className="los-notice text-xs">{WINDOW2_UPCOMING_PLAYER_MESSAGE}</div>
+          ) : null}
 
           {game && player ? (
             <PaymentStatusCard

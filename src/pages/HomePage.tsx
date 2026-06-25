@@ -4,6 +4,7 @@ import { Badge } from '../components/Badge'
 import { AppLogo } from '../components/AppLogo'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
 import { APP_NAME, CURRENT_GAME, CURRENT_POT_GBP, STATUS, formatEligibleSelectionDays, formatGBP } from '../lib/constants'
+import { WINDOW2_UPCOMING_PLAYER_MESSAGE } from '../lib/window2Draft'
 
 export function HomePage() {
   return (
@@ -27,6 +28,8 @@ export function HomePage() {
           <MetricCell label="Pot" value={formatGBP(CURRENT_POT_GBP)} />
           <MetricCell label="Picks" value="Open board" />
         </MetricStrip>
+
+        <p className="mt-2 text-xs text-muted-ink max-w-prose">{WINDOW2_UPCOMING_PLAYER_MESSAGE}</p>
 
         <div className="mt-3 flex flex-wrap gap-2">
           <ButtonLink to="/signup">Create account</ButtonLink>

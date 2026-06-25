@@ -4,11 +4,13 @@ import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { DataTable } from '../components/DataTable'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
+import { Window2DraftPanel } from '../components/Window2DraftPanel'
 import { Window2ReadinessPreviewPanel } from '../components/Window2ReadinessPreviewPanel'
 import { useAuth } from '../contexts/AuthContext'
 import {
   adminApproveWindow,
   adminReviewWindow,
+  adminRefreshDraftWindowSnapshot,
   fetchFixtureChangeAlerts,
   fetchFixtureOpsStatus,
   fetchPendingCandidateWindows,
@@ -19,6 +21,7 @@ import {
   invokeFixtureReconciliation,
 } from '../lib/fixtureOps'
 import { buildWindow2ReadinessPreview, type Window2ReadinessPreview } from '../lib/window2Preview'
+import { compareDraftSnapshotToMaster, WINDOW2_NUMBER } from '../lib/window2Draft'
 import {
   adminFetchSelectionWindows,
   adminLockSelectionWindow,
@@ -39,6 +42,7 @@ import type {
   GameEntryWithPlayer,
   SelectionWindowEligibleFixture,
   SelectionWindowWithMeta,
+  SeasonFixture,
 } from '../types'
 
 const placeholderSections = [
@@ -77,6 +81,7 @@ export function AdminPage() {
   const [providerConfigured, setProviderConfigured] = useState(false)
   const [schedulerConfigured, setSchedulerConfigured] = useState(false)
   const [window2Preview, setWindow2Preview] = useState<Window2ReadinessPreview | null>(null)
+  const [seasonFixtures, setSeasonFixtures] = useState<SeasonFixture[]>([])
 
   const openWindow = windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
 
@@ -111,6 +116,7 @@ export function AdminPage() {
         setProviderConfigured(opsStatus.providerConfigured)
         setSchedulerConfigured(opsStatus.schedulerConfigured)
         setWindow2Preview(buildWindow2ReadinessPreview(seasonFixtures, gameWindows))
+        setSeasonFixtures(seasonFixtures)
 
         const fixtureMap: Record<string, SelectionWindowEligibleFixture[]> = {}
         for (const candidate of pending) {
@@ -127,6 +133,7 @@ export function AdminPage() {
         setProviderConfigured(false)
         setSchedulerConfigured(false)
         setWindow2Preview(null)
+        setSeasonFixtures([])
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load admin data.'
@@ -226,6 +233,27 @@ export function AdminPage() {
       setFixtureBusy(false)
     }
   }
+
+  async function handleRevalidateDraft(windowId: string) {
+    setActionId(windowId)
+    setPageError(null)
+    try {
+      await adminRefreshDraftWindowSnapshot(windowId)
+      await loadAdminData()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to revalidate draft snapshot.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const window2Draft = candidates.find((candidate) => candidate.window_number === WINDOW2_NUMBER) ?? null
+  const otherCandidates = candidates.filter((candidate) => candidate.window_number !== WINDOW2_NUMBER)
+  const window2Snapshot = window2Draft ? (candidateFixtures[window2Draft.id] ?? []) : []
+  const window2Comparison =
+    window2Draft && seasonFixtures.length > 0
+      ? compareDraftSnapshotToMaster(window2Snapshot, seasonFixtures)
+      : null
 
   if (loading || pageLoading) {
     return (
@@ -342,10 +370,23 @@ export function AdminPage() {
               </div>
             ) : null}
 
-            {candidates.length === 0 ? (
+            {window2Draft && window2Comparison ? (
+              <Window2DraftPanel
+                draftWindow={window2Draft}
+                snapshotFixtures={window2Snapshot}
+                comparison={window2Comparison}
+                busy={actionId === window2Draft.id}
+                onRevalidate={() => void handleRevalidateDraft(window2Draft.id)}
+                onApprove={() => void handleApproveCandidate(window2Draft.id)}
+                onDefer={() => void handleReviewCandidate(window2Draft.id, 'deferred')}
+                onReject={() => void handleReviewCandidate(window2Draft.id, 'rejected')}
+              />
+            ) : null}
+
+            {otherCandidates.length === 0 && !window2Draft ? (
               <p className="mt-2 text-xs text-muted-ink">No pending candidate windows.</p>
             ) : (
-              candidates.map((candidate) => {
+              otherCandidates.map((candidate) => {
                 const fixtures = candidateFixtures[candidate.id] ?? []
                 const busy = actionId === candidate.id
                 return (

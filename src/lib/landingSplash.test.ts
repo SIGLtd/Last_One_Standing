@@ -43,7 +43,7 @@ describe('landing splash lifecycle', () => {
     expect(splashSource).toContain('Skip intro')
     expect(splashSource).toContain('onEnded={dismissSplash}')
     expect(splashSource).not.toContain('<Navigate')
-    expect(splashSource).toContain('visibility: hidden')
+    expect(splashSource).toContain('los-splash-app-shell')
   })
 
   it('bypasses autoplay for reduced-motion users and on video failure', () => {

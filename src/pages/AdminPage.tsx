@@ -4,6 +4,7 @@ import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { DataTable } from '../components/DataTable'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
+import { Window2ReadinessPreviewPanel } from '../components/Window2ReadinessPreviewPanel'
 import { useAuth } from '../contexts/AuthContext'
 import {
   adminApproveWindow,
@@ -12,10 +13,12 @@ import {
   fetchFixtureOpsStatus,
   fetchPendingCandidateWindows,
   fetchRecentSyncRuns,
+  fetchSeasonFixtures,
   fetchWindowEligibleFixtures,
   formatLondonDateTime,
   invokeFixtureReconciliation,
 } from '../lib/fixtureOps'
+import { buildWindow2ReadinessPreview, type Window2ReadinessPreview } from '../lib/window2Preview'
 import {
   adminFetchSelectionWindows,
   adminLockSelectionWindow,
@@ -73,6 +76,7 @@ export function AdminPage() {
 
   const [providerConfigured, setProviderConfigured] = useState(false)
   const [schedulerConfigured, setSchedulerConfigured] = useState(false)
+  const [window2Preview, setWindow2Preview] = useState<Window2ReadinessPreview | null>(null)
 
   const openWindow = windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
 
@@ -90,13 +94,14 @@ export function AdminPage() {
       setGame(currentGame)
 
       if (currentGame) {
-        const [gameEntries, gameWindows, pending, runs, alerts, opsStatus] = await Promise.all([
+        const [gameEntries, gameWindows, pending, runs, alerts, opsStatus, seasonFixtures] = await Promise.all([
           adminFetchGameEntries(currentGame.id),
           adminFetchSelectionWindows(currentGame.id) as Promise<SelectionWindowWithMeta[]>,
           fetchPendingCandidateWindows(currentGame.id),
           fetchRecentSyncRuns(),
           fetchFixtureChangeAlerts(),
           fetchFixtureOpsStatus().catch(() => ({ providerConfigured: false, schedulerConfigured: false })),
+          fetchSeasonFixtures('2026/27'),
         ])
         setEntries(gameEntries)
         setWindows(gameWindows)
@@ -105,6 +110,7 @@ export function AdminPage() {
         setChangeAlerts(alerts)
         setProviderConfigured(opsStatus.providerConfigured)
         setSchedulerConfigured(opsStatus.schedulerConfigured)
+        setWindow2Preview(buildWindow2ReadinessPreview(seasonFixtures, gameWindows))
 
         const fixtureMap: Record<string, SelectionWindowEligibleFixture[]> = {}
         for (const candidate of pending) {
@@ -120,6 +126,7 @@ export function AdminPage() {
         setCandidateFixtures({})
         setProviderConfigured(false)
         setSchedulerConfigured(false)
+        setWindow2Preview(null)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load admin data.'
@@ -287,6 +294,8 @@ export function AdminPage() {
                 Protected historic window #1 — test configuration only; no operational actions permitted.
               </div>
             ) : null}
+
+            {window2Preview ? <Window2ReadinessPreviewPanel preview={window2Preview} /> : null}
 
             <div className="mt-2 flex flex-wrap gap-2">
               <button

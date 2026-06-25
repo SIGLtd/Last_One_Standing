@@ -1,6 +1,6 @@
 import { getSupabaseOrThrow } from './supabase'
 import { isPlayerFacingOpenWindow, MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
-import type { SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
+import type { SelectionWindowEligibleFixture, SelectionWindowWithMeta, SeasonFixture } from '../types'
 
 export function formatLondonDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
@@ -103,6 +103,18 @@ export function buildSelectableTeamOptions(fixtures: SelectionWindowEligibleFixt
   }
 
   return [...byTeam.values()].sort((a, b) => a.team_name.localeCompare(b.team_name))
+}
+
+export async function fetchSeasonFixtures(season: string): Promise<SeasonFixture[]> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('season_fixtures')
+    .select('*')
+    .eq('season', season)
+    .order('kickoff_at', { ascending: true })
+
+  if (error) throw error
+  return data ?? []
 }
 
 export async function fetchFixtureChangeAlerts() {

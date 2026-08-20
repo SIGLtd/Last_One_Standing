@@ -1,18 +1,18 @@
 import type { HistoricalResult } from '../types'
 
-const SEASON = '2025/26'
-
+/** Game 27 season is confirmed from the live games row. Games 1–26 years need Iain’s confirmation. */
 function game(
   gameNumber: number,
   resultType: HistoricalResult['result_type'],
   pot: number,
   winnerName: string | null = null,
+  season: string | null = null,
   notes?: string,
 ): HistoricalResult {
   return {
     id: `g${gameNumber}`,
     game_number: gameNumber,
-    season: SEASON,
+    season,
     result_type: resultType,
     winner_name: winnerName,
     pot,
@@ -41,14 +41,18 @@ export const HISTORY_GAMES_1_TO_27: HistoricalResult[] = [
   game(18, 'winner', 1350, 'Greg T'),
   game(19, 'rollover', 660),
   game(20, 'winner', 1560, 'Adam'),
-  game(21, 'winner', 950, 'Craigo', 'second time winner'),
+  game(21, 'winner', 950, 'Craigo', null, 'second time winner'),
   game(22, 'winner', 1000, 'Chris'),
   game(23, 'winner', 950, 'Kain'),
   game(24, 'winner', 860, 'Josh T'),
   game(25, 'rollover', 890),
   game(26, 'rollover', 1000),
-  game(27, 'active', 1920),
+  game(27, 'active', 1920, null, '2026/27'),
 ]
+
+export function formatHistorySeason(row: HistoricalResult): string {
+  return row.season ?? 'TBC'
+}
 
 export function getHistorySummary(history: HistoricalResult[]) {
   const winners = history.filter((row) => row.result_type === 'winner')

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AppLogo } from './AppLogo'
 import { MobileNavMenu } from './MobileNavMenu'
@@ -8,11 +8,9 @@ import {
   buildDesktopNavItems,
   buildMobileMenuItems,
 } from '../lib/appNavigation'
-import { APP_NAME, CURRENT_GAME, CURRENT_POT_GBP } from '../lib/constants'
-
-function formatGBP(value: number) {
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(value)
-}
+import { APP_NAME, CURRENT_GAME, CURRENT_POT_GBP, formatGBP } from '../lib/constants'
+import { fetchCurrentGame } from '../lib/gameEntries'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 function navClass(isActive: boolean, mobile = false) {
   if (mobile) {
@@ -29,7 +27,14 @@ function navClass(isActive: boolean, mobile = false) {
 }
 
 function isMenuRouteActive(pathname: string): boolean {
-  return pathname === '/rules' || pathname === '/history' || pathname === '/admin' || pathname === '/login' || pathname === '/signup'
+  return (
+    pathname === '/rules' ||
+    pathname === '/history' ||
+    pathname === '/my-picks' ||
+    pathname === '/admin' ||
+    pathname === '/login' ||
+    pathname === '/signup'
+  )
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -37,6 +42,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const [signingOut, setSigningOut] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [displayedPot, setDisplayedPot] = useState(CURRENT_POT_GBP)
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    let cancelled = false
+    void fetchCurrentGame()
+      .then((game) => {
+        if (!cancelled && game) setDisplayedPot(game.current_pot)
+      })
+      .catch(() => {
+        /* keep fallback pot */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const isAdmin = Boolean(player?.is_admin)
   const desktopNavItems = useMemo(() => buildDesktopNavItems(isAdmin), [isAdmin])
@@ -73,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="min-w-0 hidden sm:block">
                 <div className="truncate text-sm font-semibold text-white">{APP_NAME}</div>
                 <div className="text-[0.6875rem] text-white/65 tabular-nums">
-                  Game {CURRENT_GAME} · {formatGBP(CURRENT_POT_GBP)}
+                  Game {CURRENT_GAME} · {formatGBP(displayedPot)}
                 </div>
               </div>
             </NavLink>

@@ -2,13 +2,14 @@ export type UUID = string
 
 export type Player = {
   id: UUID
-  user_id: UUID
+  user_id: UUID | null
   created_at: string
   updated_at: string
   display_name: string
   phone: string | null
-  email: string
+  email: string | null
   is_admin: boolean
+  is_manual: boolean
 }
 
 export type EntryType = 'existing' | 'newbie' | 'admin_comp'
@@ -45,10 +46,12 @@ export type GameEntry = {
   eliminated_reason: string | null
   created_at: string
   updated_at: string
+  entry_count: number
+  fee_set_by_admin: boolean
 }
 
 export type GameEntryWithPlayer = GameEntry & {
-  player: Pick<Player, 'display_name' | 'phone' | 'email'>
+  player: Pick<Player, 'display_name' | 'phone' | 'email' | 'is_admin' | 'is_manual'>
 }
 
 export type SelectionWindowStatus = 'pending' | 'open' | 'locked' | 'resolving' | 'resolved'
@@ -176,6 +179,9 @@ export type WindowPickRow = {
   team_id: string | null
   locked_at: string | null
   entry_status: EntryStatus
+  paid?: boolean
+  updated_at?: string | null
+  admin_corrected?: boolean
 }
 
 export type HistoryResultType = 'winner' | 'rollover' | 'active'
@@ -183,7 +189,7 @@ export type HistoryResultType = 'winner' | 'rollover' | 'active'
 export type HistoricalResult = {
   id: string
   game_number: number
-  season: string
+  season: string | null
   result_type: HistoryResultType
   winner_name: string | null
   pot: number

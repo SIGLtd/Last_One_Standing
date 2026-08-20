@@ -1,16 +1,18 @@
 import { CURRENT_GAME } from './constants'
+import { getAmountDue as calculateAmountDue } from './entryFees'
 import { getSupabaseOrThrow } from './supabase'
-import type { EntryType, Game, GameEntry, GameEntryWithPlayer } from '../types'
+import type { EntryType, Game, GameEntry, GameEntryWithPlayer, Player } from '../types'
 
-export function getAmountDue(entryType: EntryType, game: Game): number {
-  switch (entryType) {
-    case 'existing':
-      return game.standard_entry_fee
-    case 'newbie':
-      return game.newbie_entry_fee
-    case 'admin_comp':
-      return 0
-  }
+export { getAmountDue, getDisplayAmountDue } from './entryFees'
+
+export async function adminFetchPlayers(): Promise<Player[]> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('players')
+    .select('*')
+    .order('display_name', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as Player[]
 }
 
 export async function adminFetchRegisteredPlayerCount(): Promise<number> {
@@ -18,6 +20,26 @@ export async function adminFetchRegisteredPlayerCount(): Promise<number> {
   const { count, error } = await client.from('players').select('*', { count: 'exact', head: true })
   if (error) throw error
   return count ?? 0
+}
+
+export async function adminUpdateCurrentPot(gameId: string, currentPot: number): Promise<Game> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_update_game_pot', {
+    p_game_id: gameId,
+    p_current_pot: currentPot,
+  })
+  if (error) throw error
+  return data as Game
+}
+
+export async function adminCreateManualPlayer(displayName: string, phone?: string): Promise<Player> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_create_manual_player', {
+    p_display_name: displayName,
+    p_phone: phone ?? null,
+  })
+  if (error) throw error
+  return data as Player
 }
 
 export async function fetchCurrentGame(): Promise<Game | null> {
@@ -58,8 +80,8 @@ export async function fetchOrCreateGameEntry(playerId: string, game: Game): Prom
   }
 
   const client = getSupabaseOrThrow()
-  const entryType: EntryType = 'newbie'
-  const amountDue = getAmountDue(entryType, game)
+  const entryType: EntryType = 'existing'
+  const amountDue = calculateAmountDue(entryType, game, 1)
 
   const { data, error } = await client
     .from('game_entries')
@@ -68,6 +90,8 @@ export async function fetchOrCreateGameEntry(playerId: string, game: Game): Prom
       player_id: playerId,
       entry_type: entryType,
       amount_due: amountDue,
+      entry_count: 1,
+      fee_set_by_admin: false,
       payment_claimed: false,
       paid: false,
       status: 'pending_payment',
@@ -109,7 +133,9 @@ export async function adminFetchGameEntries(gameId: string): Promise<GameEntryWi
       player:players (
         display_name,
         phone,
-        email
+        email,
+        is_admin,
+        is_manual
       )
     `,
     )
@@ -149,13 +175,14 @@ export async function adminSetEntryType(
   game: Game,
 ): Promise<GameEntry> {
   const client = getSupabaseOrThrow()
-  const amountDue = getAmountDue(entryType, game)
+  const amountDue = calculateAmountDue(entryType, game, 1)
 
   const { data, error } = await client
     .from('game_entries')
     .update({
       entry_type: entryType,
       amount_due: amountDue,
+      fee_set_by_admin: true,
     })
     .eq('id', entryId)
     .select('*')

@@ -1,18 +1,8 @@
 import { BANK_DETAILS, formatGBP } from '../lib/constants'
+import { formatEntryTypeLabel, getDisplayAmountDue } from '../lib/entryFees'
 import { Badge } from './Badge'
 import { MetricCell, MetricStrip } from './MetricCell'
-import type { EntryType, Game, GameEntry } from '../types'
-
-function formatEntryType(entryType: EntryType) {
-  switch (entryType) {
-    case 'existing':
-      return 'Returning (£10)'
-    case 'newbie':
-      return 'New (£30)'
-    case 'admin_comp':
-      return 'Comp (free)'
-  }
-}
+import type { Game, GameEntry } from '../types'
 
 function getPaymentStatusLabel(entry: GameEntry) {
   if (entry.paid) return 'Verified'
@@ -53,11 +43,13 @@ export function PaymentStatusCard({
   onClaimPayment,
   onCreateEntry,
 }: PaymentStatusCardProps) {
+  const amountDue = entry ? getDisplayAmountDue(entry, game) : game.standard_entry_fee
   const bankDetailsText = [
     BANK_DETAILS.bank,
     BANK_DETAILS.accountName,
     `Sort code: ${BANK_DETAILS.sortCode}`,
     `Account number: ${BANK_DETAILS.accountNumber}`,
+    `Amount: ${formatGBP(amountDue)}`,
   ].join('\n')
 
   async function copyBankDetails() {
@@ -70,8 +62,8 @@ export function PaymentStatusCard({
 
       {entry ? (
         <MetricStrip>
-          <MetricCell label="Entry type" value={formatEntryType(entry.entry_type)} />
-          <MetricCell label="Amount due" value={formatGBP(entry.amount_due)} />
+          <MetricCell label="Entry type" value={formatEntryTypeLabel(entry.entry_type, amountDue)} />
+          <MetricCell label="Amount due" value={formatGBP(amountDue)} />
           <MetricCell
             label="Payment"
             value={<Badge variant={getPaymentBadgeVariant(entry)}>{getPaymentStatusLabel(entry)}</Badge>}
@@ -79,7 +71,7 @@ export function PaymentStatusCard({
         </MetricStrip>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <span className="text-muted-ink">No entry for Game {game.game_number}.</span>
+          <span className="text-muted-ink">No entry for Game {game.game_number}. Standard entry is {formatGBP(game.standard_entry_fee)}.</span>
           {onCreateEntry ? (
             <button type="button" onClick={onCreateEntry} disabled={creating} className="los-btn-primary">
               {creating ? 'Creating…' : `Enter Game ${game.game_number}`}
@@ -95,6 +87,7 @@ export function PaymentStatusCard({
           <div className="los-divider-row">{BANK_DETAILS.accountName}</div>
           <div className="los-divider-row tabular-nums">Sort {BANK_DETAILS.sortCode}</div>
           <div className="los-divider-row tabular-nums">Acct {BANK_DETAILS.accountNumber}</div>
+          <div className="los-divider-row tabular-nums font-medium">Pay {formatGBP(amountDue)}</div>
           <div className="los-divider-row">
             <button type="button" onClick={() => void copyBankDetails()} className="los-btn-secondary">
               Copy details

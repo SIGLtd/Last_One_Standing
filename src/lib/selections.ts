@@ -12,15 +12,15 @@ export type SelectionWindowPayload = {
   status: SelectionWindowStatus
 }
 
-export function isWindowLocked(window: SelectionWindow): boolean {
+export function isWindowLocked(window: SelectionWindow, nowMs = Date.now()): boolean {
   if (window.status === 'locked' || window.status === 'resolving' || window.status === 'resolved') {
     return true
   }
-  return Date.now() >= new Date(window.deadline_at).getTime()
+  return nowMs >= new Date(window.deadline_at).getTime()
 }
 
-export function isWindowEditable(window: SelectionWindow): boolean {
-  return window.status === 'open' && !isWindowLocked(window)
+export function isWindowEditable(window: SelectionWindow, nowMs = Date.now()): boolean {
+  return window.status === 'open' && !isWindowLocked(window, nowMs)
 }
 
 export async function fetchCurrentSelectionWindow(gameId: string): Promise<SelectionWindow | null> {
@@ -165,13 +165,49 @@ export async function saveSelection(input: {
   return data as Selection
 }
 
+export async function adminSubmitSelection(input: {
+  playerId: string
+  windowId: string
+  teamId: string
+}): Promise<Selection> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_submit_selection', {
+    p_player_id: input.playerId,
+    p_window_id: input.windowId,
+    p_team_id: input.teamId,
+  })
+
+  if (error) {
+    if (error.message.includes('ADMIN_REQUIRED')) {
+      throw new Error('Admin access is required to enter a pick for someone else.')
+    }
+    const code = parsePickError(error.message)
+    throw new Error(pickErrorLabel(code))
+  }
+
+  return data as Selection
+}
+
+export async function adminFetchWindowSelections(windowId: string): Promise<Selection[]> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('selections')
+    .select('*')
+    .eq('window_id', windowId)
+    .not('team_id', 'is', null)
+    .order('updated_at', { ascending: true })
+
+  if (error) throw error
+  return data ?? []
+}
+
 export async function fetchCurrentWindowPicks(gameId: string, windowId: string): Promise<WindowPickRow[]> {
   const client = getSupabaseOrThrow()
 
   const [{ data: entries, error: entriesError }, { data: selections, error: selectionsError }] = await Promise.all([
     client
       .from('game_entries')
-      .select('player_id, status, player:players(display_name)')
+      .select('player_id, status, paid, player:players(display_name)')
       .eq('game_id', gameId)
       .eq('status', 'active'),
     client.from('selections').select('*').eq('game_id', gameId).eq('window_id', windowId),
@@ -193,6 +229,9 @@ export async function fetchCurrentWindowPicks(gameId: string, windowId: string):
       team_id: selection?.team_id ?? null,
       locked_at: selection?.locked_at ?? null,
       entry_status: entry.status,
+      paid: Boolean((entry as { paid?: boolean }).paid),
+      updated_at: selection?.updated_at ?? selection?.created_at ?? null,
+      admin_corrected: Boolean(selection?.admin_corrected),
     }
   })
 }

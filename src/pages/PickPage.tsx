@@ -3,18 +3,17 @@ import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, authPhaseLabel } from '../contexts/AuthContext'
 import { CURRENT_GAME } from '../lib/constants'
 import {
   buildSelectableTeamOptions,
   fetchOpenSelectionWindow,
   fetchPlannedOperationalWindow,
   fetchWindowEligibleFixtures,
-  formatLondonDateTime,
+  formatDeadlineLondon,
 } from '../lib/fixtureOps'
 import {
   PLAYER_COMPLETE_ENTRY_MESSAGE,
-  ROUND1_DEADLINE_PLAYER_LABEL,
   ROUND1_PUBLIC_LABEL,
   ROUND1_WEEKEND_LABEL,
   operationalWindowToRoundLabel,
@@ -30,7 +29,7 @@ import {
 import type { Game, GameEntry, Selection, SelectionWindowWithMeta } from '../types'
 
 export function PickPage() {
-  const { user, player, loading: authLoading, configured } = useAuth()
+  const { user, player, loading: authLoading, authPhase, configured } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
   const [window, setWindow] = useState<SelectionWindowWithMeta | null>(null)
@@ -135,7 +134,7 @@ export function PickPage() {
 
   if (authLoading || pageLoading) {
     return (
-      <Card title="Make your pick" description="Loading…" compact>
+      <Card title="Make your pick" description={authLoading ? authPhaseLabel(authPhase) : 'Loading pick data…'} compact>
         <p className="text-xs text-muted-ink">Please wait.</p>
       </Card>
     )
@@ -199,7 +198,7 @@ export function PickPage() {
     >
       <div className="grid gap-2">
         <MetricStrip>
-          <MetricCell label="Deadline" value={formatLondonDateTime(window.deadline_at)} />
+          <MetricCell label="Deadline" value={formatDeadlineLondon(window.deadline_at)} />
           <MetricCell label="Selected" value={selectedOption?.team_name ?? '—'} />
           <MetricCell label="Round" value={roundLabel} />
         </MetricStrip>
@@ -208,7 +207,8 @@ export function PickPage() {
         {savedMessage ? <div className="los-alert los-alert-success">{savedMessage}</div> : null}
 
         <p className="text-xs text-muted-ink">
-          Choose a team from the approved fixtures on {ROUND1_WEEKEND_LABEL}. Deadline: {ROUND1_DEADLINE_PLAYER_LABEL}.
+          Choose a team from the approved fixtures on {ROUND1_WEEKEND_LABEL}. Deadline:{' '}
+          {formatDeadlineLondon(window.deadline_at)}.
           Fixtures follow the official Premier League release — check the app before the deadline.
         </p>
 

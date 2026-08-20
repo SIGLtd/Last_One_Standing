@@ -42,6 +42,7 @@ describe('app navigation', () => {
     expect(buildDesktopNavItems(false).some((item) => item.to === '/admin')).toBe(false)
     expect(appShellSource).toContain('buildDesktopNavItems(isAdmin)')
     expect(appShellSource).toContain('buildMobileMenuItems')
+    expect(appShellSource).toContain("pathname === '/my-picks'")
   })
 
   it('exposes Rules, History, account, and logout routes in the mobile menu', () => {
@@ -52,6 +53,7 @@ describe('app navigation', () => {
     })
 
     expect(menu.some((item) => item.kind === 'link' && item.to === '/rules')).toBe(true)
+    expect(menu.some((item) => item.kind === 'link' && item.to === '/my-picks')).toBe(true)
     expect(menu.some((item) => item.kind === 'link' && item.to === '/history')).toBe(true)
     expect(menu.some((item) => item.kind === 'account' && item.to === '/dashboard')).toBe(true)
     expect(menu.some((item) => item.kind === 'action' && item.action === 'logout')).toBe(true)
@@ -66,7 +68,8 @@ describe('app navigation', () => {
   it('keeps desktop navigation intact behind md breakpoint', () => {
     expect(appShellSource).toContain('hidden items-center gap-2 md:flex')
     expect(appShellSource).toContain('aria-label="Main"')
-    expect(buildDesktopNavItems(false).length).toBeGreaterThanOrEqual(6)
+    expect(buildDesktopNavItems(false).length).toBeGreaterThanOrEqual(7)
+    expect(buildDesktopNavItems(false).some((item) => item.to === '/my-picks')).toBe(true)
   })
 
   it('uses 44px tap targets and keeps mobile menu inside the viewport', () => {

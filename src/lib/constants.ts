@@ -1,12 +1,19 @@
+import {
+  DEFAULT_NEWBIE_ENTRY_FEE,
+  DEFAULT_ROLLOVER_CONTRIBUTION,
+  DEFAULT_STANDARD_ENTRY_FEE,
+} from './entryFees'
+
 export const APP_NAME = 'Last One Standing'
 
 export const CURRENT_GAME = 27
 export const CURRENT_POT_GBP = 1920
 
+/** Fallback copy only. Live amounts come from games.standard_entry_fee / newbie_entry_fee. */
 export const FEES = {
-  returning_player: 10,
-  new_player: 30,
-  new_player_rollover_fairness_contribution: 20,
+  returning_player: DEFAULT_STANDARD_ENTRY_FEE,
+  new_player: DEFAULT_NEWBIE_ENTRY_FEE,
+  new_player_rollover_fairness_contribution: DEFAULT_ROLLOVER_CONTRIBUTION,
 } as const
 
 export const STATUS = {

@@ -2,7 +2,7 @@ import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { DataTable } from '../components/DataTable'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
-import { getHistorySummary, HISTORY_GAMES_1_TO_27 } from '../config/history'
+import { formatHistorySeason, getHistorySummary, HISTORY_GAMES_1_TO_27 } from '../config/history'
 import { CURRENT_GAME, formatGBP } from '../lib/constants'
 import type { HistoricalResult } from '../types'
 
@@ -39,6 +39,9 @@ export function HistoryPage() {
 
   return (
     <Card title="History" description={`Games 1–${CURRENT_GAME}`} compact>
+      <p className="mb-3 text-xs text-muted-ink">
+        Seasons marked TBC are waiting for Iain to confirm historic winner years. Game 27 is 2026/27.
+      </p>
       <MetricStrip className="mb-3">
         <MetricCell label="Paid to winners" value={formatGBP(summary.totalPaidOut)} />
         <MetricCell
@@ -67,7 +70,7 @@ export function HistoryPage() {
               className={row.result_type === 'active' ? 'bg-purple/[0.03]' : row.result_type === 'rollover' ? 'text-muted-ink' : ''}
             >
               <td className="tabular-nums font-medium">{row.game_number}</td>
-              <td className="text-muted-ink">{row.season}</td>
+              <td className="text-muted-ink">{formatHistorySeason(row)}</td>
               <td>
                 <Badge variant={resultVariant(row.result_type)}>{resultLabel(row.result_type)}</Badge>
               </td>

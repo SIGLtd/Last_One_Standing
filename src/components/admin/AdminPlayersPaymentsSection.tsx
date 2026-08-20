@@ -1,11 +1,15 @@
 import { MetricCell, MetricStrip } from '../MetricCell'
 import { DataTable } from '../DataTable'
-import type { EntryType, GameEntryWithPlayer } from '../../types'
+import type { EntryType, Game, GameEntryWithPlayer } from '../../types'
 import { formatGBP } from '../../lib/constants'
+import { getDisplayAmountDue } from '../../lib/entryFees'
+import { describeRegisteredVsActive } from '../../lib/playerCensus'
+import type { PlayerCensus } from '../../lib/playerCensus'
 
 type AdminPlayersPaymentsSectionProps = {
+  game: Game
   entries: GameEntryWithPlayer[]
-  summary: {
+  summary: PlayerCensus & {
     registered: number
     activePaid: number
     awaitingVerification: number
@@ -28,6 +32,7 @@ function formatEntryType(entryType: EntryType) {
 }
 
 export function AdminPlayersPaymentsSection({
+  game,
   entries,
   summary,
   actionId,
@@ -42,21 +47,30 @@ export function AdminPlayersPaymentsSection({
 
       <MetricStrip className="mt-2">
         <MetricCell label="Registered" value={summary.registered} />
-        <MetricCell label="Active paid" value={summary.activePaid} />
-        <MetricCell label="Awaiting verify" value={summary.awaitingVerification} />
-        <MetricCell label="Not active" value={summary.notActive} />
+        <MetricCell label="Active entrants" value={summary.activeEntrants} />
+        <MetricCell label="Paid / verified" value={summary.paidVerified} />
+        <MetricCell label="Awaiting payment" value={summary.awaitingPayment} />
       </MetricStrip>
+      <MetricStrip className="mt-2">
+        <MetricCell label="Awaiting verify" value={summary.awaitingVerification} />
+        <MetricCell label="Inactive" value={summary.inactive} />
+        <MetricCell label="Admin / build only" value={summary.adminBuildOnly} />
+        <MetricCell label="Manual / offline" value={summary.manualOffline} />
+      </MetricStrip>
+
+      <p className="mt-2 text-xs text-muted-ink">{describeRegisteredVsActive(summary)}</p>
 
       {awaiting.length > 0 ? (
         <div className="mt-3 grid gap-2">
           <p className="text-xs font-medium text-ink">Awaiting verification</p>
           {awaiting.map((entry) => {
             const busy = actionId === entry.id
+            const amount = getDisplayAmountDue(entry, game)
             return (
               <div key={entry.id} className="rounded border border-border bg-surface p-2 text-xs">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-ink">{entry.player.display_name}</span>
-                  <span className="text-muted-ink">{formatGBP(entry.amount_due)}</span>
+                  <span className="text-muted-ink">{formatGBP(amount)}</span>
                 </div>
                 <button
                   type="button"
@@ -92,11 +106,16 @@ export function AdminPlayersPaymentsSection({
             <tbody>
               {entries.map((row) => {
                 const busy = actionId === row.id
+                const amount = getDisplayAmountDue(row, game)
                 return (
                   <tr key={row.id}>
-                    <td className="font-medium">{row.player.display_name}</td>
+                    <td className="font-medium">
+                      {row.player.display_name}
+                      {row.player.is_manual ? <span className="ml-1 text-muted-ink">· manual</span> : null}
+                      {row.player.is_admin ? <span className="ml-1 text-muted-ink">· admin</span> : null}
+                    </td>
                     <td className="text-muted-ink">{formatEntryType(row.entry_type)}</td>
-                    <td className="num tabular-nums">{formatGBP(row.amount_due)}</td>
+                    <td className="num tabular-nums">{formatGBP(amount)}</td>
                     <td className="text-muted-ink">{row.payment_claimed ? 'Y' : 'N'}</td>
                     <td className="text-muted-ink">{row.paid ? 'Y' : 'N'}</td>
                     <td className="text-muted-ink">{row.status}</td>
@@ -148,11 +167,12 @@ export function AdminPlayersPaymentsSection({
         <div className="mt-2 grid gap-2 md:hidden">
           {entries.map((row) => {
             const busy = actionId === row.id
+            const amount = getDisplayAmountDue(row, game)
             return (
               <div key={row.id} className="rounded border border-border bg-surface p-2 text-xs">
                 <div className="font-medium text-ink">{row.player.display_name}</div>
                 <div className="mt-1 text-muted-ink">
-                  {formatEntryType(row.entry_type)} · {formatGBP(row.amount_due)} · {row.status}
+                  {formatEntryType(row.entry_type)} · {formatGBP(amount)} · {row.status}
                 </div>
                 {!row.paid ? (
                   <button

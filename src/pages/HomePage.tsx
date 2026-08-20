@@ -13,6 +13,7 @@ import { isSupabaseConfigured } from '../lib/supabase'
 
 export function HomePage() {
   const [roundOpen, setRoundOpen] = useState<boolean | null>(null)
+  const [pot, setPot] = useState(CURRENT_POT_GBP)
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -28,6 +29,7 @@ export function HomePage() {
           if (!cancelled) setRoundOpen(false)
           return
         }
+        if (!cancelled) setPot(game.current_pot)
         const openWindow = await fetchOpenSelectionWindow(game.id)
         if (!cancelled) setRoundOpen(Boolean(openWindow))
       } catch {
@@ -56,7 +58,7 @@ export function HomePage() {
 
         <MetricStrip className="mt-3">
           <MetricCell label="Game" value={CURRENT_GAME} />
-          <MetricCell label="Pot" value={formatGBP(CURRENT_POT_GBP)} />
+          <MetricCell label="Pot" value={formatGBP(pot)} />
           <MetricCell label="Picks" value={roundOpen ? `${ROUND1_PUBLIC_LABEL} open` : 'Not open yet'} />
         </MetricStrip>
 

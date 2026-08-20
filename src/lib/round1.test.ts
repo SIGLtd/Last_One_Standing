@@ -15,7 +15,7 @@ import { shouldShowPlayerPickForm } from './window2Draft'
 describe('round 1 player experience', () => {
   it('shows Round 1 open copy without technical window labels', () => {
     expect(PUBLIC_ROUND1_OPEN_POINTS.some((point) => point.includes('Round 1'))).toBe(true)
-    expect(PUBLIC_ROUND1_OPEN_POINTS.some((point) => point.includes('11:30 BST'))).toBe(true)
+    expect(PUBLIC_ROUND1_OPEN_POINTS.some((point) => point.includes('4:00pm Friday 21 August'))).toBe(true)
     expect(PUBLIC_ROUND1_OPEN_POINTS.some((point) => point.toLowerCase().includes('whatsapp'))).toBe(true)
     expect(PUBLIC_ROUND1_OPEN_POINTS.join(' ')).not.toContain('Window 2')
     expect(PUBLIC_ROUND1_OPEN_POINTS.join(' ')).not.toContain('pending')

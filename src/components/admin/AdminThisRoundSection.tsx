@@ -1,18 +1,42 @@
 import { useState } from 'react'
 import { Badge } from '../Badge'
-import { formatLondonDateTime } from '../../lib/fixtureOps'
+import { formatDeadlineLondon, formatLondonDateTime } from '../../lib/fixtureOps'
 import type { SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../../types'
 import { ROUND1_PUBLIC_LABEL } from '../../lib/round1'
 
 type AdminThisRoundSectionProps = {
   openWindow: SelectionWindowWithMeta
   fixtures: SelectionWindowEligibleFixture[]
+  whatsAppSummary: string
+  csvContents: string
 }
 
-export function AdminThisRoundSection({ openWindow, fixtures }: AdminThisRoundSectionProps) {
+export function AdminThisRoundSection({
+  openWindow,
+  fixtures,
+  whatsAppSummary,
+  csvContents,
+}: AdminThisRoundSectionProps) {
   const [expanded, setExpanded] = useState(false)
+  const [copied, setCopied] = useState(false)
   const preview = fixtures.slice(0, 4)
   const remainder = fixtures.length - preview.length
+
+  async function copySummary() {
+    await navigator.clipboard.writeText(whatsAppSummary)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2000)
+  }
+
+  function downloadCsv() {
+    const blob = new Blob([csvContents], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'round-1-selections.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <section className="los-admin-section los-cockpit-card">
@@ -31,6 +55,20 @@ export function AdminThisRoundSection({ openWindow, fixtures }: AdminThisRoundSe
           ? formatLondonDateTime(openWindow.approved_at)
           : formatLondonDateTime(openWindow.updated_at)}
       </p>
+      <p className="mt-1 text-xs text-muted-ink">Deadline: {formatDeadlineLondon(openWindow.deadline_at)}</p>
+
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <button type="button" onClick={() => void copySummary()} className="los-btn-secondary los-tap-target w-full sm:w-auto">
+          {copied ? 'Copied' : 'Copy WhatsApp summary'}
+        </button>
+        <button type="button" onClick={downloadCsv} className="los-btn-secondary los-tap-target w-full sm:w-auto">
+          Download CSV
+        </button>
+      </div>
+
+      <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded border border-border bg-surface p-2 text-[0.6875rem] text-muted-ink">
+        {whatsAppSummary}
+      </pre>
 
       <ul className="mt-2 grid gap-1 text-xs">
         {preview.map((fixture) => (

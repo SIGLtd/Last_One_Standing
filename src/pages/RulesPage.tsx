@@ -7,6 +7,7 @@ import {
   formatEligibleSelectionDays,
   formatGBP,
 } from '../lib/constants'
+import { ROUND1_DEADLINE_PLAYER_LABEL } from '../lib/round1'
 
 const eligibleDays = formatEligibleSelectionDays()
 
@@ -39,7 +40,8 @@ export function RulesPage() {
     {
       title: 'Deadlines',
       items: [
-        `Deadline: 1 hour before first eligible ${eligibleDays} fixture in the window.`,
+        `Deadline: 1 hour before first eligible ${eligibleDays} fixture, unless the organiser sets a round deadline.`,
+        `Current Round 1 deadline: ${ROUND1_DEADLINE_PLAYER_LABEL}.`,
         'Selections read-only after lock.',
       ],
     },

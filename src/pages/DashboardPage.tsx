@@ -3,7 +3,7 @@ import { ButtonLink } from '../components/ButtonLink'
 import { Card } from '../components/Card'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
 import { PaymentStatusCard } from '../components/PaymentStatusCard'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, authPhaseLabel } from '../contexts/AuthContext'
 import {
   claimPayment,
   fetchCurrentGame,
@@ -21,7 +21,7 @@ import {
 import type { Game, GameEntry, SelectionWindowWithMeta } from '../types'
 
 export function DashboardPage() {
-  const { user, player, loading } = useAuth()
+  const { user, player, loading, authPhase } = useAuth()
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
   const [openWindow, setOpenWindow] = useState<SelectionWindowWithMeta | null>(null)
@@ -107,7 +107,7 @@ export function DashboardPage() {
 
   if (loading || pageLoading) {
     return (
-      <Card title="Dashboard" description="Loading…" compact>
+      <Card title="Dashboard" description={loading ? authPhaseLabel(authPhase) : 'Loading payment and game details…'} compact>
         <p className="text-xs text-muted-ink">Please wait.</p>
       </Card>
     )

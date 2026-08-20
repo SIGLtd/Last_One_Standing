@@ -5,7 +5,8 @@ export const ROUND1_PUBLIC_LABEL = 'Round 1'
 
 export const ROUND1_WEEKEND_LABEL = 'Saturday 22 and Sunday 23 August'
 
-export const ROUND1_DEADLINE_PLAYER_LABEL = '11:30 BST on Saturday 22 August'
+export const ROUND1_LIVE_DEADLINE_UTC = '2026-08-21T15:00:00.000Z'
+export const ROUND1_DEADLINE_PLAYER_LABEL = '4:00pm Friday 21 August'
 
 export const ROUND1_EARLIEST_FIXTURE_LABEL = 'Hull City v Manchester United at 12:30 on Saturday 22 August'
 

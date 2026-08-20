@@ -10,6 +10,26 @@ export function formatLondonDateTime(iso: string): string {
   })
 }
 
+/** Player/admin deadline copy, e.g. "4:00pm Friday 21 August". */
+export function formatDeadlineLondon(iso: string): string {
+  const date = new Date(iso)
+  const weekday = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', weekday: 'long' })
+  const day = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', day: 'numeric' })
+  const month = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', month: 'long' })
+  const time = date
+    .toLocaleTimeString('en-GB', {
+      timeZone: 'Europe/London',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    .toLowerCase()
+    .replace(/\s/g, '')
+    .replace(/\./g, '')
+
+  return `${time} ${weekday} ${day} ${month}`
+}
+
 export async function fetchOpenSelectionWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {
   const client = getSupabaseOrThrow()
   const { data: candidates, error } = await client

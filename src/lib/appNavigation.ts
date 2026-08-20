@@ -21,6 +21,7 @@ const DESKTOP_NAV_BASE: NavLinkItem[] = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/pick', label: 'Pick' },
   { to: '/current-picks', label: 'Picks' },
+  { to: '/my-picks', label: 'My picks' },
   { to: '/history', label: 'History' },
 ]
 
@@ -38,6 +39,7 @@ export function buildMobileMenuItems(input: {
 }): MobileMenuItem[] {
   const items: MobileMenuItem[] = [
     { kind: 'link', to: '/rules', label: 'Rules' },
+    { kind: 'link', to: '/my-picks', label: 'My pick history' },
     { kind: 'link', to: '/history', label: 'History' },
   ]
 

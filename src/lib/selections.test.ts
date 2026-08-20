@@ -32,9 +32,10 @@ describe('selection save path', () => {
     expect(pickErrorLabel('ENTRY_INACTIVE')).toContain('Verified active entry')
   })
 
-  it('does not expose admin_corrected in the frontend save payload', () => {
-    expect(selectionsSource).not.toContain('admin_corrected')
+  it('does not send admin_corrected in the player save RPC payload', () => {
+    expect(selectionsSource).toContain("client.rpc('submit_selection'")
     expect(selectionsSource).toContain('p_team_id: input.teamId')
+    expect(selectionsSource).not.toContain('p_admin_corrected')
   })
 
   it('returns current window picks from selections for the open round board', () => {

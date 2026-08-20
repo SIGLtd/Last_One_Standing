@@ -1,5 +1,6 @@
-import type { GameEntryWithPlayer, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
+import type { GameEntryWithPlayer, Player, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
 import { ROUND1_PUBLIC_LABEL, formatTimeRemaining, operationalWindowToRoundLabel } from './round1'
+import { buildPlayerCensus, type PlayerCensus } from './playerCensus'
 
 export const ADMIN_COCKPIT_SECTION_ORDER = [
   'round_control',
@@ -46,11 +47,34 @@ export function buildRoundControlStats(input: {
   }
 }
 
-export function buildPlayerPaymentSummary(entries: GameEntryWithPlayer[], registeredPlayerCount: number) {
+export function buildPlayerPaymentSummary(
+  entries: GameEntryWithPlayer[],
+  playersOrRegisteredCount: Player[] | number,
+): PlayerCensus & {
+  registered: number
+  activePaid: number
+  awaitingVerification: number
+  notActive: number
+} {
+  const players = Array.isArray(playersOrRegisteredCount) ? playersOrRegisteredCount : []
+  const census = players.length
+    ? buildPlayerCensus(players, entries)
+    : {
+        registered: typeof playersOrRegisteredCount === 'number' ? playersOrRegisteredCount : 0,
+        activeEntrants: entries.filter((entry) => entry.status === 'active').length,
+        paidVerified: entries.filter((entry) => entry.paid && entry.status === 'active').length,
+        awaitingPayment: entries.filter((entry) => !entry.paid && !entry.payment_claimed).length,
+        awaitingVerification: entries.filter((entry) => entry.payment_claimed && !entry.paid).length,
+        inactive: entries.filter((entry) => entry.status !== 'active').length,
+        adminBuildOnly: 0,
+        manualOffline: 0,
+      }
+
   return {
-    registered: registeredPlayerCount,
-    activePaid: entries.filter((entry) => entry.paid && entry.status === 'active').length,
-    awaitingVerification: entries.filter((entry) => entry.payment_claimed && !entry.paid).length,
-    notActive: entries.filter((entry) => !(entry.paid && entry.status === 'active')).length,
+    ...census,
+    registered: census.registered,
+    activePaid: census.paidVerified,
+    awaitingVerification: census.awaitingVerification,
+    notActive: census.registered - census.activeEntrants,
   }
 }

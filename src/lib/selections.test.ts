@@ -43,5 +43,7 @@ describe('selection save path', () => {
     expect(selectionsSource).toContain('fetchSubmittedTeamIdsForWindow')
     expect(selectionsSource).toContain(".eq('window_id', windowId)")
     expect(selectionsSource).toContain('finallyUsedWindowIds')
+    expect(selectionsSource).toContain('fetchCurrentOperationalWindow')
+    expect(selectionsSource).not.toContain('return fetchOpenSelectionWindow')
   })
 })

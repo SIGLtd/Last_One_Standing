@@ -24,10 +24,11 @@ export const PLAYER_ROUND1_OPEN_MESSAGE = `${ROUND1_PUBLIC_LABEL} is open for Ga
 
 export const PLAYER_COMPLETE_ENTRY_MESSAGE = `Join Game ${CURRENT_GAME}, pay using the bank details on your dashboard, then wait for payment verification. You can pick once your payment is verified and ${ROUND1_PUBLIC_LABEL} is open.`
 
-export const CURRENT_PICKS_ROUND_OPEN_INTRO = `Every player's pick for ${ROUND1_PUBLIC_LABEL} appears here while the round is live. You do not need to submit your own pick first to view others.`
+export const CURRENT_PICKS_ROUND_OPEN_INTRO = `Every player's pick for ${ROUND1_PUBLIC_LABEL} appears here. You do not need to submit your own pick first to view others.`
 
-/** TODO: optional admin-controlled post-round Current Picks visibility. Keep visible by default while the round is open. */
+/** Public Current Picks stay visible for the current operational round, including after the deadline. */
 export const CURRENT_PICKS_VISIBLE_WHILE_OPEN = true
+export const CURRENT_PICKS_EMPTY_MESSAGE = 'No picks submitted yet.'
 
 export const PUBLIC_LOS_APP_URL = 'https://last-one-standing.netlify.app'
 

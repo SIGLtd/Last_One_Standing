@@ -96,5 +96,13 @@ describe('window guards', () => {
         snapshot_fixture_count: 3,
       }),
     ).toBe(false)
+    expect(
+      isPlayerFacingOpenWindow({
+        window_number: MIN_OPERATIONAL_WINDOW_NUMBER,
+        status: 'open',
+        deadline_at: new Date(Date.now() - 60_000).toISOString(),
+        snapshot_fixture_count: 3,
+      }),
+    ).toBe(false)
   })
 })

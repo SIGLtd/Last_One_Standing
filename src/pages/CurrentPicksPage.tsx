@@ -7,6 +7,7 @@ import { TEAM_ID_TO_NAME } from '../config/teams'
 import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
 import {
+  CURRENT_PICKS_EMPTY_MESSAGE,
   CURRENT_PICKS_ROUND_OPEN_INTRO,
   CURRENT_PICKS_VISIBLE_WHILE_OPEN,
   ROUND1_PUBLIC_LABEL,
@@ -15,6 +16,7 @@ import {
 import { PUBLIC_PRE_LAUNCH_POINTS } from '../lib/preLaunch'
 import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks, getPickStatusLabel } from '../lib/selections'
 import { isSupabaseConfigured } from '../lib/supabase'
+import { canViewCurrentPicks } from '../lib/windowGuards'
 import type { Game, SelectionWindow, WindowPickRow } from '../types'
 
 function pickStatusVariant(label: string): 'success' | 'warning' | 'muted' | 'open' {
@@ -82,6 +84,8 @@ export function CurrentPicksPage() {
   }
 
   const roundLabel = window ? operationalWindowToRoundLabel(window.window_number) : ROUND1_PUBLIC_LABEL
+  const submittedCount = rows.filter((row) => Boolean(row.team_id)).length
+  const showPicksBoard = Boolean(window && CURRENT_PICKS_VISIBLE_WHILE_OPEN && canViewCurrentPicks(window))
 
   return (
     <Card
@@ -104,7 +108,7 @@ export function CurrentPicksPage() {
 
       {!isSupabaseConfigured ? (
         <p className="text-xs text-muted-ink">Supabase is not configured.</p>
-      ) : !window ? (
+      ) : !window || !showPicksBoard ? (
         <div className="grid gap-2">
           <p className="text-xs text-muted-ink">{PUBLIC_PRE_LAUNCH_POINTS[0]}</p>
           <p className="text-xs text-muted-ink">
@@ -112,7 +116,9 @@ export function CurrentPicksPage() {
             to submit your own pick first to view others.
           </p>
         </div>
-      ) : CURRENT_PICKS_VISIBLE_WHILE_OPEN ? (
+      ) : submittedCount === 0 ? (
+        <p className="text-xs text-muted-ink">{CURRENT_PICKS_EMPTY_MESSAGE}</p>
+      ) : (
         <>
           <p className="mb-2 text-xs text-muted-ink">{CURRENT_PICKS_ROUND_OPEN_INTRO}</p>
           <div className="hidden md:block">
@@ -188,8 +194,6 @@ export function CurrentPicksPage() {
             )}
           </div>
         </>
-      ) : (
-        <p className="text-xs text-muted-ink">Current picks stay visible while the round is open.</p>
       )}
     </Card>
   )

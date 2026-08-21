@@ -1,5 +1,5 @@
 import { getSupabaseOrThrow } from './supabase'
-import { isPlayerFacingOpenWindow, MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
+import { canViewCurrentPicks, isPlayerFacingOpenWindow, MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
 import type { SelectionWindowEligibleFixture, SelectionWindowWithMeta, SeasonFixture } from '../types'
 
 export function formatLondonDateTime(iso: string): string {
@@ -91,6 +91,12 @@ export async function fetchOpenSelectionWindow(gameId: string): Promise<Selectio
   }
 
   return null
+}
+
+export async function fetchCurrentOperationalWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {
+  const window = await fetchLatestOperationalWindow(gameId)
+  if (!window || !canViewCurrentPicks(window)) return null
+  return window
 }
 
 export async function fetchLatestOperationalWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {

@@ -20,6 +20,8 @@ export type OperationalWindowCandidate = {
   snapshot_fixture_count?: number
 }
 
+const VIEWABLE_CURRENT_PICKS_STATUSES = new Set(['open', 'locked', 'resolving', 'resolved'])
+
 export function isPlayerFacingOpenWindow(
   window: OperationalWindowCandidate,
   nowMs = Date.now(),
@@ -29,4 +31,18 @@ export function isPlayerFacingOpenWindow(
   if (new Date(window.deadline_at).getTime() <= nowMs) return false
   if ((window.snapshot_fixture_count ?? 0) < 1) return false
   return true
+}
+
+/** Deadline-sensitive: used only for save/amend, not for viewing picks. */
+export function canSubmitPick(window: OperationalWindowCandidate, nowMs = Date.now()): boolean {
+  return isPlayerFacingOpenWindow(window, nowMs)
+}
+
+/** Current operational round remains viewable after the deadline and after lock. */
+export function canViewCurrentPicks(
+  window: { window_number: number; status: string } | null | undefined,
+): boolean {
+  if (!window) return false
+  if (!isOperationalWindowNumber(window.window_number)) return false
+  return VIEWABLE_CURRENT_PICKS_STATUSES.has(window.status)
 }

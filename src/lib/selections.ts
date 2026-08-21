@@ -1,5 +1,5 @@
 import { finallyUsedWindowIds } from './pickOptions'
-import { fetchOpenSelectionWindow } from './fixtureOps'
+import { fetchCurrentOperationalWindow } from './fixtureOps'
 import { getSupabaseOrThrow } from './supabase'
 import { parsePickError, pickErrorLabel } from './pickErrors'
 import type { Selection, SelectionWindow, SelectionWindowStatus, WindowPickRow } from '../types'
@@ -23,8 +23,16 @@ export function isWindowEditable(window: SelectionWindow, nowMs = Date.now()): b
   return window.status === 'open' && !isWindowLocked(window, nowMs)
 }
 
+export function canSubmitPick(window: SelectionWindow, nowMs = Date.now()): boolean {
+  return isWindowEditable(window, nowMs)
+}
+
 export async function fetchCurrentSelectionWindow(gameId: string): Promise<SelectionWindow | null> {
-  return fetchOpenSelectionWindow(gameId)
+  return fetchCurrentOperationalWindow(gameId)
+}
+
+export async function getCurrentOperationalWindow(gameId: string): Promise<SelectionWindow | null> {
+  return fetchCurrentOperationalWindow(gameId)
 }
 
 export async function adminFetchSelectionWindows(gameId: string): Promise<SelectionWindow[]> {

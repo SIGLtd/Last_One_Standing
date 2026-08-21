@@ -2,80 +2,60 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import {
-  MOBILE_PRIMARY_NAV,
-  buildDesktopNavItems,
-  buildMobileMenuItems,
-  mobileMenuIncludesAdmin,
-} from './appNavigation'
+import { buildAppMenuItems, menuIncludesAdmin, menuIncludesPath } from './appNavigation'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const appShellSource = readFileSync(join(__dirname, '..', 'components', 'AppShell.tsx'), 'utf8')
-const mobileMenuSource = readFileSync(join(__dirname, '..', 'components', 'MobileNavMenu.tsx'), 'utf8')
+const appMenuSource = readFileSync(join(__dirname, '..', 'components', 'AppMenu.tsx'), 'utf8')
 
 describe('app navigation', () => {
-  it('renders five primary mobile actions including Menu at narrow viewport', () => {
-    expect(MOBILE_PRIMARY_NAV).toHaveLength(4)
-    expect(MOBILE_PRIMARY_NAV.map((item) => item.label)).toEqual(['Home', 'Hub', 'Pick', 'Picks'])
-    expect(appShellSource).toContain('grid-cols-5')
-    expect(mobileMenuSource).toContain('Menu')
-    expect(mobileMenuSource).toContain('aria-expanded')
+  it('renders a hamburger menu instead of visible header link clutter', () => {
+    expect(appShellSource).toContain('buildAppMenuItems')
+    expect(appShellSource).toContain('<AppMenu')
+    expect(appShellSource).not.toContain('MOBILE_PRIMARY_NAV')
+    expect(appShellSource).not.toContain('buildDesktopNavItems')
+    expect(appShellSource).not.toContain('grid-cols-5')
+    expect(appShellSource).not.toContain('aria-label="Main"')
+    expect(appShellSource).not.toContain('aria-label="Primary"')
+    expect(appMenuSource).toContain('los-menu-icon')
+    expect(appMenuSource).toContain('aria-label="Menu"')
+    expect(appMenuSource).toContain('aria-expanded')
   })
 
-  it('includes Admin in the menu for authenticated administrators only', () => {
-    const adminMenu = buildMobileMenuItems({
-      isAuthenticated: true,
-      isAdmin: true,
-      displayName: 'Ben Stephens',
-    })
-    expect(mobileMenuIncludesAdmin(adminMenu)).toBe(true)
-    expect(buildDesktopNavItems(true).some((item) => item.to === '/admin')).toBe(true)
+  it('includes Admin in the menu for administrators only', () => {
+    const adminMenu = buildAppMenuItems({ isAuthenticated: true, isAdmin: true })
+    const playerMenu = buildAppMenuItems({ isAuthenticated: true, isAdmin: false })
+    expect(menuIncludesAdmin(adminMenu)).toBe(true)
+    expect(menuIncludesAdmin(playerMenu)).toBe(false)
   })
 
-  it('omits Admin for non-admin users in menu and desktop navigation', () => {
-    const playerMenu = buildMobileMenuItems({
-      isAuthenticated: true,
-      isAdmin: false,
-      displayName: 'Player',
-    })
-    expect(mobileMenuIncludesAdmin(playerMenu)).toBe(false)
-    expect(buildDesktopNavItems(false).some((item) => item.to === '/admin')).toBe(false)
-    expect(appShellSource).toContain('buildDesktopNavItems(isAdmin)')
-    expect(appShellSource).toContain('buildMobileMenuItems')
-    expect(appShellSource).toContain("pathname === '/my-picks'")
-  })
-
-  it('exposes Rules, History, account, and logout routes in the mobile menu', () => {
-    const menu = buildMobileMenuItems({
-      isAuthenticated: true,
-      isAdmin: false,
-      displayName: 'Player',
-    })
-
-    expect(menu.some((item) => item.kind === 'link' && item.to === '/rules')).toBe(true)
-    expect(menu.some((item) => item.kind === 'link' && item.to === '/my-picks')).toBe(true)
-    expect(menu.some((item) => item.kind === 'link' && item.to === '/history')).toBe(true)
-    expect(menu.some((item) => item.kind === 'account' && item.to === '/dashboard')).toBe(true)
+  it('puts ordinary destinations behind the menu', () => {
+    const menu = buildAppMenuItems({ isAuthenticated: true, isAdmin: false })
+    expect(menuIncludesPath(menu, '/')).toBe(true)
+    expect(menuIncludesPath(menu, '/pick')).toBe(true)
+    expect(menuIncludesPath(menu, '/current-picks')).toBe(true)
+    expect(menuIncludesPath(menu, '/my-picks')).toBe(true)
+    expect(menuIncludesPath(menu, '/rules')).toBe(true)
+    expect(menuIncludesPath(menu, '/history')).toBe(true)
+    expect(menuIncludesPath(menu, '/dashboard')).toBe(true)
     expect(menu.some((item) => item.kind === 'action' && item.action === 'logout')).toBe(true)
   })
 
-  it('closes the menu when a destination is selected', () => {
-    expect(mobileMenuSource).toContain('onClick={onClose}')
-    expect(mobileMenuSource).toContain('closeRef.current()')
-    expect(mobileMenuSource).toContain('location.pathname')
+  it('shows log in when the user is signed out', () => {
+    const menu = buildAppMenuItems({ isAuthenticated: false, isAdmin: false })
+    expect(menuIncludesPath(menu, '/login')).toBe(true)
+    expect(menu.some((item) => item.kind === 'action')).toBe(false)
   })
 
-  it('keeps desktop navigation intact behind md breakpoint', () => {
-    expect(appShellSource).toContain('hidden items-center gap-2 md:flex')
-    expect(appShellSource).toContain('aria-label="Main"')
-    expect(buildDesktopNavItems(false).length).toBeGreaterThanOrEqual(7)
-    expect(buildDesktopNavItems(false).some((item) => item.to === '/my-picks')).toBe(true)
+  it('closes the menu on route change, backdrop tap, and Escape', () => {
+    expect(appMenuSource).toContain('onClick={onClose}')
+    expect(appMenuSource).toContain('location.pathname')
+    expect(appMenuSource).toContain("event.key === 'Escape'")
+    expect(appMenuSource).toContain('aria-label="Close menu"')
   })
 
-  it('uses 44px tap targets and keeps mobile menu inside the viewport', () => {
-    expect(appShellSource).toContain('min-h-11')
-    expect(mobileMenuSource).toContain('min-h-11')
-    expect(mobileMenuSource).toContain('bottom-[4.5rem]')
-    expect(appShellSource).not.toContain('grid-cols-6')
+  it('uses 44px tap targets', () => {
+    expect(appMenuSource).toContain('min-h-11')
+    expect(appMenuSource).toContain('los-tap-target')
   })
 })

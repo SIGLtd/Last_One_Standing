@@ -58,6 +58,31 @@ export async function fetchOpenSelectionWindow(gameId: string): Promise<Selectio
   return null
 }
 
+export async function fetchLatestOperationalWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {
+  const client = getSupabaseOrThrow()
+  const { data: candidates, error } = await client
+    .from('selection_windows')
+    .select('*')
+    .eq('game_id', gameId)
+    .gte('window_number', MIN_OPERATIONAL_WINDOW_NUMBER)
+    .order('window_number', { ascending: false })
+
+  if (error) throw error
+  if (!candidates?.length) return null
+
+  for (const window of candidates) {
+    const { count, error: countError } = await client
+      .from('selection_window_eligible_fixtures')
+      .select('*', { count: 'exact', head: true })
+      .eq('window_id', window.id)
+
+    if (countError) throw countError
+    if ((count ?? 0) > 0) return window
+  }
+
+  return null
+}
+
 export async function fetchPendingCandidateWindows(gameId: string): Promise<SelectionWindowWithMeta[]> {
   const client = getSupabaseOrThrow()
   const { data, error } = await client

@@ -87,9 +87,8 @@ describe('login path', () => {
 })
 
 describe('my pick history navigation', () => {
-  it('exposes the history route on mobile menu and desktop nav', () => {
-    expect(appNavSource).toContain("to: '/my-picks', label: 'My pick history'")
-    expect(appNavSource).toContain("to: '/my-picks', label: 'My picks'")
+  it('exposes My Picks behind the app menu', () => {
+    expect(appNavSource).toContain("to: '/my-picks', label: 'My Picks'")
     expect(appSource).toContain('path="/my-picks"')
   })
 })

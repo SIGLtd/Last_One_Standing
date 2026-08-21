@@ -1,6 +1,6 @@
+import { finallyUsedWindowIds } from './pickOptions'
 import { fetchOpenSelectionWindow } from './fixtureOps'
 import { getSupabaseOrThrow } from './supabase'
-import { MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
 import { parsePickError, pickErrorLabel } from './pickErrors'
 import type { Selection, SelectionWindow, SelectionWindowStatus, WindowPickRow } from '../types'
 
@@ -105,15 +105,7 @@ export async function fetchFinallyUsedTeamIds(playerId: string, gameId: string):
   if (windowError) throw windowError
 
   const now = Date.now()
-  const finalisedWindowIds = (windows ?? [])
-    .filter(
-      (w) =>
-        w.window_number >= MIN_OPERATIONAL_WINDOW_NUMBER &&
-        (w.status === 'locked' ||
-          w.status === 'resolved' ||
-          new Date(w.deadline_at).getTime() <= now),
-    )
-    .map((w) => w.id)
+  const finalisedWindowIds = finallyUsedWindowIds(windows ?? [], now)
 
   if (finalisedWindowIds.length === 0) return []
 
@@ -199,6 +191,18 @@ export async function adminFetchWindowSelections(windowId: string): Promise<Sele
 
   if (error) throw error
   return data ?? []
+}
+
+export async function fetchSubmittedTeamIdsForWindow(windowId: string): Promise<string[]> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('selections')
+    .select('team_id')
+    .eq('window_id', windowId)
+    .not('team_id', 'is', null)
+
+  if (error) throw error
+  return (data ?? []).map((row) => row.team_id as string)
 }
 
 export async function fetchCurrentWindowPicks(gameId: string, windowId: string): Promise<WindowPickRow[]> {

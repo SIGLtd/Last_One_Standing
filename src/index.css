@@ -317,6 +317,38 @@ body {
   min-width: 2.75rem;
 }
 
+.los-menu-icon {
+  display: grid;
+  width: 1.125rem;
+  gap: 0.22rem;
+}
+
+.los-menu-icon span {
+  display: block;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.los-select-lg {
+  min-height: 2.75rem;
+  height: 2.75rem;
+  font-size: 1rem;
+}
+
+.los-pick-bar {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: rgba(55, 0, 60, 0.12);
+  overflow: hidden;
+}
+
+.los-pick-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--los-purple);
+}
+
 .los-cockpit-card {
   border: 1px solid var(--color-border);
   border-radius: var(--los-radius-sm);

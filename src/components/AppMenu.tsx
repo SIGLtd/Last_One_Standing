@@ -1,11 +1,10 @@
 import { useEffect, useId, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import type { MobileMenuItem } from '../lib/appNavigation'
+import type { AppMenuItem } from '../lib/appNavigation'
 
-type MobileNavMenuProps = {
+type AppMenuProps = {
   open: boolean
-  items: MobileMenuItem[]
-  menuActive: boolean
+  items: AppMenuItem[]
   signingOut: boolean
   onToggle: () => void
   onClose: () => void
@@ -14,20 +13,12 @@ type MobileNavMenuProps = {
 
 function menuItemClass(isActive: boolean) {
   return [
-    'flex min-h-11 w-full items-center rounded px-3 text-sm font-medium transition-colors',
-    isActive ? 'bg-white/15 text-white' : 'text-white/90 hover:bg-white/10',
+    'flex min-h-11 w-full items-center rounded px-3 text-base font-medium',
+    isActive ? 'bg-white/15 text-white' : 'text-white/90',
   ].join(' ')
 }
 
-export function MobileNavMenu({
-  open,
-  items,
-  menuActive,
-  signingOut,
-  onToggle,
-  onClose,
-  onSignOut,
-}: MobileNavMenuProps) {
+export function AppMenu({ open, items, signingOut, onToggle, onClose, onSignOut }: AppMenuProps) {
   const panelId = useId()
   const location = useLocation()
   const closeRef = useRef(onClose)
@@ -56,28 +47,26 @@ export function MobileNavMenu({
         aria-expanded={open}
         aria-controls={panelId}
         aria-haspopup="menu"
+        aria-label="Menu"
         onClick={onToggle}
-        className={[
-          'flex min-h-11 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.625rem] font-semibold uppercase tracking-wide transition-colors',
-          open || menuActive ? 'text-white border-t-2 border-cyan -mt-px' : 'text-white/65',
-        ].join(' ')}
+        className="los-tap-target flex items-center gap-2 rounded px-2 text-sm font-semibold text-white"
       >
+        <span className="los-menu-icon" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
         Menu
       </button>
 
       {open ? (
         <>
-          <button
-            type="button"
-            aria-label="Close menu"
-            className="fixed inset-0 z-40 bg-black/40 md:hidden"
-            onClick={onClose}
-          />
+          <button type="button" aria-label="Close menu" className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
           <div
             id={panelId}
             role="menu"
-            aria-label="More navigation"
-            className="fixed inset-x-0 bottom-[4.5rem] z-50 border-t border-white/10 bg-purple-dark px-3 py-2 shadow-lg md:hidden"
+            aria-label="App menu"
+            className="absolute right-3 top-full z-50 mt-1 w-[min(100%-1.5rem,20rem)] rounded border border-white/15 bg-purple-dark p-2 shadow-lg"
           >
             <ul className="grid gap-1">
               {items.map((item) => {
@@ -91,22 +80,6 @@ export function MobileNavMenu({
                         className={({ isActive }) => menuItemClass(isActive)}
                       >
                         {item.label}
-                      </NavLink>
-                    </li>
-                  )
-                }
-
-                if (item.kind === 'account') {
-                  return (
-                    <li key={item.to} role="none">
-                      <NavLink
-                        to={item.to}
-                        role="menuitem"
-                        onClick={onClose}
-                        className={({ isActive }) => menuItemClass(isActive)}
-                      >
-                        <span>{item.label}</span>
-                        <span className="ml-2 truncate text-xs font-normal text-white/70">{item.displayName}</span>
                       </NavLink>
                     </li>
                   )

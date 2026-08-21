@@ -40,6 +40,8 @@ describe('selection save path', () => {
 
   it('returns current window picks from selections for the open round board', () => {
     expect(selectionsSource).toContain('fetchCurrentWindowPicks')
+    expect(selectionsSource).toContain('fetchSubmittedTeamIdsForWindow')
     expect(selectionsSource).toContain(".eq('window_id', windowId)")
+    expect(selectionsSource).toContain('finallyUsedWindowIds')
   })
 })

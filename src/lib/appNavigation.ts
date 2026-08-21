@@ -3,44 +3,22 @@ export type NavLinkItem = {
   label: string
 }
 
-export type MobileMenuItem =
+export type AppMenuItem =
   | { kind: 'link'; to: string; label: string }
-  | { kind: 'account'; to: string; label: string; displayName: string }
   | { kind: 'action'; action: 'logout'; label: string }
 
-export const MOBILE_PRIMARY_NAV: NavLinkItem[] = [
-  { to: '/', label: 'Home' },
-  { to: '/dashboard', label: 'Hub' },
-  { to: '/pick', label: 'Pick' },
-  { to: '/current-picks', label: 'Picks' },
-]
-
-const DESKTOP_NAV_BASE: NavLinkItem[] = [
-  { to: '/', label: 'Home' },
-  { to: '/rules', label: 'Rules' },
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/pick', label: 'Pick' },
-  { to: '/current-picks', label: 'Picks' },
-  { to: '/my-picks', label: 'My picks' },
-  { to: '/history', label: 'History' },
-]
-
-const ADMIN_NAV_ITEM: NavLinkItem = { to: '/admin', label: 'Admin' }
-
-export function buildDesktopNavItems(isAdmin: boolean): NavLinkItem[] {
-  if (!isAdmin) return DESKTOP_NAV_BASE
-  return [...DESKTOP_NAV_BASE, ADMIN_NAV_ITEM]
-}
-
-export function buildMobileMenuItems(input: {
+export function buildAppMenuItems(input: {
   isAuthenticated: boolean
   isAdmin: boolean
-  displayName?: string | null
-}): MobileMenuItem[] {
-  const items: MobileMenuItem[] = [
+}): AppMenuItem[] {
+  const items: AppMenuItem[] = [
+    { kind: 'link', to: '/', label: 'Home' },
+    { kind: 'link', to: '/pick', label: 'Make Pick' },
+    { kind: 'link', to: '/current-picks', label: 'Current Picks' },
+    { kind: 'link', to: '/my-picks', label: 'My Picks' },
     { kind: 'link', to: '/rules', label: 'Rules' },
-    { kind: 'link', to: '/my-picks', label: 'My pick history' },
     { kind: 'link', to: '/history', label: 'History' },
+    { kind: 'link', to: '/dashboard', label: 'Dashboard' },
   ]
 
   if (input.isAdmin) {
@@ -48,12 +26,6 @@ export function buildMobileMenuItems(input: {
   }
 
   if (input.isAuthenticated) {
-    items.push({
-      kind: 'account',
-      to: '/dashboard',
-      label: 'Account',
-      displayName: input.displayName?.trim() || 'Your account',
-    })
     items.push({ kind: 'action', action: 'logout', label: 'Log out' })
   } else {
     items.push({ kind: 'link', to: '/login', label: 'Log in' })
@@ -63,6 +35,10 @@ export function buildMobileMenuItems(input: {
   return items
 }
 
-export function mobileMenuIncludesAdmin(items: MobileMenuItem[]): boolean {
+export function menuIncludesAdmin(items: AppMenuItem[]): boolean {
   return items.some((item) => item.kind === 'link' && item.to === '/admin')
+}
+
+export function menuIncludesPath(items: AppMenuItem[], path: string): boolean {
+  return items.some((item) => item.kind === 'link' && item.to === path)
 }

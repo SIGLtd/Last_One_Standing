@@ -19,6 +19,7 @@ import {
   operationalWindowToRoundLabel,
 } from '../lib/round1'
 import { fetchCurrentGame, fetchMyGameEntry } from '../lib/gameEntries'
+import { filterSelectableTeamOptions } from '../lib/pickOptions'
 import {
   fetchFinallyUsedTeamIds,
   fetchMySelection,
@@ -86,7 +87,7 @@ export function PickPage() {
           fetchFinallyUsedTeamIds(player.id, currentGame.id),
         ])
 
-        setTeamOptions(buildSelectableTeamOptions(fixtures))
+        setTeamOptions(filterSelectableTeamOptions(buildSelectableTeamOptions(fixtures), usedTeams))
         setSelection(mySelection)
         setUsedTeamIds(usedTeams)
         setSelectedTeamId(mySelection?.team_id ?? null)

@@ -233,7 +233,7 @@ export function PickPage() {
                 ].join(' ')}
               >
                 <span className="flex items-center gap-2 font-medium text-ink">
-                  <TeamChip teamId={team.team_id} size="sm" />
+                  <TeamChip teamId={team.team_id} size="md" />
                   {team.team_name}
                 </span>
                 <span className="text-[0.6875rem] text-muted-ink">

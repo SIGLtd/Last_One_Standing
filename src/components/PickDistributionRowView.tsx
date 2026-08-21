@@ -13,16 +13,16 @@ export function PickDistributionRowView({
 
   return (
     <li className={compact ? 'los-dist-row los-dist-row-compact' : 'los-dist-row'}>
-      <div className="los-dist-head">
-        <TeamChip teamId={row.teamId} size="sm" />
+      <TeamChip teamId={row.teamId} size="lg" />
+      <div className="los-dist-copy">
         <span className="los-dist-name">{row.teamName}</span>
-        <span className="los-dist-count">{compact ? `${row.percent}%` : formatPickCount(row.count)}</span>
-      </div>
-      <div className="los-dist-meta">
-        {compact ? null : <span className="los-dist-pct">{row.percent}%</span>}
         <div className="los-pick-bar" aria-hidden="true">
           <span style={{ width: `${row.percent}%`, background: identity.primary }} />
         </div>
+      </div>
+      <div className="los-dist-stat">
+        {compact ? null : <span className="los-dist-count">{formatPickCount(row.count)}</span>}
+        <span className="los-dist-pct">{row.percent}%</span>
       </div>
     </li>
   )

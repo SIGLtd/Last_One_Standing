@@ -36,7 +36,9 @@ const navSource = read('lib/appNavigation.ts')
 describe('shirt icons', () => {
   it('renders an inline SVG shirt instead of a circle initials chip', () => {
     expect(teamChipSource).toContain('<svg')
-    expect(teamChipSource).toContain('viewBox="0 0 32 32"')
+    expect(teamChipSource).toContain('viewBox="0 0 64 64"')
+    expect(teamChipSource).toContain('feDropShadow')
+    expect(teamChipSource).toContain('lg: 44')
     expect(teamChipSource).not.toContain('{identity.initials}')
     expect(teamChipSource).not.toContain('border-radius: 999px')
     expect(teamChipSource).not.toContain('flaticon')
@@ -66,10 +68,15 @@ describe('shirt icons', () => {
   })
 
   it('keeps distribution name, count, percentage and bar', () => {
+    expect(distributionRowSource).toContain('los-dist-copy')
+    expect(distributionRowSource).toContain('los-dist-stat')
     expect(distributionRowSource).toContain('los-dist-name')
     expect(distributionRowSource).toContain('los-dist-count')
     expect(distributionRowSource).toContain('los-dist-pct')
     expect(distributionRowSource).toContain('los-pick-bar')
+    expect(distributionRowSource).toContain('size="lg"')
+    expect(distributionRowSource).not.toContain('los-dist-head')
+    expect(distributionRowSource).not.toContain('los-dist-meta')
     expect(distributionRowSource).toContain('TeamChip')
   })
 })

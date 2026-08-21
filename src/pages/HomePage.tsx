@@ -284,7 +284,7 @@ export function HomePage() {
           <div className="grid gap-3">
             {hasCurrentPick ? (
               <div className="los-home-pick">
-                <TeamChip teamId={selectedIdentity.teamId} />
+                <TeamChip teamId={selectedIdentity.teamId} size="lg" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">Your pick</p>
                   <p className="truncate text-base font-semibold text-ink">
@@ -306,7 +306,7 @@ export function HomePage() {
             <label className="grid gap-1.5">
               <span className="text-sm font-semibold text-ink">{hasCurrentPick ? 'Change pick' : 'Team'}</span>
               <div className="flex items-center gap-2">
-                {selectedTeamId ? <TeamChip teamId={selectedTeamId} /> : null}
+                {selectedTeamId ? <TeamChip teamId={selectedTeamId} size="md" /> : null}
                 <select
                   className="los-input los-select-lg min-w-0 flex-1"
                   value={selectedTeamId}
@@ -357,7 +357,7 @@ export function HomePage() {
           <p className="mt-2 text-sm text-muted-ink">No picks yet.</p>
         ) : (
           <>
-            <ul className="mt-2 grid gap-2">
+            <ul className="mt-2 grid gap-2.5">
               {distribution.slice(0, 3).map((row) => (
                 <PickDistributionRowView key={row.teamId} row={row} compact />
               ))}

@@ -48,10 +48,13 @@ describe('fixture match rows', () => {
 
 describe('pick distribution presentation', () => {
   it('uses structured count and percentage elements instead of em-dash text', () => {
+    expect(distributionRowSource).toContain('los-dist-copy')
     expect(distributionRowSource).toContain('los-dist-name')
     expect(distributionRowSource).toContain('los-dist-count')
     expect(distributionRowSource).toContain('los-dist-pct')
     expect(distributionRowSource).toContain('formatPickCount')
+    expect(distributionRowSource).toContain('size="lg"')
+    expect(distributionRowSource).not.toContain('los-dist-head')
     expect(distributionRowSource).not.toContain('—')
     expect(pickDistributionSource).not.toContain('—')
     expect(homeSource).not.toContain('formatPickDistributionLine')
@@ -79,6 +82,7 @@ describe('team chips', () => {
     expect(teamChipSource).toContain('aria-label={`${fullName} colours`}')
     expect(teamChipSource).toContain('role="img"')
     expect(teamChipSource).toContain('<svg')
+    expect(teamChipSource).toContain('feDropShadow')
     expect(teamChipSource).not.toContain('{identity.initials}')
   })
 })

@@ -177,7 +177,7 @@ export function CurrentPicksPage() {
                       <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-sm">
-                      {row.team_id ? <TeamChip teamId={row.team_id} size="sm" /> : null}
+                      {row.team_id ? <TeamChip teamId={row.team_id} size="md" /> : null}
                       <span className="text-muted-ink">
                         Pick: <span className="font-medium text-ink">{teamName ?? 'No pick'}</span>
                       </span>

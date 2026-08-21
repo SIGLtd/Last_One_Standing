@@ -9,9 +9,11 @@ describe('team visual identity', () => {
       const identity = getTeamIdentity(team.id)
       expect(identity.primary).toMatch(/^#/)
       expect(identity.secondary).toMatch(/^#/)
+      expect(identity.trim).toMatch(/^#/)
       expect(identity.initials.length).toBeGreaterThanOrEqual(2)
       expect(identity.shortName.length).toBeGreaterThan(1)
       expect(identity.textOnPrimary).toMatch(/^#/)
+      expect(['solid', 'centreStripe', 'verticalStripes', 'hoops', 'sash', 'sleeves', 'halves']).toContain(identity.kit)
     }
   })
 
@@ -26,5 +28,8 @@ describe('team visual identity', () => {
     expect(getTeamIdentity('mun').shortName).toBe('Man United')
     expect(getTeamIdentity('mci').shortName).toBe('Man City')
     expect(getTeamIdentity('liv').primary).toBe('#C8102E')
+    expect(getTeamIdentity('new').kit).toBe('verticalStripes')
+    expect(getTeamIdentity('ars').kit).toBe('sleeves')
+    expect(getTeamIdentity('ful').kit).toBe('halves')
   })
 })

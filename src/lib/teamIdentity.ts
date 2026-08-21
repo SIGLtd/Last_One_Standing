@@ -1,6 +1,13 @@
 import { TEAMS_2026 } from '../config/teams'
 
-export type TeamKitStyle = 'solid' | 'stripe'
+export type TeamKitStyle =
+  | 'solid'
+  | 'centreStripe'
+  | 'verticalStripes'
+  | 'hoops'
+  | 'sash'
+  | 'sleeves'
+  | 'halves'
 
 export type TeamIdentity = {
   teamId: string
@@ -8,6 +15,7 @@ export type TeamIdentity = {
   shortName: string
   primary: string
   secondary: string
+  trim: string
   textOnPrimary: string
   kit: TeamKitStyle
 }
@@ -17,6 +25,7 @@ const FALLBACK: Omit<TeamIdentity, 'teamId'> = {
   shortName: 'Unknown',
   primary: '#37003c',
   secondary: '#00ffea',
+  trim: '#00ffea',
   textOnPrimary: '#ffffff',
   kit: 'solid',
 }
@@ -44,26 +53,26 @@ const SHORT_NAMES: Record<string, string> = {
   tot: 'Tottenham',
 }
 
-const COLOURS: Record<string, { primary: string; secondary: string; kit?: TeamKitStyle }> = {
-  ars: { primary: '#EF0107', secondary: '#FFFFFF' },
-  avl: { primary: '#670E36', secondary: '#95BFE5' },
-  bou: { primary: '#DA291C', secondary: '#000000' },
-  bre: { primary: '#E30613', secondary: '#FBB034' },
-  bha: { primary: '#0057B8', secondary: '#FFFFFF' },
+const COLOURS: Record<string, { primary: string; secondary: string; trim?: string; kit?: TeamKitStyle }> = {
+  ars: { primary: '#EF0107', secondary: '#FFFFFF', kit: 'sleeves' },
+  avl: { primary: '#670E36', secondary: '#95BFE5', kit: 'sash' },
+  bou: { primary: '#DA291C', secondary: '#000000', kit: 'verticalStripes' },
+  bre: { primary: '#E30613', secondary: '#FBB034', kit: 'centreStripe' },
+  bha: { primary: '#0057B8', secondary: '#FFFFFF', kit: 'verticalStripes' },
   che: { primary: '#034694', secondary: '#FFFFFF' },
-  cov: { primary: '#59B5E3', secondary: '#1C3667' },
-  cry: { primary: '#1B458F', secondary: '#C4122E', kit: 'stripe' },
+  cov: { primary: '#59B5E3', secondary: '#1C3667', trim: '#FFFFFF' },
+  cry: { primary: '#1B458F', secondary: '#C4122E', kit: 'verticalStripes' },
   eve: { primary: '#003399', secondary: '#FFFFFF' },
-  ful: { primary: '#000000', secondary: '#FFFFFF' },
-  hul: { primary: '#F5A12D', secondary: '#000000', kit: 'stripe' },
-  ips: { primary: '#0033A0', secondary: '#DE2C37' },
-  lee: { primary: '#FFCD00', secondary: '#1D428A' },
-  liv: { primary: '#C8102E', secondary: '#00B2A9' },
-  mci: { primary: '#6CABDD', secondary: '#1C2C5B' },
-  mun: { primary: '#DA291C', secondary: '#FBE122' },
-  new: { primary: '#241F20', secondary: '#FFFFFF', kit: 'stripe' },
+  ful: { primary: '#000000', secondary: '#FFFFFF', kit: 'halves' },
+  hul: { primary: '#F5A12D', secondary: '#000000', kit: 'verticalStripes' },
+  ips: { primary: '#0033A0', secondary: '#DE2C37', kit: 'sleeves' },
+  lee: { primary: '#FFCD00', secondary: '#1D428A', trim: '#1D428A' },
+  liv: { primary: '#C8102E', secondary: '#00B2A9', trim: '#FFFFFF' },
+  mci: { primary: '#6CABDD', secondary: '#1C2C5B', trim: '#FFFFFF' },
+  mun: { primary: '#DA291C', secondary: '#FBE122', trim: '#FFFFFF' },
+  new: { primary: '#241F20', secondary: '#FFFFFF', kit: 'verticalStripes' },
   nfo: { primary: '#DD0000', secondary: '#FFFFFF' },
-  sun: { primary: '#EB172B', secondary: '#FFFFFF' },
+  sun: { primary: '#EB172B', secondary: '#FFFFFF', kit: 'centreStripe' },
   tot: { primary: '#132257', secondary: '#FFFFFF' },
 }
 
@@ -89,12 +98,14 @@ export function getTeamIdentity(teamId: string | null | undefined): TeamIdentity
 
   const colours = COLOURS[id]
   const primary = colours?.primary ?? FALLBACK.primary
+  const secondary = colours?.secondary ?? FALLBACK.secondary
   return {
     teamId: id,
     initials: id.slice(0, 3).toUpperCase(),
     shortName: SHORT_NAMES[id] ?? FALLBACK.shortName,
     primary,
-    secondary: colours?.secondary ?? FALLBACK.secondary,
+    secondary,
+    trim: colours?.trim ?? secondary,
     textOnPrimary: textOn(primary),
     kit: colours?.kit ?? 'solid',
   }
@@ -102,7 +113,7 @@ export function getTeamIdentity(teamId: string | null | undefined): TeamIdentity
 
 export function teamIdentityFallbackSafe(teamId: string | null | undefined): boolean {
   const identity = getTeamIdentity(teamId)
-  return Boolean(identity.primary && identity.initials && identity.shortName)
+  return Boolean(identity.primary && identity.trim && identity.shortName)
 }
 
 export function allKnownTeamsHaveIdentity(): boolean {

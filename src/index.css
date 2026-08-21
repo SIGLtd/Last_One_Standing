@@ -500,7 +500,7 @@ body {
 
 .los-dist-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 0.7rem;
   min-width: 0;

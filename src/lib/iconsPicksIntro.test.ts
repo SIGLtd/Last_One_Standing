@@ -113,18 +113,19 @@ describe('current picks access', () => {
 
 describe('session splash', () => {
   it('shows splash on first session load and suppresses it after the session flag', () => {
-    expect(INTRO_SEEN_KEY).toBe('los_intro_seen_v2')
+    expect(INTRO_SEEN_KEY).toBe('los_intro_seen_v3')
     expect(shouldShowIntro({ seen: false, storageAvailable: true })).toBe(true)
     expect(shouldShowIntro({ seen: true, storageAvailable: true })).toBe(false)
     expect(splashSource).toContain('decideShowIntro')
     expect(appSource).toContain('<LandingSplash />')
     expect(appSource).toContain('<AppShell>')
     expect(splashSource).toContain('LANDING_SPLASH_VIDEO_SRC')
-    expect(splashLibSource).toContain('LOS-Landing-video.mp4')
+    expect(splashLibSource).toContain('LOS-Landing-video-v3.mp4')
+    expect(splashLibSource).not.toContain('/media/LOS-Landing-video.mp4')
     expect(splashSource).toContain('Skip')
     expect(splashSource).toContain('onEnded={dismiss}')
-    expect(splashSource).toContain('onError={dismiss}')
-    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(true)
+    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video-v3.mp4'))).toBe(true)
+    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(false)
   })
 
   it('does not replay on refresh or route changes once the session flag is set', () => {

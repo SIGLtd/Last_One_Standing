@@ -6,10 +6,15 @@ import {
   LANDING_SPLASH_MAX_MS,
   LANDING_SPLASH_POSTER_SRC,
   LANDING_SPLASH_REDUCED_MOTION_MS,
+  LANDING_SPLASH_STALL_MS,
   LANDING_SPLASH_VIDEO_SRC,
+  SPLASH_COVER_MEDIA_QUERY,
   decideShowIntro,
+  logSplashIssue,
   markIntroSeen,
   shouldAutoplayLandingVideo,
+  splashVideoClassName,
+  splashVideoFitMode,
 } from '../lib/landingSplash'
 
 function usePrefersReducedMotion(): boolean {
@@ -28,9 +33,15 @@ function usePrefersReducedMotion(): boolean {
   return prefersReducedMotion
 }
 
+function readNarrowPortrait(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(SPLASH_COVER_MEDIA_QUERY).matches
+}
+
 export function LandingSplash() {
   const prefersReducedMotion = usePrefersReducedMotion()
   const [visible, setVisible] = useState(() => decideShowIntro())
+  const [fitMode, setFitMode] = useState<'cover' | 'contain'>(() => splashVideoFitMode(readNarrowPortrait()))
   const videoRef = useRef<HTMLVideoElement>(null)
   const dismissedRef = useRef(false)
 
@@ -39,6 +50,14 @@ export function LandingSplash() {
     dismissedRef.current = true
     markIntroSeen()
     setVisible(false)
+  }, [])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(SPLASH_COVER_MEDIA_QUERY)
+    const syncFit = () => setFitMode(splashVideoFitMode(mediaQuery.matches))
+    syncFit()
+    mediaQuery.addEventListener('change', syncFit)
+    return () => mediaQuery.removeEventListener('change', syncFit)
   }, [])
 
   useEffect(() => {
@@ -55,7 +74,52 @@ export function LandingSplash() {
     if (!visible || prefersReducedMotion) return
     const video = videoRef.current
     if (!video) return
-    void video.play().catch(() => dismiss())
+
+    let gotFrame = false
+
+    const armMutedInline = () => {
+      video.muted = true
+      video.defaultMuted = true
+      video.playsInline = true
+      video.setAttribute('muted', '')
+      video.setAttribute('playsinline', '')
+      video.setAttribute('webkit-playsinline', '')
+    }
+
+    const attemptPlay = () => {
+      armMutedInline()
+      const playAttempt = video.play()
+      if (playAttempt) {
+        void playAttempt.catch(() => {
+          logSplashIssue('autoplay rejected')
+          armMutedInline()
+          void video.play().catch(() => {
+            logSplashIssue('autoplay retry rejected')
+          })
+        })
+      }
+    }
+
+    const onPlaying = () => {
+      gotFrame = true
+    }
+
+    video.addEventListener('playing', onPlaying)
+    video.addEventListener('canplay', attemptPlay)
+    attemptPlay()
+
+    const stallTimer = window.setTimeout(() => {
+      if (!gotFrame) {
+        logSplashIssue('stall before first frame')
+        dismiss()
+      }
+    }, LANDING_SPLASH_STALL_MS)
+
+    return () => {
+      window.clearTimeout(stallTimer)
+      video.removeEventListener('playing', onPlaying)
+      video.removeEventListener('canplay', attemptPlay)
+    }
   }, [dismiss, prefersReducedMotion, visible])
 
   if (!visible) return null
@@ -63,7 +127,12 @@ export function LandingSplash() {
   const autoplayVideo = shouldAutoplayLandingVideo(prefersReducedMotion)
 
   return (
-    <div className="los-splash-overlay" role="dialog" aria-modal="true" aria-label="Last One Standing intro">
+    <div
+      className={`los-splash-overlay ${fitMode === 'contain' ? 'los-splash-overlay-landscape' : 'los-splash-overlay-portrait'}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Last One Standing intro"
+    >
       {prefersReducedMotion || !autoplayVideo ? (
         <div className="los-splash-static">
           <AppLogo onDark losClassName="h-20 w-20" plClassName="h-10 w-auto max-w-[10rem]" />
@@ -72,7 +141,7 @@ export function LandingSplash() {
       ) : (
         <video
           ref={videoRef}
-          className="los-splash-video"
+          className={splashVideoClassName(fitMode)}
           src={LANDING_SPLASH_VIDEO_SRC}
           poster={LANDING_SPLASH_POSTER_SRC}
           autoPlay
@@ -80,7 +149,10 @@ export function LandingSplash() {
           playsInline
           preload="auto"
           onEnded={dismiss}
-          onError={dismiss}
+          onError={() => {
+            logSplashIssue('video error')
+            dismiss()
+          }}
         />
       )}
 

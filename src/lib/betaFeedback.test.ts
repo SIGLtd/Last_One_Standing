@@ -24,7 +24,7 @@ describe('intro splash is session-limited and non-blocking', () => {
     expect(cssSource).toContain('los-splash-overlay')
     expect(cssSource).not.toContain('los-splash-app-shell')
     expect(existsSync(join(root, 'src', 'components', 'LandingSplash.tsx'))).toBe(true)
-    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(true)
+    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video-v3.mp4'))).toBe(true)
   })
 })
 

@@ -114,6 +114,6 @@ describe('intro splash stays off the Home/auth path', () => {
     expect(mainSource).not.toContain('LandingSplash')
     expect(appSource).toContain('<LandingSplash />')
     expect(existsSync(join(root, 'src', 'components', 'LandingSplash.tsx'))).toBe(true)
-    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(true)
+    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video-v3.mp4'))).toBe(true)
   })
 })

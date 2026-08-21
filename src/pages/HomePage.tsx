@@ -5,6 +5,7 @@ import { FixtureMatchRow } from '../components/FixtureMatchRow'
 import { PickDistributionRowView } from '../components/PickDistributionRowView'
 import { TeamChip } from '../components/TeamChip'
 import { useAuth } from '../contexts/AuthContext'
+import { useGame } from '../contexts/GameContext'
 import { CURRENT_GAME } from '../lib/constants'
 import {
   buildSelectableTeamOptions,
@@ -36,6 +37,7 @@ import type { Game, GameEntry, Selection, SelectionWindowEligibleFixture, Select
 
 export function HomePage() {
   const { user, player, loading: authLoading, configured } = useAuth()
+  const { applyGameUpdate } = useGame()
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
   const [window, setWindow] = useState<SelectionWindowWithMeta | null>(null)
@@ -88,6 +90,7 @@ export function HomePage() {
       )
 
       setGame(result.currentGame)
+      if (result.currentGame) applyGameUpdate(result.currentGame)
       setWindow(result.liveWindow)
       setFixtures(result.windowFixtures)
       setTeamOptions(buildSelectableTeamOptions(result.windowFixtures))
@@ -100,7 +103,7 @@ export function HomePage() {
     } finally {
       setRoundLoading(false)
     }
-  }, [configured])
+  }, [configured, applyGameUpdate])
 
   const loadPlayerPick = useCallback(async () => {
     if (!player || !game || !window || fixtures.length === 0) {

@@ -5,9 +5,9 @@ import {
 } from './entryFees'
 
 export const APP_NAME = 'Last One Standing'
+export const APP_TAGLINE = 'Pick, survive, repeat.'
 
 export const CURRENT_GAME = 27
-export const CURRENT_POT_GBP = 1920
 
 /** Fallback copy only. Live amounts come from games.standard_entry_fee / newbie_entry_fee. */
 export const FEES = {

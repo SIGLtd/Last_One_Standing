@@ -9,6 +9,7 @@ import { AdminProxyPicksSection } from '../components/admin/AdminProxyPicksSecti
 import { AdminRoundControlCard } from '../components/admin/AdminRoundControlCard'
 import { AdminThisRoundSection } from '../components/admin/AdminThisRoundSection'
 import { useAuth, authPhaseLabel } from '../contexts/AuthContext'
+import { useGame } from '../contexts/GameContext'
 import { buildPlayerPaymentSummary, buildRoundControlStats } from '../lib/adminCockpit'
 import {
   adminApproveWindow,
@@ -62,6 +63,7 @@ import type {
 
 export function AdminPage() {
   const { user, player, loading, authPhase } = useAuth()
+  const { currentPot, applyGameUpdate } = useGame()
   const [game, setGame] = useState<Game | null>(null)
   const [entries, setEntries] = useState<GameEntryWithPlayer[]>([])
   const [players, setPlayers] = useState<Player[]>([])
@@ -103,6 +105,7 @@ export function AdminPage() {
     try {
       const currentGame = await fetchCurrentGame()
       setGame(currentGame)
+      if (currentGame) applyGameUpdate(currentGame)
 
       if (!currentGame) {
         setEntries([])
@@ -147,7 +150,7 @@ export function AdminPage() {
     } finally {
       setPageLoading(false)
     }
-  }, [player?.is_admin])
+  }, [player?.is_admin, applyGameUpdate])
 
   const loadAdminAdvanced = useCallback(async () => {
     if (!player?.is_admin || !game) return
@@ -225,6 +228,7 @@ export function AdminPage() {
     try {
       const updated = await adminUpdateCurrentPot(game.id, value)
       setGame(updated)
+      applyGameUpdate(updated)
     } catch (err) {
       setPageError(err instanceof Error ? err.message : 'Failed to update pot.')
     } finally {
@@ -433,7 +437,7 @@ export function AdminPage() {
           {roundControl ? (
             <AdminRoundControlCard
               stats={roundControl}
-              currentPot={game?.current_pot ?? 1920}
+              currentPot={game?.current_pot ?? currentPot ?? 0}
               potBusy={actionId === 'pot'}
               onSavePot={(value) => void handleSavePot(value)}
             />

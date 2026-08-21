@@ -4,6 +4,7 @@ import { Card } from '../components/Card'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
 import { PaymentStatusCard } from '../components/PaymentStatusCard'
 import { useAuth, authPhaseLabel } from '../contexts/AuthContext'
+import { useGame } from '../contexts/GameContext'
 import {
   claimPayment,
   fetchCurrentGame,
@@ -22,6 +23,7 @@ import type { Game, GameEntry, SelectionWindowWithMeta } from '../types'
 
 export function DashboardPage() {
   const { user, player, loading, authPhase } = useAuth()
+  const { applyGameUpdate } = useGame()
   const [game, setGame] = useState<Game | null>(null)
   const [entry, setEntry] = useState<GameEntry | null>(null)
   const [openWindow, setOpenWindow] = useState<SelectionWindowWithMeta | null>(null)
@@ -45,6 +47,7 @@ export function DashboardPage() {
     try {
       const currentGame = await fetchCurrentGame()
       setGame(currentGame)
+      if (currentGame) applyGameUpdate(currentGame)
 
       if (currentGame) {
         const [myEntry, liveWindow] = await Promise.all([
@@ -63,7 +66,7 @@ export function DashboardPage() {
     } finally {
       setPageLoading(false)
     }
-  }, [player])
+  }, [player, applyGameUpdate])
 
   useEffect(() => {
     if (!loading) {

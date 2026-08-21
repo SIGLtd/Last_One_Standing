@@ -28,9 +28,8 @@ export function buildPickDistribution(teamIds: Array<string | null | undefined>)
     .sort((a, b) => b.count - a.count || a.teamName.localeCompare(b.teamName))
 }
 
-export function formatPickDistributionLine(row: PickDistributionRow): string {
-  const pickLabel = row.count === 1 ? 'pick' : 'picks'
-  return `${row.teamName} — ${row.count} ${pickLabel} — ${row.percent}%`
+export function formatPickCount(count: number): string {
+  return count === 1 ? '1 pick' : `${count} picks`
 }
 
 export function formatTopPicksSummary(rows: PickDistributionRow[], limit = 3): string {

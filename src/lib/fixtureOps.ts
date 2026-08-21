@@ -50,6 +50,21 @@ export function formatCompactDeadlineLondon(iso: string): string {
   return `${weekday} ${day} ${month}, ${time}`
 }
 
+/** Compact kickoff, e.g. "Sat 22 Aug, 12:30". */
+export function formatCompactKickoffLondon(iso: string): string {
+  const date = new Date(iso)
+  const weekday = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', weekday: 'short' })
+  const day = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', day: 'numeric' })
+  const month = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', month: 'short' })
+  const time = date.toLocaleTimeString('en-GB', {
+    timeZone: 'Europe/London',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return `${weekday} ${day} ${month}, ${time}`
+}
+
 export async function fetchOpenSelectionWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {
   const client = getSupabaseOrThrow()
   const { data: candidates, error } = await client

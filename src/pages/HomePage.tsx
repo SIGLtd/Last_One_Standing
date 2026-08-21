@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ButtonLink } from '../components/ButtonLink'
+import { FixtureMatchRow } from '../components/FixtureMatchRow'
+import { PickDistributionRowView } from '../components/PickDistributionRowView'
 import { TeamChip } from '../components/TeamChip'
 import { useAuth } from '../contexts/AuthContext'
 import { CURRENT_GAME } from '../lib/constants'
@@ -17,7 +19,7 @@ import {
   playerFacingLoadError,
   withTimeout,
 } from '../lib/homeLoad'
-import { buildPickDistribution, formatPickDistributionLine, formatTopPicksSummary, type PickDistributionRow } from '../lib/pickDistribution'
+import { buildPickDistribution, type PickDistributionRow } from '../lib/pickDistribution'
 import { filterSelectableTeamOptions } from '../lib/pickOptions'
 import { PLAYER_COMPLETE_ENTRY_MESSAGE, operationalWindowToRoundLabel } from '../lib/round1'
 import {
@@ -201,16 +203,16 @@ export function HomePage() {
 
   if (roundLoading && !window) {
     return (
-      <section className="los-home-panel">
-        <p className="text-base text-ink">Loading your game...</p>
-        <p className="mt-1 text-sm text-muted-ink">Current round</p>
+      <section className="los-home-panel los-home-loading">
+        <p className="text-base font-semibold text-ink">Loading your game...</p>
+        <p className="text-sm text-muted-ink">Current round</p>
       </section>
     )
   }
 
   if (roundFailed) {
     return (
-      <section className="los-home-panel">
+      <section className="los-home-panel los-home-loading">
         <h2 className="text-base font-semibold text-ink">Could not load the current round</h2>
         <p className="mt-1 text-sm text-muted-ink">{playerFacingLoadError()}</p>
         <button
@@ -227,19 +229,20 @@ export function HomePage() {
   return (
     <div className="los-home">
       <section className="los-home-round">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-base font-semibold tracking-tight">
-            {window ? `${roundLabel} ${statusLabel.toLowerCase()}` : 'No round is open yet'}
-          </h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-lg font-semibold tracking-tight">{window ? roundLabel : 'No round yet'}</h1>
           <span className={statusLabel === 'Open' ? 'los-home-status los-home-status-open' : 'los-home-status'}>
             {statusLabel}
           </span>
         </div>
         {window ? (
-          <>
-            <p>Deadline: {compactDeadline}</p>
-            <p>{picksLoading && submittedCount === 0 ? 'Loading picks...' : `${submittedCount} picks submitted`}</p>
-          </>
+          <p>
+            {compactDeadline}
+            <span className="los-home-dot" aria-hidden="true">
+              ·
+            </span>
+            {picksLoading && submittedCount === 0 ? 'Loading picks...' : `${submittedCount} picks`}
+          </p>
         ) : (
           <p>Check back when the next round opens.</p>
         )}
@@ -249,9 +252,11 @@ export function HomePage() {
         {!user && authLoading ? (
           <p className="text-base text-ink">Checking your sign-in...</p>
         ) : !user ? (
-          <div className="grid gap-2">
-            <h2 className="text-base font-semibold text-ink">Choose your team</h2>
-            <p className="text-sm text-muted-ink">Log in to make your pick.</p>
+          <div className="grid gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-ink">Choose your team</h2>
+              <p className="mt-0.5 text-sm text-muted-ink">Log in to make your pick.</p>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <ButtonLink to="/login" className="los-tap-target w-full text-base">
                 Log in
@@ -264,7 +269,7 @@ export function HomePage() {
         ) : playerLoading ? (
           <p className="text-base text-ink">Loading your pick...</p>
         ) : !entry?.paid || entry.status !== 'active' ? (
-          <div className="grid gap-2">
+          <div className="grid gap-3">
             <p className="text-sm text-ink">{PLAYER_COMPLETE_ENTRY_MESSAGE}</p>
             <ButtonLink to="/dashboard" className="los-tap-target w-full text-base">
               Open dashboard
@@ -273,26 +278,29 @@ export function HomePage() {
         ) : !window ? (
           <p className="text-sm text-muted-ink">There is no live round to pick for yet.</p>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid gap-3">
             {hasCurrentPick ? (
               <div className="los-home-pick">
                 <TeamChip teamId={selectedIdentity.teamId} />
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-ink">Your pick: {selectedOption?.team_name ?? selectedIdentity.shortName}</p>
-                  <p className="text-sm text-muted-ink">You can change it until {compactDeadline}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">Your pick</p>
+                  <p className="truncate text-base font-semibold text-ink">
+                    {selectedOption?.team_name ?? selectedIdentity.shortName}
+                  </p>
+                  <p className="text-sm text-muted-ink">Change it until {compactDeadline}</p>
                 </div>
               </div>
             ) : (
               <div>
                 <h2 className="text-base font-semibold text-ink">Choose your team</h2>
-                <p className="text-sm text-muted-ink">Pick one team to win.</p>
+                <p className="mt-0.5 text-sm text-muted-ink">Pick one team to win.</p>
               </div>
             )}
 
             {saveError ? <div className="los-alert los-alert-error text-sm">{saveError}</div> : null}
             {savedMessage ? <div className="los-alert los-alert-success text-sm">{savedMessage}</div> : null}
 
-            <label className="grid gap-1">
+            <label className="grid gap-1.5">
               <span className="text-sm font-semibold text-ink">{hasCurrentPick ? 'Change pick' : 'Team'}</span>
               <div className="flex items-center gap-2">
                 {selectedTeamId ? <TeamChip teamId={selectedTeamId} /> : null}
@@ -329,56 +337,37 @@ export function HomePage() {
                 {locked ? 'The deadline has passed.' : 'Picking is not open yet.'}
               </p>
             )}
-            <p className="text-xs text-muted-ink">Used teams are hidden.</p>
           </div>
         )}
       </section>
 
       <section className="los-home-panel">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-sm font-semibold text-ink">Most picked</h2>
+          <Link to="/current-picks" className="text-sm font-semibold text-purple">
+            All players
+          </Link>
+        </div>
         {picksLoading && distribution.length === 0 ? (
-          <p className="text-sm text-ink">Loading picks...</p>
+          <p className="mt-2 text-sm text-muted-ink">Loading picks...</p>
+        ) : distribution.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-ink">No picks yet.</p>
         ) : (
           <>
-            <p className="text-sm font-medium text-ink">{formatTopPicksSummary(distribution)}</p>
-            {distribution.slice(0, 3).map((row) => {
-              const identity = getTeamIdentity(row.teamId)
-              return (
-                <div key={row.teamId} className="mt-2 flex items-center gap-2">
-                  <TeamChip teamId={row.teamId} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-ink">{identity.shortName} {row.percent}%</p>
-                    <div className="los-pick-bar" aria-hidden="true">
-                      <span style={{ width: `${row.percent}%`, background: identity.primary }} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="los-btn-secondary los-tap-target text-sm"
-                onClick={() => setShowAllPicks((open) => !open)}
-              >
-                {showAllPicks ? 'Hide all picks' : 'View all picks'}
-              </button>
-              <Link to="/current-picks" className="los-btn-secondary los-tap-target text-sm">
-                Current Picks
-              </Link>
-            </div>
+            <ul className="mt-2 grid gap-2">
+              {distribution.slice(0, 3).map((row) => (
+                <PickDistributionRowView key={row.teamId} row={row} compact />
+              ))}
+            </ul>
+            <button type="button" className="los-home-ghost" onClick={() => setShowAllPicks((open) => !open)}>
+              {showAllPicks ? 'Hide all picks' : 'View all picks'}
+            </button>
             {showAllPicks ? (
-              distribution.length === 0 ? (
-                <p className="mt-2 text-sm text-muted-ink">No picks submitted yet.</p>
-              ) : (
-                <ul className="mt-2 grid gap-2">
-                  {distribution.map((row) => (
-                    <li key={`all-${row.teamId}`} className="flex items-center gap-2">
-                      <TeamChip teamId={row.teamId} size="sm" />
-                      <span className="text-sm text-ink">{formatPickDistributionLine(row)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )
+              <ul className="mt-1 grid gap-3">
+                {distribution.map((row) => (
+                  <PickDistributionRowView key={`all-${row.teamId}`} row={row} />
+                ))}
+              </ul>
             ) : null}
           </>
         )}
@@ -386,50 +375,27 @@ export function HomePage() {
 
       <section className="los-home-panel">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-ink">
+          <h2 className="text-sm font-semibold text-ink">
             {fixtures.length} fixture{fixtures.length === 1 ? '' : 's'} this week
-          </p>
-          <button
-            type="button"
-            className="los-btn-secondary los-tap-target text-sm"
-            onClick={() => setShowFixtures((open) => !open)}
-          >
-            {showFixtures ? 'Hide fixtures' : 'Show fixtures'}
+          </h2>
+          <button type="button" className="los-home-ghost los-home-ghost-inline" onClick={() => setShowFixtures((open) => !open)}>
+            {showFixtures ? 'Hide' : 'Show'}
           </button>
         </div>
         {showFixtures ? (
           fixtures.length === 0 ? (
             <p className="mt-2 text-sm text-muted-ink">No fixtures to show yet.</p>
           ) : (
-            <ul className="mt-2 grid gap-2">
+            <ul className="mt-1">
               {fixtures.map((fixture) => (
-                <li key={fixture.id} className="los-home-fixture">
-                  <p className="text-xs text-muted-ink">
-                    {new Date(fixture.kickoff_at).toLocaleString('en-GB', {
-                      timeZone: 'Europe/London',
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false,
-                    })}
-                  </p>
-                  <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-ink">
-                    <TeamChip teamId={fixture.home_team_id} size="sm" />
-                    {fixture.home_team_name}
-                    <span className="text-muted-ink">v</span>
-                    <TeamChip teamId={fixture.away_team_id} size="sm" />
-                    {fixture.away_team_name}
-                  </p>
-                </li>
+                <FixtureMatchRow key={fixture.id} fixture={fixture} />
               ))}
             </ul>
           )
         ) : null}
       </section>
 
-      <p className="text-center text-xs text-white/70">Game {game?.game_number ?? CURRENT_GAME}</p>
+      <p className="text-center text-xs text-white/65">Game {game?.game_number ?? CURRENT_GAME}</p>
     </div>
   )
 }

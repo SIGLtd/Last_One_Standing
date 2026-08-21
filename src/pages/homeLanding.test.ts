@@ -21,23 +21,23 @@ const authSource = readFileSync(join(__dirname, '..', 'contexts', 'AuthContext.t
 
 describe('home landing page', () => {
   it('keeps round, deadline, dropdown and save in the primary view', () => {
-    expect(homeSource).toContain('Deadline:')
-    expect(homeSource).toContain('picks submitted')
+    expect(homeSource).toContain('formatCompactDeadlineLondon')
+    expect(homeSource).toContain('picks')
     expect(homeSource).toContain('Choose your team')
     expect(homeSource).toContain('Save pick')
     expect(homeSource).toContain('Update pick')
     expect(homeSource).toContain('<select')
     expect(homeSource).toContain('saveSelection')
-    expect(homeSource).toContain('formatTopPicksSummary')
-    expect(homeSource).toContain('Show fixtures')
+    expect(homeSource).toContain('Most picked')
     expect(homeSource).toContain('View all picks')
+    expect(homeSource).toContain('FixtureMatchRow')
     expect(formatCompactDeadlineLondon(ROUND1_LIVE_DEADLINE_UTC)).toContain('21')
     expect(formatCompactDeadlineLondon(ROUND1_LIVE_DEADLINE_UTC).toLowerCase()).toContain('4:00pm')
   })
 
   it('does not force the full fixture list open by default', () => {
     expect(homeSource).toContain('useState(false)')
-    expect(homeSource).toContain('Show fixtures')
+    expect(homeSource).toContain('Show')
     expect(homeSource).toContain('fixture')
     expect(homeSource).not.toContain('This week’s fixtures')
   })

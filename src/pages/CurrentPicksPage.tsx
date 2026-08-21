@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { DataTable } from '../components/DataTable'
+import { TeamChip } from '../components/TeamChip'
 import { TEAM_ID_TO_NAME } from '../config/teams'
 import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
@@ -106,7 +107,7 @@ export function CurrentPicksPage() {
         <div className="grid gap-2">
           <p className="text-xs text-muted-ink">{PUBLIC_PRE_LAUNCH_POINTS[0]}</p>
           <p className="text-xs text-muted-ink">
-            When {ROUND1_PUBLIC_LABEL} is live, every player&apos;s pick will appear here automatically — you do not need
+            When {ROUND1_PUBLIC_LABEL} is live, every player's pick will appear here automatically. You do not need
             to submit your own pick first to view others.
           </p>
         </div>
@@ -137,11 +138,11 @@ export function CurrentPicksPage() {
                     return (
                       <tr key={row.player_id}>
                         <td className="font-medium text-ink">{row.display_name}</td>
-                        <td className="font-medium">{teamName ?? <span className="text-muted-ink font-normal">—</span>}</td>
+                        <td className="font-medium">{teamName ?? <span className="text-muted-ink font-normal">No pick</span>}</td>
                         <td>
                           <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
                         </td>
-                        <td className="text-muted-ink">—</td>
+                        <td className="text-muted-ink">Still in</td>
                       </tr>
                     )
                   })
@@ -165,8 +166,11 @@ export function CurrentPicksPage() {
                       <span className="font-medium text-ink">{row.display_name}</span>
                       <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
                     </div>
-                    <div className="mt-0.5 text-muted-ink">
-                      Pick: <span className="text-ink">{teamName ?? '—'}</span>
+                    <div className="mt-1 flex items-center gap-2 text-sm">
+                      {row.team_id ? <TeamChip teamId={row.team_id} size="sm" /> : null}
+                      <span className="text-muted-ink">
+                        Pick: <span className="font-medium text-ink">{teamName ?? 'No pick'}</span>
+                      </span>
                     </div>
                   </div>
                 )

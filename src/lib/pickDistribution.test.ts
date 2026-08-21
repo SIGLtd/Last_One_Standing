@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPickDistribution, formatPickDistributionLine, formatTopPicksSummary } from './pickDistribution'
+import { buildPickDistribution, formatPickCount, formatTopPicksSummary } from './pickDistribution'
 
 describe('pick distribution', () => {
   it('calculates counts and percentages from submitted picks only', () => {
@@ -7,7 +7,8 @@ describe('pick distribution', () => {
     expect(rows[0]).toMatchObject({ teamId: 'mun', teamName: 'Manchester United', count: 3, percent: 50 })
     expect(rows[1]).toMatchObject({ teamId: 'liv', teamName: 'Liverpool', count: 2, percent: 33 })
     expect(rows[2]).toMatchObject({ teamId: 'ars', teamName: 'Arsenal', count: 1, percent: 17 })
-    expect(formatPickDistributionLine(rows[0])).toBe('Manchester United — 3 picks — 50%')
+    expect(formatPickCount(rows[0].count)).toBe('3 picks')
+    expect(formatPickCount(1)).toBe('1 pick')
   })
 
   it('ignores null and superseded empty selections', () => {

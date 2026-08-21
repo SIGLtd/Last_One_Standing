@@ -200,7 +200,7 @@ export function PickPage() {
       <div className="grid gap-2">
         <MetricStrip>
           <MetricCell label="Deadline" value={formatDeadlineLondon(window.deadline_at)} />
-          <MetricCell label="Selected" value={selectedOption?.team_name ?? '—'} />
+          <MetricCell label="Selected" value={selectedOption?.team_name ?? 'None'} />
           <MetricCell label="Round" value={roundLabel} />
         </MetricStrip>
 
@@ -210,7 +210,7 @@ export function PickPage() {
         <p className="text-xs text-muted-ink">
           Choose a team from the approved fixtures on {ROUND1_WEEKEND_LABEL}. Deadline:{' '}
           {formatDeadlineLondon(window.deadline_at)}.
-          Fixtures follow the official Premier League release — check the app before the deadline.
+          Fixtures follow the official Premier League release. Check the app before the deadline.
         </p>
 
         <div className="grid gap-1">

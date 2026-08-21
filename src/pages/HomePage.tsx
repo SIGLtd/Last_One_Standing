@@ -348,7 +348,7 @@ export function HomePage() {
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-semibold text-ink">Most picked</h2>
           <Link to="/current-picks" className="text-sm font-semibold text-purple">
-            All players
+            See everyone's picks
           </Link>
         </div>
         {picksLoading && distribution.length === 0 ? (

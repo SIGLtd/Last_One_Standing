@@ -3,6 +3,7 @@ import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
+import { TeamChip } from '../components/TeamChip'
 import { useAuth, authPhaseLabel } from '../contexts/AuthContext'
 import { CURRENT_GAME } from '../lib/constants'
 import {
@@ -231,7 +232,10 @@ export function PickPage() {
                   isSelected ? 'los-fixture-tile-selected' : '',
                 ].join(' ')}
               >
-                <span className="font-medium text-ink">{team.team_name}</span>
+                <span className="flex items-center gap-2 font-medium text-ink">
+                  <TeamChip teamId={team.team_id} size="sm" />
+                  {team.team_name}
+                </span>
                 <span className="text-[0.6875rem] text-muted-ink">
                   {team.venue} vs {team.opponent_name} · {team.kickoff_london}
                 </span>

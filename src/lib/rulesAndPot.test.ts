@@ -108,14 +108,12 @@ describe('live pot display', () => {
   })
 })
 
-describe('intro splash still gone', () => {
-  it('does not render or import a splash, video, or intro overlay', () => {
-    expect(appSource).not.toContain('LandingSplash')
-    expect(appSource).not.toContain('splash')
+describe('intro splash stays off the Home/auth path', () => {
+  it('does not import splash into Home or main', () => {
+    expect(homeSource).not.toContain('LandingSplash')
     expect(mainSource).not.toContain('LandingSplash')
-    expect(homeSource).not.toContain('splash')
-    expect(homeSource).not.toContain('Intro')
-    expect(existsSync(join(root, 'src', 'components', 'LandingSplash.tsx'))).toBe(false)
-    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(false)
+    expect(appSource).toContain('<LandingSplash />')
+    expect(existsSync(join(root, 'src', 'components', 'LandingSplash.tsx'))).toBe(true)
+    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(true)
   })
 })

@@ -26,6 +26,9 @@ export const PLAYER_COMPLETE_ENTRY_MESSAGE = `Join Game ${CURRENT_GAME}, pay usi
 
 export const CURRENT_PICKS_ROUND_OPEN_INTRO = `Every player's pick for ${ROUND1_PUBLIC_LABEL} appears here while the round is live. You do not need to submit your own pick first to view others.`
 
+/** TODO: optional admin-controlled post-round Current Picks visibility. Keep visible by default while the round is open. */
+export const CURRENT_PICKS_VISIBLE_WHILE_OPEN = true
+
 export const PUBLIC_LOS_APP_URL = 'https://last-one-standing.netlify.app'
 
 export type PlayerEntryState = 'no_entry' | 'awaiting_payment' | 'awaiting_verification' | 'entered_can_pick' | 'entered_waiting'

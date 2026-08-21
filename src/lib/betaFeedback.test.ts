@@ -16,13 +16,15 @@ const migration7 = readFileSync(join(root, 'supabase', 'migrations', '7_beta_fee
 const gameEntriesSource = readFileSync(join(root, 'src', 'lib', 'gameEntries.ts'), 'utf8')
 const appNavSource = readFileSync(join(root, 'src', 'lib', 'appNavigation.ts'), 'utf8')
 
-describe('intro splash removal', () => {
-  it('does not wrap routes in a splash or hide the shell', () => {
-    expect(appSource).not.toContain('LandingSplash')
+describe('intro splash is session-limited and non-blocking', () => {
+  it('renders an overlay splash without wrapping or hiding the shell', () => {
+    expect(appSource).toContain('<LandingSplash />')
     expect(appSource).toContain('<AppShell>')
-    expect(cssSource).not.toContain('los-splash')
-    expect(existsSync(join(root, 'src', 'components', 'LandingSplash.tsx'))).toBe(false)
-    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(false)
+    expect(appSource).not.toContain('<LandingSplash>')
+    expect(cssSource).toContain('los-splash-overlay')
+    expect(cssSource).not.toContain('los-splash-app-shell')
+    expect(existsSync(join(root, 'src', 'components', 'LandingSplash.tsx'))).toBe(true)
+    expect(existsSync(join(root, 'public', 'media', 'LOS-Landing-video.mp4'))).toBe(true)
   })
 })
 

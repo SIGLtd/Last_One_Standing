@@ -61,7 +61,7 @@ const COLOURS: Record<string, { primary: string; secondary: string; kit?: TeamKi
   liv: { primary: '#C8102E', secondary: '#00B2A9' },
   mci: { primary: '#6CABDD', secondary: '#1C2C5B' },
   mun: { primary: '#DA291C', secondary: '#FBE122' },
-  new: { primary: '#241F20', secondary: '#FFFFFF' },
+  new: { primary: '#241F20', secondary: '#FFFFFF', kit: 'stripe' },
   nfo: { primary: '#DD0000', secondary: '#FFFFFF' },
   sun: { primary: '#EB172B', secondary: '#FFFFFF' },
   tot: { primary: '#132257', secondary: '#FFFFFF' },

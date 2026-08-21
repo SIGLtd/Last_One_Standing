@@ -7,14 +7,16 @@ export type AppMenuItem =
   | { kind: 'link'; to: string; label: string }
   | { kind: 'action'; action: 'logout'; label: string }
 
+export const CURRENT_PICKS_MENU_LABEL = "See everyone's picks"
+
 export function buildAppMenuItems(input: {
   isAuthenticated: boolean
   isAdmin: boolean
 }): AppMenuItem[] {
   const items: AppMenuItem[] = [
     { kind: 'link', to: '/', label: 'Home' },
+    { kind: 'link', to: '/current-picks', label: CURRENT_PICKS_MENU_LABEL },
     { kind: 'link', to: '/pick', label: 'Make Pick' },
-    { kind: 'link', to: '/current-picks', label: 'Current Picks' },
     { kind: 'link', to: '/my-picks', label: 'My Picks' },
     { kind: 'link', to: '/rules', label: 'Rules' },
     { kind: 'link', to: '/history', label: 'History' },

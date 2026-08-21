@@ -546,21 +546,67 @@ body {
   padding-left: 2rem;
 }
 
-.los-team-chip {
+.los-team-shirt {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  font-size: 0.5625rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  line-height: 1;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 0 0 1px rgba(20, 18, 26, 0.12);
+  line-height: 0;
 }
 
-.los-team-chip-sm {
-  font-size: 0.5rem;
+.los-team-shirt svg {
+  display: block;
+  overflow: visible;
+}
+
+.los-splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: var(--los-purple-dark);
+}
+
+.los-splash-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--los-purple-dark);
+}
+
+.los-splash-static {
+  display: grid;
+  place-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  background: radial-gradient(circle at center, rgba(55, 0, 60, 0.35), var(--los-purple-dark) 70%);
+}
+
+.los-splash-tagline {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.los-splash-skip {
+  position: absolute;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  border-radius: var(--los-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(27, 16, 34, 0.72);
+  color: var(--los-white);
+  padding: 0.55rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.los-splash-skip:hover {
+  background: rgba(55, 0, 60, 0.85);
 }
 
 .los-cockpit-card {

@@ -75,9 +75,10 @@ describe('player-facing copy', () => {
 })
 
 describe('team chips', () => {
-  it('renders an accessible label and a safe unknown fallback', () => {
-    expect(teamChipSource).toContain('aria-label={fullName}')
+  it('renders an accessible shirt label and a safe unknown fallback', () => {
+    expect(teamChipSource).toContain('aria-label={`${fullName} colours`}')
     expect(teamChipSource).toContain('role="img"')
-    expect(teamChipSource).not.toContain('aria-hidden')
+    expect(teamChipSource).toContain('<svg')
+    expect(teamChipSource).not.toContain('{identity.initials}')
   })
 })

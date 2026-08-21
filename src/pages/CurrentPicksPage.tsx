@@ -8,6 +8,7 @@ import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
 import {
   CURRENT_PICKS_ROUND_OPEN_INTRO,
+  CURRENT_PICKS_VISIBLE_WHILE_OPEN,
   ROUND1_PUBLIC_LABEL,
   operationalWindowToRoundLabel,
 } from '../lib/round1'
@@ -111,7 +112,7 @@ export function CurrentPicksPage() {
             to submit your own pick first to view others.
           </p>
         </div>
-      ) : (
+      ) : CURRENT_PICKS_VISIBLE_WHILE_OPEN ? (
         <>
           <p className="mb-2 text-xs text-muted-ink">{CURRENT_PICKS_ROUND_OPEN_INTRO}</p>
           <div className="hidden md:block">
@@ -138,7 +139,16 @@ export function CurrentPicksPage() {
                     return (
                       <tr key={row.player_id}>
                         <td className="font-medium text-ink">{row.display_name}</td>
-                        <td className="font-medium">{teamName ?? <span className="text-muted-ink font-normal">No pick</span>}</td>
+                        <td className="font-medium">
+                          {teamName ? (
+                            <span className="inline-flex items-center gap-2">
+                              <TeamChip teamId={row.team_id} size="sm" />
+                              {teamName}
+                            </span>
+                          ) : (
+                            <span className="text-muted-ink font-normal">No pick</span>
+                          )}
+                        </td>
                         <td>
                           <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
                         </td>
@@ -178,6 +188,8 @@ export function CurrentPicksPage() {
             )}
           </div>
         </>
+      ) : (
+        <p className="text-xs text-muted-ink">Current picks stay visible while the round is open.</p>
       )}
     </Card>
   )

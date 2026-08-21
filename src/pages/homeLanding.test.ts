@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -58,11 +58,10 @@ describe('home landing page', () => {
     expect(authSource).not.toContain('adminFetch')
   })
 
-  it('does not render an intro or splash component', () => {
-    expect(appSource).not.toContain('LandingSplash')
+  it('does not gate Home behind the intro overlay', () => {
     expect(homeSource).not.toContain('LandingSplash')
     expect(homeSource).not.toContain('splash')
-    expect(existsSync(join(__dirname, '..', 'components', 'LandingSplash.tsx'))).toBe(false)
+    expect(appSource).toContain('<LandingSplash />')
   })
 
   it('does not invent win-chance percentages', () => {

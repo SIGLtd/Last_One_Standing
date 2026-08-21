@@ -1,4 +1,5 @@
 import { TEAM_ID_TO_NAME } from '../config/teams'
+import { getTeamIdentity } from './teamIdentity'
 
 export type PickDistributionRow = {
   teamId: string
@@ -30,4 +31,13 @@ export function buildPickDistribution(teamIds: Array<string | null | undefined>)
 export function formatPickDistributionLine(row: PickDistributionRow): string {
   const pickLabel = row.count === 1 ? 'pick' : 'picks'
   return `${row.teamName} — ${row.count} ${pickLabel} — ${row.percent}%`
+}
+
+export function formatTopPicksSummary(rows: PickDistributionRow[], limit = 3): string {
+  if (rows.length === 0) return 'No picks yet'
+  const parts = rows.slice(0, limit).map((row) => {
+    const shortName = getTeamIdentity(row.teamId).shortName
+    return `${shortName} ${row.percent}%`
+  })
+  return `Most picked: ${parts.join(', ')}`
 }

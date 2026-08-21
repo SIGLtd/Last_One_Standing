@@ -75,7 +75,9 @@ describe('admin proxy picks', () => {
 
 describe('login path', () => {
   it('does not wait for admin or payment lists during session restore', () => {
-    expect(authSource).toContain("event === 'INITIAL_SESSION'")
+    expect(authSource).toContain('onAuthStateChange')
+    expect(authSource).toContain('AUTH_RESTORE_TIMEOUT_MS')
+    expect(authSource).not.toContain('getSession')
     expect(authSource).toContain('loading_profile')
     expect(authSource).not.toContain('adminFetchGameEntries')
     expect(authSource).not.toContain('adminFetchPlayers')

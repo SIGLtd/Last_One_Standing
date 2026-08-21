@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ButtonLink } from '../components/ButtonLink'
-import { Card } from '../components/Card'
+import { TeamChip } from '../components/TeamChip'
 import { useAuth } from '../contexts/AuthContext'
 import { CURRENT_GAME } from '../lib/constants'
 import {
   buildSelectableTeamOptions,
   fetchLatestOperationalWindow,
   fetchWindowEligibleFixtures,
-  formatDeadlineLondon,
+  formatCompactDeadlineLondon,
   type SelectableTeamOption,
 } from '../lib/fixtureOps'
 import { fetchCurrentGame, fetchMyGameEntry } from '../lib/gameEntries'
-import { buildPickDistribution, formatPickDistributionLine, type PickDistributionRow } from '../lib/pickDistribution'
+import {
+  ESSENTIAL_FETCH_TIMEOUT_MS,
+  playerFacingLoadError,
+  withTimeout,
+} from '../lib/homeLoad'
+import { buildPickDistribution, formatPickDistributionLine, formatTopPicksSummary, type PickDistributionRow } from '../lib/pickDistribution'
 import { filterSelectableTeamOptions } from '../lib/pickOptions'
 import { PLAYER_COMPLETE_ENTRY_MESSAGE, operationalWindowToRoundLabel } from '../lib/round1'
 import {
@@ -23,33 +29,8 @@ import {
   saveSelection,
 } from '../lib/selections'
 import { isSupabaseConfigured } from '../lib/supabase'
+import { getTeamIdentity } from '../lib/teamIdentity'
 import type { Game, GameEntry, Selection, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
-
-function formatFixtureWhen(iso: string): string {
-  const date = new Date(iso)
-  const weekday = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', weekday: 'short' })
-  const day = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', day: 'numeric' })
-  const month = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', month: 'short' })
-  const time = date.toLocaleTimeString('en-GB', {
-    timeZone: 'Europe/London',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-  return `${weekday} ${day} ${month}, ${time}`
-}
-
-function formatSavedAt(iso: string): string {
-  return new Date(iso).toLocaleString('en-GB', {
-    timeZone: 'Europe/London',
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
-}
 
 export function HomePage() {
   const { user, player, loading: authLoading, configured } = useAuth()
@@ -60,89 +41,95 @@ export function HomePage() {
   const [selection, setSelection] = useState<Selection | null>(null)
   const [teamOptions, setTeamOptions] = useState<SelectableTeamOption[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState<string>('')
-  const [coreLoading, setCoreLoading] = useState(true)
+  const [roundLoading, setRoundLoading] = useState(true)
+  const [roundFailed, setRoundFailed] = useState(false)
+  const [playerLoading, setPlayerLoading] = useState(false)
   const [picksLoading, setPicksLoading] = useState(false)
   const [distribution, setDistribution] = useState<PickDistributionRow[]>([])
   const [submittedCount, setSubmittedCount] = useState(0)
   const [saving, setSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
-  const [pageError, setPageError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [showFixtures, setShowFixtures] = useState(false)
+  const [showAllPicks, setShowAllPicks] = useState(false)
+  const [roundReloadKey, setRoundReloadKey] = useState(0)
 
   const locked = window ? isWindowLocked(window) : false
   const editable = window ? isWindowEditable(window) : false
   const canPick = Boolean(entry?.paid && entry.status === 'active' && window?.status === 'open' && editable)
 
-  const loadCore = useCallback(async () => {
+  const loadRound = useCallback(async () => {
     if (!configured || !isSupabaseConfigured) {
-      setCoreLoading(false)
+      setRoundLoading(false)
+      setRoundFailed(false)
       return
     }
 
-    setCoreLoading(true)
-    setPageError(null)
+    setRoundLoading(true)
+    setRoundFailed(false)
 
     try {
-      const currentGame = await fetchCurrentGame()
-      setGame(currentGame)
+      const result = await withTimeout(
+        (async () => {
+          const currentGame = await fetchCurrentGame()
+          if (!currentGame) {
+            return { currentGame: null, liveWindow: null, windowFixtures: [] as SelectionWindowEligibleFixture[] }
+          }
+          const liveWindow = await fetchLatestOperationalWindow(currentGame.id)
+          if (!liveWindow) {
+            return { currentGame, liveWindow: null, windowFixtures: [] as SelectionWindowEligibleFixture[] }
+          }
+          const windowFixtures = await fetchWindowEligibleFixtures(liveWindow.id)
+          return { currentGame, liveWindow, windowFixtures }
+        })(),
+        ESSENTIAL_FETCH_TIMEOUT_MS,
+      )
 
-      if (!currentGame) {
-        setWindow(null)
-        setFixtures([])
-        setEntry(null)
-        setSelection(null)
-        setTeamOptions([])
-        return
-      }
-
-      const liveWindow = await fetchLatestOperationalWindow(currentGame.id)
-      setWindow(liveWindow)
-
-      if (!liveWindow) {
-        setFixtures([])
-        setTeamOptions([])
-        setSelection(null)
-        if (player) {
-          const myEntry = await fetchMyGameEntry(player.id, currentGame.id)
-          setEntry(myEntry)
-        } else {
-          setEntry(null)
-        }
-        return
-      }
-
-      const fixturePromise = fetchWindowEligibleFixtures(liveWindow.id)
-      const playerPromise = player
-        ? Promise.all([
-            fetchMyGameEntry(player.id, currentGame.id),
-            fetchMySelection(player.id, currentGame.id, liveWindow.id),
-            fetchFinallyUsedTeamIds(player.id, currentGame.id),
-          ])
-        : Promise.resolve(null)
-
-      const [windowFixtures, playerData] = await Promise.all([fixturePromise, playerPromise])
-      const options = buildSelectableTeamOptions(windowFixtures)
-
-      setFixtures(windowFixtures)
-
-      if (playerData) {
-        const [myEntry, mySelection, usedTeams] = playerData
-        setEntry(myEntry)
-        setSelection(mySelection)
-        setTeamOptions(filterSelectableTeamOptions(options, usedTeams))
-        setSelectedTeamId(mySelection?.team_id ?? '')
-      } else {
-        setEntry(null)
-        setSelection(null)
-        setTeamOptions(options)
-        setSelectedTeamId('')
-      }
+      setGame(result.currentGame)
+      setWindow(result.liveWindow)
+      setFixtures(result.windowFixtures)
+      setTeamOptions(buildSelectableTeamOptions(result.windowFixtures))
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not load the current round.'
-      setPageError(message)
+      console.error('Failed to load current round', err)
+      setRoundFailed(true)
+      setWindow(null)
+      setFixtures([])
+      setTeamOptions([])
     } finally {
-      setCoreLoading(false)
+      setRoundLoading(false)
     }
-  }, [configured, player])
+  }, [configured])
+
+  const loadPlayerPick = useCallback(async () => {
+    if (!player || !game || !window || fixtures.length === 0) {
+      if (!player) {
+        setEntry(null)
+        setSelection(null)
+        setPlayerLoading(false)
+      }
+      return
+    }
+
+    setPlayerLoading(true)
+    try {
+      const [myEntry, mySelection, usedTeams] = await Promise.all([
+        fetchMyGameEntry(player.id, game.id),
+        fetchMySelection(player.id, game.id, window.id),
+        fetchFinallyUsedTeamIds(player.id, game.id),
+      ])
+      const options = filterSelectableTeamOptions(buildSelectableTeamOptions(fixtures), usedTeams)
+      setEntry(myEntry)
+      setSelection(mySelection)
+      setTeamOptions(options)
+      setSelectedTeamId(mySelection?.team_id ?? '')
+    } catch (err) {
+      console.error('Failed to load your pick', err)
+      setEntry(null)
+      setSelection(null)
+    } finally {
+      setPlayerLoading(false)
+    }
+  }, [fixtures, game, player, window])
 
   const loadDistribution = useCallback(async (windowId: string) => {
     setPicksLoading(true)
@@ -150,7 +137,8 @@ export function HomePage() {
       const teamIds = await fetchSubmittedTeamIdsForWindow(windowId)
       setSubmittedCount(teamIds.length)
       setDistribution(buildPickDistribution(teamIds))
-    } catch {
+    } catch (err) {
+      console.error('Failed to load pick distribution', err)
       setSubmittedCount(0)
       setDistribution([])
     } finally {
@@ -159,13 +147,25 @@ export function HomePage() {
   }, [])
 
   useEffect(() => {
-    if (!authLoading) void loadCore()
-  }, [authLoading, loadCore])
+    void loadRound()
+  }, [loadRound, roundReloadKey])
 
   useEffect(() => {
-    if (!window?.id || coreLoading) return
+    if (authLoading) return
+    if (!player) {
+      setEntry(null)
+      setSelection(null)
+      setPlayerLoading(false)
+      return
+    }
+    if (!game || !window || fixtures.length === 0) return
+    void loadPlayerPick()
+  }, [authLoading, fixtures.length, game, loadPlayerPick, player, window])
+
+  useEffect(() => {
+    if (!window?.id || roundLoading) return
     void loadDistribution(window.id)
-  }, [coreLoading, loadDistribution, window?.id])
+  }, [loadDistribution, roundLoading, window?.id])
 
   const selectedOption = useMemo(
     () => teamOptions.find((team) => team.team_id === selectedTeamId) ?? null,
@@ -176,70 +176,83 @@ export function HomePage() {
     if (!window || !selectedTeamId) return
 
     setSaving(true)
-    setPageError(null)
+    setSaveError(null)
     setSavedMessage(null)
 
     try {
       const saved = await saveSelection({ windowId: window.id, teamId: selectedTeamId })
       setSelection(saved)
-      setSavedMessage(`Saved: ${selectedOption?.team_name ?? 'your pick'}.`)
+      setSavedMessage(`Saved: ${selectedOption?.team_name ?? getTeamIdentity(selectedTeamId).shortName}.`)
       void loadDistribution(window.id)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not save your pick.'
-      setPageError(message)
+      console.error('Failed to save pick', err)
+      setSaveError('Could not save your pick. Please try again.')
     } finally {
       setSaving(false)
     }
-  }
-
-  if (authLoading || coreLoading) {
-    return (
-      <Card title="Last One Standing" compact>
-        <p className="text-base text-ink">Loading your game...</p>
-      </Card>
-    )
   }
 
   const roundLabel = window ? operationalWindowToRoundLabel(window.window_number) : 'This round'
   const roundOpen = Boolean(window && editable && window.status === 'open')
   const statusLabel = !window ? 'Closed' : locked || !roundOpen ? 'Closed' : 'Open'
   const hasCurrentPick = Boolean(selection?.team_id)
+  const compactDeadline = window ? formatCompactDeadlineLondon(window.deadline_at) : null
+  const selectedIdentity = getTeamIdentity(selectedOption?.team_id ?? selection?.team_id)
+
+  if (roundLoading && !window) {
+    return (
+      <section className="los-home-panel">
+        <p className="text-base text-ink">Loading your game...</p>
+        <p className="mt-1 text-sm text-muted-ink">Current round</p>
+      </section>
+    )
+  }
+
+  if (roundFailed) {
+    return (
+      <section className="los-home-panel">
+        <h2 className="text-base font-semibold text-ink">Could not load the current round</h2>
+        <p className="mt-1 text-sm text-muted-ink">{playerFacingLoadError()}</p>
+        <button
+          type="button"
+          className="los-btn-primary los-tap-target mt-3 w-full text-base"
+          onClick={() => setRoundReloadKey((key) => key + 1)}
+        >
+          Retry
+        </button>
+      </section>
+    )
+  }
 
   return (
-    <div className="grid gap-3">
-      <Card
-        title={window ? `${roundLabel} is ${statusLabel.toLowerCase()}` : 'No round is open yet'}
-        right={
-          <span className={statusLabel === 'Open' ? 'los-badge los-badge-open text-sm' : 'los-badge los-badge-muted text-sm'}>
+    <div className="los-home">
+      <section className="los-home-round">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-base font-semibold tracking-tight">
+            {window ? `${roundLabel} ${statusLabel.toLowerCase()}` : 'No round is open yet'}
+          </h1>
+          <span className={statusLabel === 'Open' ? 'los-home-status los-home-status-open' : 'los-home-status'}>
             {statusLabel}
           </span>
-        }
-        compact
-      >
-        <div className="grid gap-2 text-base text-ink">
-          {window ? (
-            <>
-              <p>
-                <strong>Deadline:</strong> {formatDeadlineLondon(window.deadline_at)}
-              </p>
-              <p>
-                <strong>Picks submitted:</strong> {picksLoading ? 'Loading picks...' : submittedCount}
-              </p>
-              <p className="text-muted-ink">
-                Pick one team to win. You can change it until the deadline.
-              </p>
-            </>
-          ) : (
-            <p className="text-muted-ink">Check back when the organiser opens the next round.</p>
-          )}
         </div>
-      </Card>
+        {window ? (
+          <>
+            <p>Deadline: {compactDeadline}</p>
+            <p>{picksLoading && submittedCount === 0 ? 'Loading picks...' : `${submittedCount} picks submitted`}</p>
+          </>
+        ) : (
+          <p>Check back when the next round opens.</p>
+        )}
+      </section>
 
-      <Card title={hasCurrentPick ? 'Your pick' : 'Choose your team'} compact>
-        {!user ? (
-          <div className="grid gap-3">
-            <p className="text-base text-ink">Log in to choose your team.</p>
-            <div className="grid gap-2 sm:grid-cols-2">
+      <section className="los-home-panel">
+        {!user && authLoading ? (
+          <p className="text-base text-ink">Checking your sign-in...</p>
+        ) : !user ? (
+          <div className="grid gap-2">
+            <h2 className="text-base font-semibold text-ink">Choose your team</h2>
+            <p className="text-sm text-muted-ink">Log in to make your pick.</p>
+            <div className="grid grid-cols-2 gap-2">
               <ButtonLink to="/login" className="los-tap-target w-full text-base">
                 Log in
               </ButtonLink>
@@ -248,56 +261,58 @@ export function HomePage() {
               </ButtonLink>
             </div>
           </div>
+        ) : playerLoading ? (
+          <p className="text-base text-ink">Loading your pick...</p>
         ) : !entry?.paid || entry.status !== 'active' ? (
-          <div className="grid gap-3">
-            <p className="text-base text-ink">{PLAYER_COMPLETE_ENTRY_MESSAGE}</p>
+          <div className="grid gap-2">
+            <p className="text-sm text-ink">{PLAYER_COMPLETE_ENTRY_MESSAGE}</p>
             <ButtonLink to="/dashboard" className="los-tap-target w-full text-base">
               Open dashboard
             </ButtonLink>
           </div>
         ) : !window ? (
-          <p className="text-base text-muted-ink">There is no live round to pick for yet.</p>
+          <p className="text-sm text-muted-ink">There is no live round to pick for yet.</p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-2">
             {hasCurrentPick ? (
-              <div className="rounded border border-border bg-white p-3">
-                <p className="text-lg font-semibold text-ink">
-                  {selectedOption?.team_name ?? selection?.team_id}
-                </p>
-                {selectedOption ? (
-                  <p className="mt-1 text-sm text-muted-ink">
-                    {selectedOption.venue} vs {selectedOption.opponent_name}
-                  </p>
-                ) : null}
-                {selection?.updated_at ? (
-                  <p className="mt-1 text-sm text-muted-ink">Saved {formatSavedAt(selection.updated_at)}</p>
-                ) : null}
+              <div className="los-home-pick">
+                <TeamChip teamId={selectedIdentity.teamId} />
+                <div className="min-w-0">
+                  <p className="text-base font-semibold text-ink">Your pick: {selectedOption?.team_name ?? selectedIdentity.shortName}</p>
+                  <p className="text-sm text-muted-ink">You can change it until {compactDeadline}</p>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <div>
+                <h2 className="text-base font-semibold text-ink">Choose your team</h2>
+                <p className="text-sm text-muted-ink">Pick one team to win.</p>
+              </div>
+            )}
 
-            {pageError ? <div className="los-alert los-alert-error text-sm">{pageError}</div> : null}
+            {saveError ? <div className="los-alert los-alert-error text-sm">{saveError}</div> : null}
             {savedMessage ? <div className="los-alert los-alert-success text-sm">{savedMessage}</div> : null}
 
             <label className="grid gap-1">
-              <span className="text-sm font-semibold text-ink">
-                {hasCurrentPick ? 'Change pick' : 'Choose your team'}
-              </span>
-              <select
-                className="los-input los-select-lg"
-                value={selectedTeamId}
-                disabled={!canPick}
-                onChange={(event) => {
-                  setSelectedTeamId(event.target.value)
-                  setSavedMessage(null)
-                }}
-              >
-                <option value="">{canPick ? 'Select a team' : 'Picking is closed'}</option>
-                {teamOptions.map((team) => (
-                  <option key={team.team_id} value={team.team_id}>
-                    {team.team_name}
-                  </option>
-                ))}
-              </select>
+              <span className="text-sm font-semibold text-ink">{hasCurrentPick ? 'Change pick' : 'Team'}</span>
+              <div className="flex items-center gap-2">
+                {selectedTeamId ? <TeamChip teamId={selectedTeamId} /> : null}
+                <select
+                  className="los-input los-select-lg min-w-0 flex-1"
+                  value={selectedTeamId}
+                  disabled={!canPick}
+                  onChange={(event) => {
+                    setSelectedTeamId(event.target.value)
+                    setSavedMessage(null)
+                  }}
+                >
+                  <option value="">{canPick ? 'Select a team' : 'Picking is closed'}</option>
+                  {teamOptions.map((team) => (
+                    <option key={team.team_id} value={team.team_id}>
+                      {team.team_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </label>
 
             {canPick ? (
@@ -311,50 +326,110 @@ export function HomePage() {
               </button>
             ) : (
               <p className="text-sm text-muted-ink">
-                {locked ? 'The deadline has passed. You can no longer change this pick.' : 'Picking is not open yet.'}
+                {locked ? 'The deadline has passed.' : 'Picking is not open yet.'}
               </p>
             )}
+            <p className="text-xs text-muted-ink">Used teams are hidden.</p>
           </div>
         )}
-      </Card>
+      </section>
 
-      <Card title="This week’s fixtures" compact>
-        {fixtures.length === 0 ? (
-          <p className="text-base text-muted-ink">No fixtures to show yet.</p>
+      <section className="los-home-panel">
+        {picksLoading && distribution.length === 0 ? (
+          <p className="text-sm text-ink">Loading picks...</p>
         ) : (
-          <ul className="grid gap-2">
-            {fixtures.map((fixture) => (
-              <li key={fixture.id} className="rounded border border-border px-3 py-2">
-                <p className="text-sm text-muted-ink">{formatFixtureWhen(fixture.kickoff_at)}</p>
-                <p className="text-base font-medium text-ink">
-                  {fixture.home_team_name} v {fixture.away_team_name}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card title="What everyone is picking" compact>
-        {picksLoading ? (
-          <p className="text-base text-ink">Loading picks...</p>
-        ) : distribution.length === 0 ? (
-          <p className="text-base text-muted-ink">No picks submitted yet.</p>
-        ) : (
-          <ul className="grid gap-3">
-            {distribution.map((row) => (
-              <li key={row.teamId}>
-                <p className="text-base text-ink">{formatPickDistributionLine(row)}</p>
-                <div className="los-pick-bar mt-1" aria-hidden="true">
-                  <span style={{ width: `${row.percent}%` }} />
+          <>
+            <p className="text-sm font-medium text-ink">{formatTopPicksSummary(distribution)}</p>
+            {distribution.slice(0, 3).map((row) => {
+              const identity = getTeamIdentity(row.teamId)
+              return (
+                <div key={row.teamId} className="mt-2 flex items-center gap-2">
+                  <TeamChip teamId={row.teamId} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-ink">{identity.shortName} {row.percent}%</p>
+                    <div className="los-pick-bar" aria-hidden="true">
+                      <span style={{ width: `${row.percent}%`, background: identity.primary }} />
+                    </div>
+                  </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+              )
+            })}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="los-btn-secondary los-tap-target text-sm"
+                onClick={() => setShowAllPicks((open) => !open)}
+              >
+                {showAllPicks ? 'Hide all picks' : 'View all picks'}
+              </button>
+              <Link to="/current-picks" className="los-btn-secondary los-tap-target text-sm">
+                Current Picks
+              </Link>
+            </div>
+            {showAllPicks ? (
+              distribution.length === 0 ? (
+                <p className="mt-2 text-sm text-muted-ink">No picks submitted yet.</p>
+              ) : (
+                <ul className="mt-2 grid gap-2">
+                  {distribution.map((row) => (
+                    <li key={`all-${row.teamId}`} className="flex items-center gap-2">
+                      <TeamChip teamId={row.teamId} size="sm" />
+                      <span className="text-sm text-ink">{formatPickDistributionLine(row)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+          </>
         )}
-      </Card>
+      </section>
 
-      <p className="text-center text-sm text-muted-ink">Game {game?.game_number ?? CURRENT_GAME}</p>
+      <section className="los-home-panel">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium text-ink">
+            {fixtures.length} fixture{fixtures.length === 1 ? '' : 's'} this week
+          </p>
+          <button
+            type="button"
+            className="los-btn-secondary los-tap-target text-sm"
+            onClick={() => setShowFixtures((open) => !open)}
+          >
+            {showFixtures ? 'Hide fixtures' : 'Show fixtures'}
+          </button>
+        </div>
+        {showFixtures ? (
+          fixtures.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-ink">No fixtures to show yet.</p>
+          ) : (
+            <ul className="mt-2 grid gap-2">
+              {fixtures.map((fixture) => (
+                <li key={fixture.id} className="los-home-fixture">
+                  <p className="text-xs text-muted-ink">
+                    {new Date(fixture.kickoff_at).toLocaleString('en-GB', {
+                      timeZone: 'Europe/London',
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                    })}
+                  </p>
+                  <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-ink">
+                    <TeamChip teamId={fixture.home_team_id} size="sm" />
+                    {fixture.home_team_name}
+                    <span className="text-muted-ink">v</span>
+                    <TeamChip teamId={fixture.away_team_id} size="sm" />
+                    {fixture.away_team_name}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : null}
+      </section>
+
+      <p className="text-center text-xs text-white/70">Game {game?.game_number ?? CURRENT_GAME}</p>
     </div>
   )
 }

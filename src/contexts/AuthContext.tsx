@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { AUTH_RESTORE_TIMEOUT_MS } from '../lib/homeLoad'
 import { fetchPlayerProfile, upsertPlayerProfile } from '../lib/playerProfile'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import type { Player } from '../types'
@@ -93,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load player profile', profileError)
       setPlayer(null)
       loadedUserIdRef.current = authUser.id
+    } finally {
+      setAuthPhase('ready')
     }
   }, [])
 
@@ -116,84 +119,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const client = supabase
     let active = true
+    let settled = false
 
-    async function init() {
-      try {
-        setAuthPhase('authenticating')
-        const { data, error } = await client.auth.getSession()
-        if (!active) return
-
-        if (error) {
-          console.error('Failed to load session', error)
-          setSession(null)
-          setUser(null)
-          setPlayer(null)
-          loadedUserIdRef.current = null
-          return
-        }
-
-        const nextSession = data.session
-        setSession(nextSession)
-        setUser(nextSession?.user ?? null)
-
-        if (nextSession?.user) {
-          await loadPlayer(nextSession.user)
-        } else {
-          setPlayer(null)
-          loadedUserIdRef.current = null
-        }
-      } catch (sessionError) {
-        console.error('Failed to initialize auth session', sessionError)
-        if (active) {
-          setSession(null)
-          setUser(null)
-          setPlayer(null)
-          loadedUserIdRef.current = null
-        }
-      } finally {
-        if (active) {
-          setLoading(false)
-          setAuthPhase('ready')
-        }
-      }
+    function settleReady() {
+      if (!active || settled) return
+      settled = true
+      setLoading(false)
+      setAuthPhase('ready')
     }
 
-    void init()
+    const timeoutId = globalThis.setTimeout(() => {
+      if (!settled) {
+        console.warn('Auth session restore timed out; continuing without blocking Home')
+        settleReady()
+      }
+    }, AUTH_RESTORE_TIMEOUT_MS)
 
     let subscription: { unsubscribe: () => void } | null = null
 
     try {
       const {
         data: { subscription: authSubscription },
-      } = client.auth.onAuthStateChange(async (event, nextSession) => {
+      } = client.auth.onAuthStateChange((_event, nextSession) => {
         if (!active) return
-        if (event === 'INITIAL_SESSION') return
 
         setSession(nextSession)
         setUser(nextSession?.user ?? null)
 
         if (nextSession?.user) {
           if (loadedUserIdRef.current !== nextSession.user.id) {
-            await loadPlayer(nextSession.user)
+            void loadPlayer(nextSession.user)
           }
         } else {
           setPlayer(null)
           loadedUserIdRef.current = null
         }
 
-        setLoading(false)
-        setAuthPhase('ready')
+        settleReady()
       })
 
       subscription = authSubscription
     } catch (listenerError) {
       console.error('Failed to set up auth listener', listenerError)
-      setLoading(false)
-      setAuthPhase('ready')
+      settleReady()
     }
 
     return () => {
       active = false
+      globalThis.clearTimeout(timeoutId)
       subscription?.unsubscribe()
     }
   }, [loadPlayer])

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPickDistribution, formatPickDistributionLine } from './pickDistribution'
+import { buildPickDistribution, formatPickDistributionLine, formatTopPicksSummary } from './pickDistribution'
 
 describe('pick distribution', () => {
   it('calculates counts and percentages from submitted picks only', () => {
@@ -20,5 +20,12 @@ describe('pick distribution', () => {
   it('returns an empty list when no picks have been submitted', () => {
     expect(buildPickDistribution([])).toEqual([])
     expect(buildPickDistribution([null, undefined])).toEqual([])
+  })
+
+  it('summarises the top picks with readable team names', () => {
+    const rows = buildPickDistribution(['mun', 'mun', 'liv'])
+    expect(formatTopPicksSummary(rows)).toContain('Most picked:')
+    expect(formatTopPicksSummary(rows)).toContain('Man United')
+    expect(formatTopPicksSummary([])).toBe('No picks yet')
   })
 })

@@ -30,6 +30,26 @@ export function formatDeadlineLondon(iso: string): string {
   return `${time} ${weekday} ${day} ${month}`
 }
 
+/** Compact player deadline, e.g. "Fri 21 Aug, 4:00pm". */
+export function formatCompactDeadlineLondon(iso: string): string {
+  const date = new Date(iso)
+  const weekday = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', weekday: 'short' })
+  const day = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', day: 'numeric' })
+  const month = date.toLocaleDateString('en-GB', { timeZone: 'Europe/London', month: 'short' })
+  const time = date
+    .toLocaleTimeString('en-GB', {
+      timeZone: 'Europe/London',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    .toLowerCase()
+    .replace(/\s/g, '')
+    .replace(/\./g, '')
+
+  return `${weekday} ${day} ${month}, ${time}`
+}
+
 export async function fetchOpenSelectionWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {
   const client = getSupabaseOrThrow()
   const { data: candidates, error } = await client

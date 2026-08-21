@@ -216,6 +216,22 @@ export async function fetchSubmittedTeamIdsForWindow(windowId: string): Promise<
 export async function fetchCurrentWindowPicks(gameId: string, windowId: string): Promise<WindowPickRow[]> {
   const client = getSupabaseOrThrow()
 
+  const { data: publicRows, error: publicError } = await client.rpc('public_current_window_picks', {
+    p_window_id: windowId,
+  })
+
+  if (!publicError && Array.isArray(publicRows) && publicRows.length > 0) {
+    return publicRows.map((row) => ({
+      player_id: row.player_id,
+      display_name: row.display_name,
+      team_id: row.team_id,
+      locked_at: row.locked_at ?? null,
+      entry_status: 'active',
+      updated_at: row.updated_at ?? null,
+      admin_corrected: Boolean(row.admin_corrected),
+    }))
+  }
+
   const [{ data: entries, error: entriesError }, { data: selections, error: selectionsError }] = await Promise.all([
     client
       .from('game_entries')
@@ -225,27 +241,41 @@ export async function fetchCurrentWindowPicks(gameId: string, windowId: string):
     client.from('selections').select('*').eq('game_id', gameId).eq('window_id', windowId),
   ])
 
-  if (entriesError) throw entriesError
   if (selectionsError) throw selectionsError
+  if (entriesError && !(selections ?? []).length) throw entriesError
 
   const selectionByPlayer = new Map((selections ?? []).map((selection) => [selection.player_id, selection]))
 
-  return (entries ?? []).map((entry) => {
-    const selection = selectionByPlayer.get(entry.player_id)
-    const rawPlayer = entry.player as { display_name: string } | { display_name: string }[] | null
-    const player = Array.isArray(rawPlayer) ? rawPlayer[0] ?? null : rawPlayer
+  if ((entries ?? []).length > 0) {
+    return (entries ?? []).map((entry) => {
+      const selection = selectionByPlayer.get(entry.player_id)
+      const rawPlayer = entry.player as { display_name: string } | { display_name: string }[] | null
+      const player = Array.isArray(rawPlayer) ? rawPlayer[0] ?? null : rawPlayer
 
-    return {
-      player_id: entry.player_id,
-      display_name: player?.display_name ?? 'Unknown player',
-      team_id: selection?.team_id ?? null,
-      locked_at: selection?.locked_at ?? null,
-      entry_status: entry.status,
-      paid: Boolean((entry as { paid?: boolean }).paid),
-      updated_at: selection?.updated_at ?? selection?.created_at ?? null,
-      admin_corrected: Boolean(selection?.admin_corrected),
-    }
-  })
+      return {
+        player_id: entry.player_id,
+        display_name: player?.display_name ?? 'Unknown player',
+        team_id: selection?.team_id ?? null,
+        locked_at: selection?.locked_at ?? null,
+        entry_status: entry.status,
+        paid: Boolean((entry as { paid?: boolean }).paid),
+        updated_at: selection?.updated_at ?? selection?.created_at ?? null,
+        admin_corrected: Boolean(selection?.admin_corrected),
+      }
+    })
+  }
+
+  return (selections ?? [])
+    .filter((selection) => Boolean(selection.team_id))
+    .map((selection) => ({
+      player_id: selection.player_id,
+      display_name: 'Unknown player',
+      team_id: selection.team_id ?? null,
+      locked_at: selection.locked_at ?? null,
+      entry_status: 'active' as const,
+      updated_at: selection.updated_at ?? selection.created_at ?? null,
+      admin_corrected: Boolean(selection.admin_corrected),
+    }))
 }
 
 export function getPickStatusLabel(row: WindowPickRow, window: SelectionWindow | null): string {

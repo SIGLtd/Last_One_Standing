@@ -83,6 +83,7 @@ describe('current picks remain visible after deadline', () => {
     expect(fixtureOpsSource).toContain('fetchCurrentOperationalWindow')
     expect(currentPicksSource).toContain('fetchCurrentSelectionWindow')
     expect(currentPicksSource).toContain('canViewCurrentPicks')
+    expect(selectionsSource).toContain('public_current_window_picks')
     expect(homeSource).toContain('fetchLatestOperationalWindow')
     expect(homeSource).toContain('buildPickDistribution')
   })

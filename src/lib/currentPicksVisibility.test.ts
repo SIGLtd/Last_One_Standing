@@ -10,6 +10,7 @@ import {
   canViewCurrentPicks,
   isPlayerFacingOpenWindow,
   MIN_OPERATIONAL_WINDOW_NUMBER,
+  selectLatestOperationalWindow,
 } from './windowGuards'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -120,6 +121,28 @@ describe('current picks remain visible after deadline', () => {
     expect(currentPicksSource).toContain('CURRENT_PICKS_EMPTY_MESSAGE')
     expect(CURRENT_PICKS_EMPTY_MESSAGE).toBe('No picks submitted yet.')
     expect(currentPicksSource).not.toContain('Current picks stay visible while the round is open.')
+  })
+
+  it('keeps showing the resolved round on Current Picks until the next round opens', () => {
+    const afterResolve = selectLatestOperationalWindow([
+      { window_number: 1, status: 'open', deadline_at: '2026-06-17T12:00:00.000Z', snapshot_fixture_count: 0 },
+      { window_number: 2, status: 'resolved', deadline_at: ROUND1_LIVE_DEADLINE_UTC, snapshot_fixture_count: 8 },
+    ])
+    expect(afterResolve?.window_number).toBe(2)
+    expect(canViewCurrentPicks(afterResolve)).toBe(true)
+
+    const afterNextOpens = selectLatestOperationalWindow([
+      { window_number: 2, status: 'resolved', deadline_at: ROUND1_LIVE_DEADLINE_UTC, snapshot_fixture_count: 8 },
+      { window_number: 3, status: 'open', deadline_at: '2026-08-28T15:00:00.000Z', snapshot_fixture_count: 10 },
+    ])
+    expect(afterNextOpens?.window_number).toBe(3)
+  })
+
+  it('does not hide picks just because the deadline has passed', () => {
+    expect(canViewCurrentPicks(round1Window)).toBe(true)
+    expect(isPlayerFacingOpenWindow(round1Window, afterDeadline)).toBe(false)
+    expect(currentPicksSource).toContain('canViewCurrentPicks')
+    expect(currentPicksSource).toContain('getPickSurvivalLabel')
   })
 
   it('does not change splash, navigation, or admin-only access', () => {

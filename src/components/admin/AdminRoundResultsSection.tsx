@@ -23,6 +23,7 @@ export type ResultSyncSummary = {
 type AdminRoundResultsSectionProps = {
   window: SelectionWindowWithMeta
   preview: RoundResolutionPreview
+  fixtureCount: number
   syncSummary: ResultSyncSummary | null
   nextRound: {
     canOpen: boolean
@@ -87,6 +88,7 @@ function AuditRow({ row }: { row: RoundResolutionRow }) {
 export function AdminRoundResultsSection({
   window,
   preview,
+  fixtureCount,
   syncSummary,
   nextRound,
   deadlineValue,
@@ -126,6 +128,10 @@ export function AdminRoundResultsSection({
       </div>
 
       <p className="mt-2 text-xs text-muted-ink">
+        Selected window {window.window_number} · {roundLabel} · {window.id} · deadline {formatDeadlineLondon(window.deadline_at)} ·{' '}
+        {fixtureCount} fixture{fixtureCount === 1 ? '' : 's'}.
+      </p>
+      <p className="mt-1 text-xs text-muted-ink">
         Scores come from football-data.org. Syncing results does not eliminate anyone. Resolve only after you have
         reviewed the preview.
       </p>
@@ -203,6 +209,13 @@ export function AdminRoundResultsSection({
       ) : null}
 
       {preview.blockedReason ? <p className="mt-2 text-xs text-muted-ink">{preview.blockedReason}</p> : null}
+      {preview.safetyIssues.length > 0 ? (
+        <ul className="mt-2 grid gap-1 text-xs text-muted-ink">
+          {preview.safetyIssues.map((issue) => (
+            <li key={issue}>{issue}</li>
+          ))}
+        </ul>
+      ) : null}
 
       {confirmingResolve ? (
         <div className="mt-3 rounded border border-border bg-surface p-2">

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyRoundCorrection,
   applyRoundResolution,
+  mergeEligibleFixturesWithResults,
   resolveRoundPreview,
   type ResolutionEntry,
   type ResolutionFixture,
@@ -90,6 +92,7 @@ function preview(input: {
   selections?: ResolutionSelection[]
   nowMs?: number
   window?: RoundResolutionWindow
+  knownSubmittedPicks?: number
 }) {
   return resolveRoundPreview({
     window: input.window ?? round1Window,
@@ -97,6 +100,7 @@ function preview(input: {
     entries: input.entries ?? [entry('p-city', 'City Fan'), entry('p-united', 'United Fan')],
     selections: input.selections ?? [selection('p-city', 'mci'), selection('p-united', 'mun')],
     nowMs: input.nowMs ?? afterDeadline,
+    knownSubmittedPicks: input.knownSubmittedPicks,
   })
 }
 
@@ -267,5 +271,172 @@ describe('round resolution', () => {
     expect(result.activeEntrants).toBe(1)
     expect(result.withdrawn).toBe(1)
     expect(result.survived).toBe(1)
+  })
+
+  it('audits an already-resolved Round 1 from stored outcomes without enabling resolve', () => {
+    const result = preview({
+      window: { ...round1Window, status: 'resolved' },
+      entries: [
+        entry('p-city', 'City Fan', { status: 'active' }),
+        entry('p-united', 'United Fan', { status: 'eliminated' }),
+        entry('p-late', 'No Pick', { status: 'eliminated' }),
+      ],
+      selections: [
+        { player_id: 'p-city', team_id: 'mci', outcome: 'survived', outcome_reason: 'win', used_final: true },
+        { player_id: 'p-united', team_id: 'mun', outcome: 'eliminated', outcome_reason: 'loss', used_final: true },
+        { player_id: 'p-late', team_id: null, outcome: 'no_pick', outcome_reason: 'no_pick', used_final: false },
+      ],
+    })
+    expect(result.alreadyResolved).toBe(true)
+    expect(result.readyToResolve).toBe(false)
+    expect(result.picksSubmitted).toBe(2)
+    expect(result.survived).toBe(1)
+    expect(result.eliminated).toBe(1)
+    expect(result.noPicks).toBe(1)
+    expect(result.pending).toBe(0)
+    expect(result.blockedReason).toMatch(/already resolved/i)
+  })
+
+  it('keeps the correction path idempotent when Round 1 is already correct', () => {
+    const result = preview({
+      window: { ...round1Window, status: 'resolved' },
+      entries: [
+        entry('p-city', 'City Fan', { status: 'active' }),
+        entry('p-united', 'United Fan', { status: 'eliminated' }),
+      ],
+      selections: [
+        { player_id: 'p-city', team_id: 'mci', outcome: 'survived', outcome_reason: 'win', used_final: true },
+        { player_id: 'p-united', team_id: 'mun', outcome: 'eliminated', outcome_reason: 'loss', used_final: true },
+      ],
+    })
+    const state: RoundResolutionState = {
+      windowStatus: 'resolved',
+      resolvedAt: '2026-08-24T18:11:43.000Z',
+      selections: [
+        { playerId: 'p-city', teamId: 'mci', outcome: 'survived', outcomeReason: 'win', usedFinal: true },
+        { playerId: 'p-united', teamId: 'mun', outcome: 'eliminated', outcomeReason: 'loss', usedFinal: true },
+      ],
+      entries: [
+        { playerId: 'p-city', status: 'active', eliminatedReason: null },
+        { playerId: 'p-united', status: 'eliminated', eliminatedReason: 'loss' },
+      ],
+    }
+    const once = applyRoundCorrection(state, result, '2026-08-24T20:00:00.000Z')
+    const twice = applyRoundCorrection(once, result, '2026-08-24T21:00:00.000Z')
+    expect(once).toEqual(state)
+    expect(twice).toEqual(once)
+    expect(twice.resolvedAt).toBe('2026-08-24T18:11:43.000Z')
+    expect(twice.selections.find((row) => row.playerId === 'p-city')?.teamId).toBe('mci')
+  })
+
+  it('counts submitted picks by the selected window_id', () => {
+    const result = preview({
+      selections: [
+        { player_id: 'p-city', team_id: 'mci', window_id: 'w2' },
+        { player_id: 'p-united', team_id: 'mun', window_id: 'w3' },
+      ],
+    })
+    expect(result.picksSubmitted).toBe(1)
+  })
+
+  it('treats an active entry with no pick as no_pick after the deadline, not pending', () => {
+    const result = preview({
+      entries: [entry('p-late', 'No Pick')],
+      selections: [],
+      nowMs: afterDeadline,
+    })
+    expect(result.noPicks).toBe(1)
+    expect(result.pending).toBe(0)
+    expect(result.rows[0]?.group).toBe('no_pick')
+  })
+
+  it('uses pending only when the selected fixture has no final result', () => {
+    const result = preview({
+      fixtures: [unfinishedCity],
+      entries: [entry('p-city', 'City Fan')],
+      selections: [selection('p-city', 'mci')],
+    })
+    expect(result.pending).toBe(1)
+    expect(result.noPicks).toBe(0)
+    expect(result.rows[0]?.outcomeReason).toBe('unresolved')
+  })
+
+  it('does not count already-eliminated players as pending on the next unresolved window', () => {
+    const result = preview({
+      window: { id: 'w3', window_number: 3, status: 'open', deadline_at: '2026-08-28T15:00:00.000Z' },
+      entries: [
+        entry('survivor', 'Survivor'),
+        entry('loser', 'Already out', { status: 'eliminated' }),
+        entry('late', 'Still in'),
+      ],
+      selections: [],
+      nowMs: Date.parse('2026-08-24T18:30:00.000Z'),
+    })
+    expect(result.activeEntrants).toBe(2)
+    expect(result.pending).toBe(2)
+    expect(result.pending).toBeLessThanOrEqual(result.activeEntrants)
+    expect(result.rows.some((row) => row.playerId === 'loser')).toBe(false)
+  })
+
+  it('recognises the Round 1 deadline from a Postgres UTC timestamp', () => {
+    const result = preview({
+      window: { ...round1Window, deadline_at: '2026-08-21 15:00:00+00' },
+      nowMs: Date.parse('2026-08-21T15:00:01.000Z'),
+    })
+    expect(result.deadlinePassed).toBe(true)
+    expect(result.blockedReason ?? '').not.toMatch(/has not passed/)
+  })
+
+  it('disables resolve when preview data is suspicious', () => {
+    const zeroPicks = preview({
+      entries: [entry('p-city', 'City Fan')],
+      selections: [],
+      knownSubmittedPicks: 91,
+    })
+    expect(zeroPicks.picksSubmitted).toBe(0)
+    expect(zeroPicks.readyToResolve).toBe(false)
+    expect(zeroPicks.previewInconsistent).toBe(true)
+
+    const monday = preview({
+      fixtures: [
+        {
+          ...hullUnited,
+          kickoff_at: '2026-08-24T19:00:00.000Z',
+        },
+      ],
+    })
+    expect(monday.readyToResolve).toBe(false)
+    expect(monday.safetyIssues.some((issue) => issue.toLowerCase().includes('saturday/sunday'))).toBe(true)
+
+    const noFixtures = preview({ fixtures: [] })
+    expect(noFixtures.readyToResolve).toBe(false)
+  })
+
+  it('does not let result merge mutate eligible fixture snapshots', () => {
+    const snapshots = [
+      {
+        season_fixture_id: 'f-hul-mun',
+        home_team_id: 'hul',
+        away_team_id: 'mun',
+        home_team_name: 'Hull City',
+        away_team_name: 'Manchester United',
+        kickoff_at: '2026-08-22T11:30:00.000Z',
+        fixture_status: 'scheduled',
+      },
+    ]
+    const season = [
+      {
+        id: 'f-hul-mun',
+        status: 'finished',
+        home_score: 2,
+        away_score: 0,
+        result_status: 'final',
+      },
+    ]
+    const merged = mergeEligibleFixturesWithResults(snapshots, season)
+    expect(snapshots[0]?.fixture_status).toBe('scheduled')
+    expect(merged[0]?.status).toBe('finished')
+    expect(merged[0]?.home_score).toBe(2)
+    expect(merged[0]?.kickoff_at).toBe(snapshots[0]?.kickoff_at)
   })
 })

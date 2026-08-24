@@ -1,4 +1,6 @@
 import { TEAM_ID_TO_NAME } from '../config/teams'
+import { isDeadlinePassed } from './deadline'
+import { snapshotHasNonWeekendFixture } from './weekendFixtures'
 
 export type SelectionOutcome = 'survived' | 'eliminated' | 'no_pick' | 'pending'
 export type OutcomeReason = 'win' | 'loss' | 'draw' | 'no_pick' | 'unresolved' | 'withdrawn' | null
@@ -27,6 +29,7 @@ export type ResolutionEntry = {
 export type ResolutionSelection = {
   player_id: string
   team_id: string | null
+  window_id?: string | null
   updated_at?: string | null
   created_at?: string | null
   used_final?: boolean
@@ -76,6 +79,8 @@ export type RoundResolutionPreview = {
   eliminated: number
   pending: number
   withdrawn: number
+  safetyIssues: string[]
+  previewInconsistent: boolean
   byTeam: TeamBreakdownRow[]
   rows: RoundResolutionRow[]
 }
@@ -182,8 +187,74 @@ export function outcomeForPickedTeam(
   return { outcome: 'eliminated', reason: 'loss' }
 }
 
-function isLiveEntrant(entry: ResolutionEntry): boolean {
-  return entry.paid && entry.status === 'active'
+function isWithdrawnLike(entry: ResolutionEntry): boolean {
+  return entry.status === 'withdrawn' || entry.status === 'pending_payment' || (!entry.paid && entry.status !== 'eliminated')
+}
+
+function isConsideredForWindow(entry: ResolutionEntry, alreadyResolved: boolean): boolean {
+  if (isWithdrawnLike(entry)) return false
+  if (!entry.paid) return false
+  if (alreadyResolved) return entry.status === 'active' || entry.status === 'eliminated'
+  return entry.status === 'active'
+}
+
+function storedOutcomeGroup(outcome: SelectionOutcome | null | undefined): SelectionOutcome | null {
+  if (outcome === 'survived' || outcome === 'eliminated' || outcome === 'no_pick') return outcome
+  return null
+}
+
+export function countSubmittedPicksForWindow(
+  selections: ResolutionSelection[],
+  windowId: string,
+): number {
+  return selections.filter((selection) => {
+    if (selection.window_id && selection.window_id !== windowId) return false
+    return Boolean(selection.team_id)
+  }).length
+}
+
+function cloneState(state: RoundResolutionState): RoundResolutionState {
+  return {
+    windowStatus: state.windowStatus,
+    resolvedAt: state.resolvedAt,
+    selections: state.selections.map((selection) => ({ ...selection })),
+    entries: state.entries.map((entry) => ({ ...entry })),
+  }
+}
+
+function statesMatch(left: RoundResolutionState, right: RoundResolutionState): boolean {
+  if (left.windowStatus !== right.windowStatus) return false
+  if (left.resolvedAt !== right.resolvedAt) return false
+  if (left.selections.length !== right.selections.length) return false
+  if (left.entries.length !== right.entries.length) return false
+
+  const leftSelections = [...left.selections].sort((a, b) => a.playerId.localeCompare(b.playerId))
+  const rightSelections = [...right.selections].sort((a, b) => a.playerId.localeCompare(b.playerId))
+  for (let i = 0; i < leftSelections.length; i += 1) {
+    const a = leftSelections[i]
+    const b = rightSelections[i]
+    if (
+      a.playerId !== b.playerId ||
+      a.teamId !== b.teamId ||
+      a.outcome !== b.outcome ||
+      a.outcomeReason !== b.outcomeReason ||
+      a.usedFinal !== b.usedFinal
+    ) {
+      return false
+    }
+  }
+
+  const leftEntries = [...left.entries].sort((a, b) => a.playerId.localeCompare(b.playerId))
+  const rightEntries = [...right.entries].sort((a, b) => a.playerId.localeCompare(b.playerId))
+  for (let i = 0; i < leftEntries.length; i += 1) {
+    const a = leftEntries[i]
+    const b = rightEntries[i]
+    if (a.playerId !== b.playerId || a.status !== b.status || a.eliminatedReason !== b.eliminatedReason) {
+      return false
+    }
+  }
+
+  return true
 }
 
 export function resolveRoundPreview(input: {
@@ -192,11 +263,18 @@ export function resolveRoundPreview(input: {
   entries: ResolutionEntry[]
   selections: ResolutionSelection[]
   nowMs?: number
+  knownSubmittedPicks?: number
+  allowNonWeekendFixtures?: boolean
+  eligibilityOverrides?: Record<string, string>
 }): RoundResolutionPreview {
   const nowMs = input.nowMs ?? Date.now()
-  const deadlinePassed = nowMs >= new Date(input.window.deadline_at).getTime()
+  const deadlinePassed = isDeadlinePassed(input.window.deadline_at, nowMs)
   const alreadyResolved = input.window.status === 'resolved'
-  const selectionByPlayer = new Map(input.selections.map((selection) => [selection.player_id, selection]))
+  const selectionByPlayer = new Map(
+    input.selections
+      .filter((selection) => !selection.window_id || selection.window_id === input.window.id)
+      .map((selection) => [selection.player_id, selection]),
+  )
 
   const rows: RoundResolutionRow[] = []
 
@@ -205,8 +283,9 @@ export function resolveRoundPreview(input: {
     const teamId = selection?.team_id ?? null
     const fixture = fixtureForTeam(input.fixtures, teamId)
     const submittedAt = selection?.updated_at ?? selection?.created_at ?? null
+    const fixtureFinal = fixture ? isFixtureFinal(fixture) : false
 
-    if (entry.status === 'withdrawn' || entry.status === 'pending_payment' || (!entry.paid && entry.status !== 'eliminated')) {
+    if (isWithdrawnLike(entry)) {
       rows.push({
         playerId: entry.player_id,
         displayName: entry.display_name,
@@ -218,7 +297,30 @@ export function resolveRoundPreview(input: {
         scoreLabel: scoreLabelForFixture(fixture),
         usedFinal: false,
         submittedAt,
-        fixtureFinal: fixture ? isFixtureFinal(fixture) : false,
+        fixtureFinal,
+      })
+      continue
+    }
+
+    if (!isConsideredForWindow(entry, alreadyResolved)) {
+      continue
+    }
+
+    const storedGroup = alreadyResolved ? storedOutcomeGroup(selection?.outcome) : null
+    if (storedGroup) {
+      const reason = (selection?.outcome_reason as OutcomeReason) ?? (storedGroup === 'no_pick' ? 'no_pick' : null)
+      rows.push({
+        playerId: entry.player_id,
+        displayName: entry.display_name,
+        group: storedGroup === 'survived' ? 'survived' : storedGroup === 'eliminated' ? 'eliminated' : 'no_pick',
+        teamId,
+        teamName: teamId ? teamName(teamId) : storedGroup === 'no_pick' ? '—' : teamName(teamId),
+        outcome: storedGroup,
+        outcomeReason: reason,
+        scoreLabel: storedGroup === 'no_pick' && !teamId ? 'No pick' : scoreLabelForFixture(fixture),
+        usedFinal: Boolean(selection?.used_final) || storedGroup !== 'no_pick',
+        submittedAt,
+        fixtureFinal,
       })
       continue
     }
@@ -269,7 +371,7 @@ export function resolveRoundPreview(input: {
         scoreLabel: scoreLabelForFixture(fixture),
         usedFinal: false,
         submittedAt,
-        fixtureFinal: Boolean(fixture && isFixtureFinal(fixture)),
+        fixtureFinal,
       })
       continue
     }
@@ -296,8 +398,8 @@ export function resolveRoundPreview(input: {
   const noPicks = liveRows.filter((row) => row.group === 'no_pick').length
   const pending = liveRows.filter((row) => row.group === 'pending').length
   const withdrawn = rows.filter((row) => row.group === 'withdrawn').length
-  const picksSubmitted = liveRows.filter((row) => Boolean(row.teamId)).length
-  const activeEntrants = input.entries.filter(isLiveEntrant).length
+  const picksSubmitted = countSubmittedPicksForWindow(input.selections, input.window.id)
+  const activeEntrants = liveRows.length
 
   const byTeamMap = new Map<string, TeamBreakdownRow>()
   for (const row of liveRows) {
@@ -317,6 +419,24 @@ export function resolveRoundPreview(input: {
     byTeamMap.set(row.teamId, current)
   }
 
+  const safetyIssues: string[] = []
+  if (input.fixtures.length < 1) {
+    safetyIssues.push('Selected window has no eligible fixtures.')
+  }
+  if (!input.allowNonWeekendFixtures && snapshotHasNonWeekendFixture(input.fixtures, input.eligibilityOverrides)) {
+    safetyIssues.push('Selected window includes a non-Saturday/Sunday fixture without an explicit exception.')
+  }
+  if (pending > activeEntrants) {
+    safetyIssues.push('Pending count exceeds active entries considered.')
+  }
+  if (survived + eliminated + noPicks + pending !== liveRows.length) {
+    safetyIssues.push('Preview totals do not match the considered live set.')
+  }
+  if (picksSubmitted === 0 && (input.knownSubmittedPicks ?? 0) > 0) {
+    safetyIssues.push('Selected window shows zero picks but another source still has submitted picks.')
+  }
+
+  const previewInconsistent = safetyIssues.length > 0
   let blockedReason: string | null = null
   if (alreadyResolved) {
     blockedReason = 'This round is already resolved.'
@@ -324,9 +444,12 @@ export function resolveRoundPreview(input: {
     blockedReason = 'The pick deadline has not passed yet.'
   } else if (pending > 0) {
     blockedReason = 'One or more selected fixtures are not final yet.'
+  } else if (previewInconsistent) {
+    blockedReason = safetyIssues[0] ?? 'Preview data is internally inconsistent.'
   }
 
-  const readyToResolve = !alreadyResolved && deadlinePassed && pending === 0
+  const readyToResolve =
+    !alreadyResolved && deadlinePassed && pending === 0 && !previewInconsistent && input.fixtures.length > 0
 
   return {
     alreadyResolved,
@@ -340,6 +463,8 @@ export function resolveRoundPreview(input: {
     eliminated,
     pending,
     withdrawn,
+    safetyIssues,
+    previewInconsistent,
     byTeam: [...byTeamMap.values()].sort((a, b) => a.teamName.localeCompare(b.teamName)),
     rows: rows.sort((a, b) => a.displayName.localeCompare(b.displayName)),
   }
@@ -351,40 +476,38 @@ export function applyRoundResolution(
   resolvedAt: string,
 ): RoundResolutionState {
   if (state.windowStatus === 'resolved') {
-    return {
-      windowStatus: state.windowStatus,
-      resolvedAt: state.resolvedAt,
-      selections: state.selections.map((selection) => ({ ...selection })),
-      entries: state.entries.map((entry) => ({ ...entry })),
-    }
+    return cloneState(state)
   }
 
   if (!preview.readyToResolve) {
-    return {
-      windowStatus: state.windowStatus,
-      resolvedAt: state.resolvedAt,
-      selections: state.selections.map((selection) => ({ ...selection })),
-      entries: state.entries.map((entry) => ({ ...entry })),
-    }
+    return cloneState(state)
   }
 
+  return applyRoundCorrection(state, preview, resolvedAt)
+}
+
+export function applyRoundCorrection(
+  state: RoundResolutionState,
+  preview: RoundResolutionPreview,
+  resolvedAt: string,
+): RoundResolutionState {
   const selectionByPlayer = new Map(state.selections.map((selection) => [selection.playerId, { ...selection }]))
   const entryByPlayer = new Map(state.entries.map((entry) => [entry.playerId, { ...entry }]))
 
   for (const row of preview.rows) {
     if (row.group === 'withdrawn') continue
 
-    const nextSelection = {
+    const existing = selectionByPlayer.get(row.playerId)
+    selectionByPlayer.set(row.playerId, {
       playerId: row.playerId,
-      teamId: row.teamId,
+      teamId: existing?.teamId ?? row.teamId,
       outcome: row.outcome,
       outcomeReason: row.outcomeReason,
       usedFinal: row.usedFinal,
-    }
-    selectionByPlayer.set(row.playerId, nextSelection)
+    })
 
     const entry = entryByPlayer.get(row.playerId)
-    if (!entry || entry.status !== 'active') continue
+    if (!entry || entry.status === 'withdrawn') continue
 
     if (row.group === 'survived') {
       entry.status = 'active'
@@ -396,10 +519,16 @@ export function applyRoundResolution(
     entryByPlayer.set(row.playerId, entry)
   }
 
-  return {
+  const next: RoundResolutionState = {
     windowStatus: 'resolved',
-    resolvedAt,
+    resolvedAt: state.windowStatus === 'resolved' && state.resolvedAt ? state.resolvedAt : resolvedAt,
     selections: [...selectionByPlayer.values()],
     entries: [...entryByPlayer.values()],
   }
+
+  if (state.windowStatus === 'resolved' && statesMatch(state, next)) {
+    return cloneState(state)
+  }
+
+  return next
 }

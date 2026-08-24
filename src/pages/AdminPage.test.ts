@@ -41,8 +41,11 @@ describe('admin round results controls', () => {
     expect(resultsSectionSource).toContain('Eliminated 💀')
     expect(resultsSectionSource).toContain('No pick 💀')
     expect(resultsSectionSource).toContain('TeamChip')
-    expect(adminPageSource).toContain('<AdminRoundResultsSection')
-    expect(adminPageSource).toContain("if (!player?.is_admin)")
+    expect(resultsSectionSource).toContain('window.id')
+    expect(resultsSectionSource).toContain('fixtureCount')
+    expect(resultsSectionSource).toContain('deadline')
+    expect(adminPageSource).toContain('getAdminResolutionWindow')
+    expect(adminPageSource).toContain('getAdminLiveOpenWindow')
     expect(adminPageSource).not.toContain('FOOTBALL_DATA_API_KEY')
   })
 

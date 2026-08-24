@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { SeasonFixture, SelectionWindowWithMeta } from '../types'
 import { canOpenNextRound, findNextPremierLeagueWeekend } from './nextRound'
+import { londonDayOfWeek } from '../../scripts/lib/fixtureValidation'
 import { applyRoundResolution, resolveRoundPreview } from './roundResolution'
 import {
   finallyUsedWindowIds,
@@ -251,5 +252,9 @@ describe('used teams and next round', () => {
     expect(weekend?.sat).toBe('2026-08-29')
     expect(weekend?.sun).toBe('2026-08-30')
     expect((weekend?.eligible.length ?? 0) > 0).toBe(true)
+    expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'ful' && fixture.away_team_id === 'che')).toBe(
+      false,
+    )
+    expect(weekend?.eligible.every((fixture) => [6, 7].includes(londonDayOfWeek(fixture.kickoff_at)))).toBe(true)
   })
 })

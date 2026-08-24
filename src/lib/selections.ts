@@ -1,5 +1,6 @@
 import { getFinallyUsedTeamsForPlayer } from './pickOptions'
 import { fetchCurrentOperationalWindow } from './fixtureOps'
+import { isDeadlinePassed } from './deadline'
 import { getSupabaseOrThrow } from './supabase'
 import { parsePickError, pickErrorLabel } from './pickErrors'
 import type { Selection, SelectionWindow, SelectionWindowStatus, WindowPickRow } from '../types'
@@ -16,7 +17,7 @@ export function isWindowLocked(window: SelectionWindow, nowMs = Date.now()): boo
   if (window.status === 'locked' || window.status === 'resolving' || window.status === 'resolved') {
     return true
   }
-  return nowMs >= new Date(window.deadline_at).getTime()
+  return isDeadlinePassed(window.deadline_at, nowMs)
 }
 
 export function isWindowEditable(window: SelectionWindow, nowMs = Date.now()): boolean {

@@ -251,6 +251,7 @@ describe('acceptance matrix', () => {
     expect(edgeSource).toContain("action === 'sync_results'")
     expect(edgeSource).toContain('mapProviderResultToFixture')
     expect(edgeSource).not.toContain('admin_apply_round_resolution')
+    expect(edgeSource).not.toContain('selection_window_eligible_fixtures')
     expect(resultsUi).toContain('Sync latest results')
     expect(resultsUi).toContain('does not eliminate')
   })

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { GameEntry } from '../types'
 import { ADMIN_COCKPIT_SECTION_ORDER } from './adminCockpit'
@@ -11,6 +14,9 @@ import {
   derivePlayerEntryState,
 } from './round1'
 import { shouldShowPlayerPickForm } from './window2Draft'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pickPageSource = readFileSync(join(__dirname, '..', 'pages', 'PickPage.tsx'), 'utf8')
 
 describe('round 1 player experience', () => {
   it('shows Round 1 open copy without technical window labels', () => {
@@ -39,6 +45,7 @@ describe('round 1 player experience', () => {
     ).toBe('awaiting_verification')
     expect(derivePlayerEntryState({ paid: true, status: 'active' } as GameEntry, true)).toBe('entered_can_pick')
     expect(derivePlayerEntryState({ paid: true, status: 'active' } as GameEntry, false)).toBe('entered_waiting')
+    expect(derivePlayerEntryState({ paid: true, status: 'eliminated' } as GameEntry, true)).not.toBe('entered_can_pick')
   })
 
   it('allows current picks without requiring your own selection first', () => {
@@ -52,6 +59,11 @@ describe('round 1 player experience', () => {
 
   it('blocks pick form while the operational window is still pending', () => {
     expect(shouldShowPlayerPickForm({ window_number: 2, status: 'pending' })).toBe(false)
+  })
+
+  it('does not let an eliminated player pick the next round', () => {
+    expect(derivePlayerEntryState({ paid: true, status: 'eliminated' } as GameEntry, true)).not.toBe('entered_can_pick')
+    expect(pickPageSource).toContain("entry.status !== 'active'")
   })
 })
 

@@ -1,3 +1,5 @@
+import { isDeadlinePassed } from './deadline'
+
 /** Historic test placeholder — never used for live player operations. */
 export const PROTECTED_HISTORIC_WINDOW_NUMBER = 1
 
@@ -13,6 +15,7 @@ export function isProtectedHistoricWindow(windowNumber: number): boolean {
 }
 
 export type OperationalWindowCandidate = {
+  id?: string
   window_number: number
   status: string
   deadline_at: string
@@ -28,7 +31,7 @@ export function isPlayerFacingOpenWindow(
 ): boolean {
   if (!isOperationalWindowNumber(window.window_number)) return false
   if (window.status !== 'open') return false
-  if (new Date(window.deadline_at).getTime() <= nowMs) return false
+  if (isDeadlinePassed(window.deadline_at, nowMs)) return false
   if ((window.snapshot_fixture_count ?? 0) < 1) return false
   return true
 }
@@ -45,4 +48,15 @@ export function canViewCurrentPicks(
   if (!window) return false
   if (!isOperationalWindowNumber(window.window_number)) return false
   return VIEWABLE_CURRENT_PICKS_STATUSES.has(window.status)
+}
+
+/** Latest operational window with fixtures. Current Picks follows this, including after resolve until the next round opens. */
+export function selectLatestOperationalWindow<T extends OperationalWindowCandidate>(windows: T[]): T | null {
+  return (
+    windows
+      .filter((window) => isOperationalWindowNumber(window.window_number))
+      .filter((window) => VIEWABLE_CURRENT_PICKS_STATUSES.has(window.status))
+      .filter((window) => (window.snapshot_fixture_count ?? 1) > 0)
+      .sort((a, b) => b.window_number - a.window_number)[0] ?? null
+  )
 }

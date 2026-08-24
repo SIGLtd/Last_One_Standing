@@ -1,5 +1,6 @@
 import { APP_NAME, CURRENT_GAME } from './constants'
 import type { GameEntry } from '../types'
+import { parseDeadlineUtcMs } from './deadline'
 
 export const ROUND1_PUBLIC_LABEL = 'Round 1'
 
@@ -54,8 +55,9 @@ export function derivePlayerEntryState(
 }
 
 export function formatTimeRemaining(deadlineIso: string, nowMs = Date.now()): string {
-  const remainingMs = new Date(deadlineIso).getTime() - nowMs
-  if (remainingMs <= 0) return 'Deadline passed'
+  const deadlineMs = parseDeadlineUtcMs(deadlineIso)
+  const remainingMs = Number.isFinite(deadlineMs) ? deadlineMs - nowMs : Number.NaN
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) return 'Deadline passed'
 
   const totalMinutes = Math.floor(remainingMs / 60_000)
   const days = Math.floor(totalMinutes / (60 * 24))

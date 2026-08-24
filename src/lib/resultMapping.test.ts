@@ -91,7 +91,7 @@ describe('provider result mapping', () => {
     expect(mapped.kind).toBe('ambiguous')
   })
 
-  it('stores a final score and status only for finished fixtures', () => {
+  it('stores a final score on the season fixture row, not on a window snapshot', () => {
     const finished = provider()
     expect(isProviderResultFinal(finished)).toBe(true)
     expect(shouldStoreFinalScore(finished)).toBe(true)
@@ -101,11 +101,14 @@ describe('provider result mapping', () => {
       provider: finished,
       method: 'provider_id',
     })
+    expect(patch.fixtureId).toBe('fx-hul-mun')
     expect(patch.storeFinal).toBe(true)
     expect(patch.status).toBe('finished')
     expect(patch.homeScore).toBe(2)
     expect(patch.awayScore).toBe(1)
     expect(patch.resultStatus).toBe('final')
+    expect(Object.keys(patch)).not.toContain('windowId')
+    expect(Object.keys(patch)).not.toContain('snapshotId')
   })
 
   it('handles postponed and unavailable fixtures without guessing', () => {

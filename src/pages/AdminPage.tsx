@@ -40,6 +40,7 @@ import {
 } from '../lib/selections'
 import { canOpenNextRound } from '../lib/nextRound'
 import { mergeEligibleFixturesWithResults, resolveRoundPreview } from '../lib/roundResolution'
+import { getAdminLiveOpenWindow, getAdminResolutionWindow } from '../lib/adminResolutionWindow'
 import { isProtectedHistoricWindow } from '../lib/windowGuards'
 import {
   adminCreateManualPlayer,
@@ -100,15 +101,14 @@ export function AdminPage() {
   const [syncSummary, setSyncSummary] = useState<ResultSyncSummary | null>(null)
   const [nextDeadlineLocal, setNextDeadlineLocal] = useState('')
   const [allWindowSelections, setAllWindowSelections] = useState<Selection[]>([])
+  const [auditFixtures, setAuditFixtures] = useState<SelectionWindowEligibleFixture[]>([])
 
   const openWindow =
     windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
 
-  const operationalWindow =
-    windows
-      .filter((w) => !isProtectedHistoricWindow(w.window_number))
-      .filter((w) => w.status === 'open' || w.status === 'locked' || w.status === 'resolving' || w.status === 'resolved')
-      .sort((a, b) => b.window_number - a.window_number)[0] ?? null
+  const liveOpenWindow = getAdminLiveOpenWindow(windows)
+  const auditWindow = getAdminResolutionWindow(windows)
+  const thisRoundWindow = liveOpenWindow ?? auditWindow
 
   const loadAdminCore = useCallback(async () => {
     if (!player?.is_admin) {
@@ -130,6 +130,8 @@ export function AdminPage() {
         setWindows([])
         setOpenFixtures([])
         setWindowSelections([])
+        setAllWindowSelections([])
+        setAuditFixtures([])
         setSelectionsMade(0)
         return
       }
@@ -144,31 +146,50 @@ export function AdminPage() {
       setPlayers(gamePlayers)
       setWindows(gameWindows)
 
-      const liveWindow =
-        gameWindows
-          .filter((w) => !isProtectedHistoricWindow(w.window_number))
-          .filter((w) => w.status === 'open' || w.status === 'locked' || w.status === 'resolving' || w.status === 'resolved')
-          .sort((a, b) => b.window_number - a.window_number)[0] ?? null
+      const liveOpen = getAdminLiveOpenWindow(gameWindows)
+      const audit = getAdminResolutionWindow(gameWindows)
+      const thisRound = liveOpen ?? audit
 
       const [seasonRows] = await Promise.all([fetchSeasonFixtures(currentGame.season || '2026/27')])
       setSeasonFixtures(seasonRows)
 
-      if (liveWindow) {
+      async function loadWindowBundle(windowId: string) {
         const [fixtures, pickCount, picks, allPicks] = await Promise.all([
-          fetchWindowEligibleFixtures(liveWindow.id),
-          adminCountSelectionsForWindow(liveWindow.id),
-          adminFetchWindowSelections(liveWindow.id),
-          adminFetchAllWindowSelections(liveWindow.id),
+          fetchWindowEligibleFixtures(windowId),
+          adminCountSelectionsForWindow(windowId),
+          adminFetchWindowSelections(windowId),
+          adminFetchAllWindowSelections(windowId),
         ])
-        setOpenFixtures(fixtures)
-        setSelectionsMade(pickCount)
-        setWindowSelections(picks)
-        setAllWindowSelections(allPicks)
+        return { fixtures, pickCount, picks, allPicks }
+      }
+
+      if (audit && thisRound && audit.id !== thisRound.id) {
+        const [auditBundle, liveBundle] = await Promise.all([loadWindowBundle(audit.id), loadWindowBundle(thisRound.id)])
+        setAuditFixtures(auditBundle.fixtures)
+        setAllWindowSelections(auditBundle.allPicks)
+        setOpenFixtures(liveBundle.fixtures)
+        setSelectionsMade(liveBundle.pickCount)
+        setWindowSelections(liveBundle.picks)
+      } else if (audit) {
+        const bundle = await loadWindowBundle(audit.id)
+        setOpenFixtures(bundle.fixtures)
+        setSelectionsMade(bundle.pickCount)
+        setWindowSelections(bundle.picks)
+        setAuditFixtures(bundle.fixtures)
+        setAllWindowSelections(bundle.allPicks)
+      } else if (thisRound) {
+        const bundle = await loadWindowBundle(thisRound.id)
+        setOpenFixtures(bundle.fixtures)
+        setSelectionsMade(bundle.pickCount)
+        setWindowSelections(bundle.picks)
+        setAuditFixtures(bundle.fixtures)
+        setAllWindowSelections(bundle.allPicks)
       } else {
         setOpenFixtures([])
         setSelectionsMade(0)
         setWindowSelections([])
         setAllWindowSelections([])
+        setAuditFixtures([])
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load admin data.'
@@ -377,11 +398,11 @@ export function AdminPage() {
   }
 
   async function handleResolveRound() {
-    if (!operationalWindow) return
+    if (!auditWindow) return
     setActionId('resolve-round')
     setPageError(null)
     try {
-      const result = await adminApplyRoundResolution(operationalWindow.id)
+      const result = await adminApplyRoundResolution(auditWindow.id)
       setReconcileMessage(
         result.result === 'already_resolved' ? 'This round is already resolved.' : 'Round resolved.',
       )
@@ -394,12 +415,12 @@ export function AdminPage() {
   }
 
   async function handleOpenNextRound() {
-    if (!operationalWindow) return
+    if (!auditWindow) return
     setActionId('open-next-round')
     setPageError(null)
     try {
       const check = canOpenNextRound({
-        currentWindow: operationalWindow,
+        currentWindow: auditWindow,
         windows,
         fixtures: seasonFixtures,
         survivorCount: entries.filter((entry) => entry.paid && entry.status === 'active').length,
@@ -409,7 +430,7 @@ export function AdminPage() {
         throw new Error('Choose a deadline before opening the next round.')
       }
       const result = await adminOpenNextRound({
-        currentWindowId: operationalWindow.id,
+        currentWindowId: auditWindow.id,
         sat: check.weekend.sat,
         sun: check.weekend.sun,
         deadlineAt,
@@ -451,19 +472,23 @@ export function AdminPage() {
       : null
 
   const paymentSummary = buildPlayerPaymentSummary(entries, players)
-  const roundControl = operationalWindow
+  const roundControl = thisRoundWindow
     ? buildRoundControlStats({
-        openWindow: operationalWindow,
+        openWindow: thisRoundWindow,
         snapshotFixtures: openFixtures,
         entries,
         selectionsMade,
       })
     : null
 
-  const resolutionFixtures = mergeEligibleFixturesWithResults(openFixtures, seasonFixtures)
-  const resolutionPreview = operationalWindow
+  const resolutionFixtures = mergeEligibleFixturesWithResults(auditFixtures, seasonFixtures)
+  const eligibilityOverrides = Object.fromEntries(
+    seasonFixtures.map((fixture) => [fixture.id, fixture.eligibility_override ?? 'none']),
+  )
+  const knownSubmittedPicks = allWindowSelections.filter((selection) => Boolean(selection.team_id)).length
+  const resolutionPreview = auditWindow
     ? resolveRoundPreview({
-        window: operationalWindow,
+        window: auditWindow,
         fixtures: resolutionFixtures,
         entries: entries.map((entry) => ({
           player_id: entry.player_id,
@@ -474,18 +499,21 @@ export function AdminPage() {
         selections: allWindowSelections.map((selection) => ({
           player_id: selection.player_id,
           team_id: selection.team_id,
+          window_id: selection.window_id,
           updated_at: selection.updated_at,
           created_at: selection.created_at,
           used_final: selection.used_final,
           outcome: selection.outcome,
           outcome_reason: selection.outcome_reason,
         })),
+        knownSubmittedPicks,
+        eligibilityOverrides,
       })
     : null
 
-  const nextRoundCheck = operationalWindow
+  const nextRoundCheck = auditWindow
     ? canOpenNextRound({
-        currentWindow: operationalWindow,
+        currentWindow: auditWindow,
         windows,
         fixtures: seasonFixtures,
         survivorCount: entries.filter((entry) => entry.paid && entry.status === 'active').length,
@@ -605,10 +633,11 @@ export function AdminPage() {
             </section>
           )}
 
-          {operationalWindow && resolutionPreview ? (
+          {auditWindow && resolutionPreview ? (
             <AdminRoundResultsSection
-              window={operationalWindow}
+              window={auditWindow}
               preview={resolutionPreview}
+              fixtureCount={auditFixtures.length}
               syncSummary={syncSummary}
               nextRound={nextRoundCheck}
               deadlineValue={nextDeadlineLocal}

@@ -149,4 +149,15 @@ describe('used-team filtering', () => {
     expect(used).toEqual(['mun'])
     expect(filterSelectableTeamOptions(eligibleTeams, used).map((team) => team.team_id)).toContain('liv')
   })
+
+  it('prevents a survivor from reusing a Round 1 team in Round 2', () => {
+    const finalised = finallyUsedWindowIds([priorResolvedWindow, laterOpenWindow], now)
+    const used = usedTeamIdsForPlayer(
+      [{ player_id: 'p1', window_id: 'w2-resolved', team_id: 'mun', used_final: true }],
+      'p1',
+      finalised,
+    )
+    expect(used).toEqual(['mun'])
+    expect(filterSelectableTeamOptions(eligibleTeams, used).some((team) => team.team_id === 'mun')).toBe(false)
+  })
 })

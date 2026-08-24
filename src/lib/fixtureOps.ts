@@ -278,6 +278,24 @@ export async function invokeFixtureReconciliation(input?: {
   return data as Record<string, unknown>
 }
 
+export async function invokeFixtureResultSync() {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.functions.invoke('reconcile-fixtures', {
+    body: { action: 'sync_results' },
+  })
+  if (error) throw error
+  return data as {
+    result?: string
+    lastSyncAt?: string | null
+    fixturesChecked?: number
+    fixturesUpdated?: number
+    unresolved?: Array<{ home_team_id?: string; away_team_id?: string; reason?: string }>
+    ambiguous?: Array<{ reason?: string }>
+    unmatchedCount?: number
+    providerErrors?: string[]
+  }
+}
+
 export async function adminApproveWindow(windowId: string) {
   const client = getSupabaseOrThrow()
   const { data, error } = await client.rpc('admin_approve_selection_window', { p_window_id: windowId })

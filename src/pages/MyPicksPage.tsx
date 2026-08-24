@@ -3,6 +3,7 @@ import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { DataTable } from '../components/DataTable'
+import { TeamChip } from '../components/TeamChip'
 import { useAuth, authPhaseLabel } from '../contexts/AuthContext'
 import { fetchCurrentGame } from '../lib/gameEntries'
 import { formatLondonDateTime } from '../lib/fixtureOps'
@@ -77,19 +78,32 @@ export function MyPicksPage() {
                   <th>Fixture</th>
                   <th>Submitted</th>
                   <th>Status</th>
+                  <th>Score</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.selectionId}>
                     <td className="font-medium">{row.roundLabel}</td>
-                    <td>{row.teamName}</td>
+                    <td>
+                      {row.teamId ? (
+                        <span className="inline-flex items-center gap-2">
+                          <TeamChip teamId={row.teamId} size="sm" />
+                          {row.teamName}
+                        </span>
+                      ) : (
+                        row.teamName
+                      )}
+                    </td>
                     <td className="text-muted-ink">{row.fixtureLabel}</td>
                     <td className="text-muted-ink">{row.submittedAt ? formatLondonDateTime(row.submittedAt) : '—'}</td>
                     <td>
-                      <Badge variant={row.usedFinal ? 'muted' : 'open'}>{row.statusLabel}</Badge>
+                      <Badge variant={row.usedFinal || row.outcome === 'eliminated' || row.outcome === 'no_pick' ? 'muted' : row.outcome === 'survived' ? 'success' : 'open'}>
+                        {row.statusLabel}
+                      </Badge>
                       {row.adminEntered ? <span className="ml-1 text-[0.625rem] text-muted-ink">Admin entered</span> : null}
                     </td>
+                    <td className="text-muted-ink">{row.scoreLabel}</td>
                   </tr>
                 ))}
               </tbody>
@@ -101,10 +115,16 @@ export function MyPicksPage() {
               <div key={row.selectionId} className="los-divider-row">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-ink">{row.roundLabel}</span>
-                  <Badge variant={row.usedFinal ? 'muted' : 'open'}>{row.statusLabel}</Badge>
+                  <Badge variant={row.usedFinal || row.outcome === 'eliminated' || row.outcome === 'no_pick' ? 'muted' : row.outcome === 'survived' ? 'success' : 'open'}>
+                    {row.statusLabel}
+                  </Badge>
                 </div>
-                <div className="mt-0.5 text-ink">{row.teamName}</div>
+                <div className="mt-0.5 flex items-center gap-2 text-ink">
+                  {row.teamId ? <TeamChip teamId={row.teamId} size="sm" /> : null}
+                  {row.teamName}
+                </div>
                 <div className="text-[0.6875rem] text-muted-ink">{row.fixtureLabel}</div>
+                {row.scoreLabel !== '—' ? <div className="text-[0.6875rem] text-muted-ink">{row.scoreLabel}</div> : null}
                 {row.adminEntered ? <div className="text-[0.625rem] text-muted-ink">Entered by admin</div> : null}
               </div>
             ))}

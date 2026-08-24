@@ -8,21 +8,21 @@ import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
 import {
   CURRENT_PICKS_EMPTY_MESSAGE,
-  CURRENT_PICKS_ROUND_OPEN_INTRO,
   CURRENT_PICKS_VISIBLE_WHILE_OPEN,
   ROUND1_PUBLIC_LABEL,
+  currentPicksBoardIntro,
   operationalWindowToRoundLabel,
 } from '../lib/round1'
 import { PUBLIC_PRE_LAUNCH_POINTS } from '../lib/preLaunch'
-import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks, getPickStatusLabel } from '../lib/selections'
+import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks, getPickStatusLabel, getPickSurvivalLabel } from '../lib/selections'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { canViewCurrentPicks } from '../lib/windowGuards'
 import type { Game, SelectionWindow, WindowPickRow } from '../types'
 
 function pickStatusVariant(label: string): 'success' | 'warning' | 'muted' | 'open' {
   const lower = label.toLowerCase()
-  if (lower.includes('picked') || lower.includes('saved')) return 'success'
-  if (lower.includes('no pick') || lower.includes('missing')) return 'warning'
+  if (lower.includes('survived') || lower.includes('picked') || lower.includes('saved')) return 'success'
+  if (lower.includes('eliminated') || lower.includes('no pick') || lower.includes('missing')) return 'warning'
   if (lower.includes('locked')) return 'muted'
   return 'open'
 }
@@ -120,7 +120,7 @@ export function CurrentPicksPage() {
         <p className="text-xs text-muted-ink">{CURRENT_PICKS_EMPTY_MESSAGE}</p>
       ) : (
         <>
-          <p className="mb-2 text-xs text-muted-ink">{CURRENT_PICKS_ROUND_OPEN_INTRO}</p>
+          <p className="mb-2 text-xs text-muted-ink">{currentPicksBoardIntro(roundLabel)}</p>
           <div className="hidden md:block">
             <DataTable minWidth="640px">
               <thead>
@@ -142,6 +142,7 @@ export function CurrentPicksPage() {
                   rows.map((row) => {
                     const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
                     const statusLabel = getPickStatusLabel(row, window)
+                    const survivalLabel = getPickSurvivalLabel(row)
                     return (
                       <tr key={row.player_id}>
                         <td className="font-medium text-ink">{row.display_name}</td>
@@ -158,7 +159,7 @@ export function CurrentPicksPage() {
                         <td>
                           <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
                         </td>
-                        <td className="text-muted-ink">Still in</td>
+                        <td className="text-muted-ink">{survivalLabel}</td>
                       </tr>
                     )
                   })
@@ -176,6 +177,7 @@ export function CurrentPicksPage() {
               rows.map((row) => {
                 const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
                 const statusLabel = getPickStatusLabel(row, window)
+                const survivalLabel = getPickSurvivalLabel(row)
                 return (
                   <div key={row.player_id} className="los-divider-row">
                     <div className="flex items-center justify-between gap-2">
@@ -188,6 +190,7 @@ export function CurrentPicksPage() {
                         Pick: <span className="font-medium text-ink">{teamName ?? 'No pick'}</span>
                       </span>
                     </div>
+                    <div className="mt-0.5 text-[0.6875rem] text-muted-ink">{survivalLabel}</div>
                   </div>
                 )
               })

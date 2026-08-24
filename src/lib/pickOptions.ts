@@ -8,10 +8,16 @@ export type UsedTeamWindow = {
   deadline_at: string
 }
 
-export function isFinallyUsedWindow(window: UsedTeamWindow, nowMs = Date.now()): boolean {
+export type UsedTeamSelection = {
+  player_id: string
+  window_id: string
+  team_id: string | null
+  used_final?: boolean
+}
+
+export function isFinallyUsedWindow(window: UsedTeamWindow, _nowMs = Date.now()): boolean {
   if (window.window_number < MIN_OPERATIONAL_WINDOW_NUMBER) return false
-  if (window.status === 'locked' || window.status === 'resolving' || window.status === 'resolved') return true
-  return new Date(window.deadline_at).getTime() <= nowMs
+  return window.status === 'resolved'
 }
 
 export function finallyUsedWindowIds(windows: UsedTeamWindow[], nowMs = Date.now()): string[] {
@@ -19,7 +25,7 @@ export function finallyUsedWindowIds(windows: UsedTeamWindow[], nowMs = Date.now
 }
 
 export function usedTeamIdsForPlayer(
-  selections: Array<{ player_id: string; window_id: string; team_id: string | null }>,
+  selections: UsedTeamSelection[],
   playerId: string,
   finalisedWindowIds: string[],
 ): string[] {
@@ -29,11 +35,21 @@ export function usedTeamIdsForPlayer(
   for (const selection of selections) {
     if (selection.player_id !== playerId) continue
     if (!selection.team_id) continue
-    if (!finalised.has(selection.window_id)) continue
-    used.add(selection.team_id)
+    if (selection.used_final === true || finalised.has(selection.window_id)) {
+      used.add(selection.team_id)
+    }
   }
 
   return [...used]
+}
+
+export function getFinallyUsedTeamsForPlayer(
+  selections: UsedTeamSelection[],
+  playerId: string,
+  windows: UsedTeamWindow[],
+  nowMs = Date.now(),
+): string[] {
+  return usedTeamIdsForPlayer(selections, playerId, finallyUsedWindowIds(windows, nowMs))
 }
 
 export function filterSelectableTeamOptions(

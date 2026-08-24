@@ -116,12 +116,15 @@ describe('round 1 publication gate', () => {
     const openWindow = { ...pendingWindow2, status: 'open' as const, approved_at: '2026-06-23T12:00:00.000Z' }
     expect(shouldShowPlayerPickForm(openWindow)).toBe(true)
     expect(
-      isPlayerFacingOpenWindow({
-        window_number: 2,
-        status: 'open',
-        deadline_at: WINDOW2_PROPOSED_DEADLINE_UTC,
-        snapshot_fixture_count: 8,
-      }),
+      isPlayerFacingOpenWindow(
+        {
+          window_number: 2,
+          status: 'open',
+          deadline_at: WINDOW2_PROPOSED_DEADLINE_UTC,
+          snapshot_fixture_count: 8,
+        },
+        Date.parse('2026-08-20T12:00:00.000Z'),
+      ),
     ).toBe(true)
   })
 

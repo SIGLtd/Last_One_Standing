@@ -9,6 +9,12 @@ const advancedSectionSource = readFileSync(
   join(__dirname, '..', 'components', 'admin', 'AdminAdvancedOperationsSection.tsx'),
   'utf8',
 )
+const resultsSectionSource = readFileSync(
+  join(__dirname, '..', 'components', 'admin', 'AdminRoundResultsSection.tsx'),
+  'utf8',
+)
+const currentPicksSource = readFileSync(join(__dirname, '..', 'pages', 'CurrentPicksPage.tsx'), 'utf8')
+const myPicksSource = readFileSync(join(__dirname, '..', 'pages', 'MyPicksPage.tsx'), 'utf8')
 
 describe('admin page mobile cockpit layout', () => {
   it('renders round control before advanced operations', () => {
@@ -22,5 +28,33 @@ describe('admin page mobile cockpit layout', () => {
   it('keeps advanced operations in a collapsed details element', () => {
     expect(advancedSectionSource).toContain('<details')
     expect(advancedSectionSource).toContain('Advanced operations')
+  })
+})
+
+describe('admin round results controls', () => {
+  it('shows sync, preview, resolve, and open-next-round actions for admin only', () => {
+    expect(resultsSectionSource).toContain('Sync latest results')
+    expect(resultsSectionSource).toContain('Resolution preview')
+    expect(resultsSectionSource).toContain('Resolve round')
+    expect(resultsSectionSource).toContain('Open next round')
+    expect(resultsSectionSource).toContain('Survived')
+    expect(resultsSectionSource).toContain('Eliminated 💀')
+    expect(resultsSectionSource).toContain('No pick 💀')
+    expect(resultsSectionSource).toContain('TeamChip')
+    expect(adminPageSource).toContain('<AdminRoundResultsSection')
+    expect(adminPageSource).toContain("if (!player?.is_admin)")
+    expect(adminPageSource).not.toContain('FOOTBALL_DATA_API_KEY')
+  })
+
+  it('does not expose private player or payment fields in the audit list', () => {
+    expect(resultsSectionSource).not.toContain('row.email')
+    expect(resultsSectionSource).not.toContain('entry.email')
+    expect(resultsSectionSource).not.toContain('entry.phone')
+    expect(resultsSectionSource).not.toContain('payment_claimed')
+    expect(resultsSectionSource).not.toContain('>{row.playerId}<')
+    expect(currentPicksSource).not.toContain('row.email')
+    expect(currentPicksSource).not.toContain('row.phone')
+    expect(myPicksSource).toContain('row.statusLabel')
+    expect(myPicksSource).toContain('TeamChip')
   })
 })

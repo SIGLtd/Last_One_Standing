@@ -65,3 +65,22 @@
 --   );
 --   $$
 -- );
+
+-- Post-match results sync (DO NOT ENABLE until Admin button path is proven).
+-- This only writes fixture scores. It does not resolve or eliminate players.
+--
+-- select cron.schedule(
+--   'los-results-sync',
+--   '10 21 * * 0,1',
+--   $$
+--   select net.http_post(
+--     url := (select decrypted_secret from vault.decrypted_secrets where name = 'los_project_url')
+--            || '/functions/v1/reconcile-fixtures',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'x-los-scheduler-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'los_scheduler_secret')
+--     ),
+--     body := jsonb_build_object('action', 'sync_results', 'schedule', 'results')
+--   );
+--   $$
+-- );

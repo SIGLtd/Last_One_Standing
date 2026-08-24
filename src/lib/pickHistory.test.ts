@@ -5,7 +5,7 @@ import type { Selection } from '../types'
 function row(
   overrides: Partial<Selection> & {
     window?: { window_number: number; status: string; deadline_at: string }
-    fixture?: { home_team_id: string; away_team_id: string }
+    fixture?: { home_team_id: string; away_team_id: string; home_score?: number | null; away_score?: number | null }
     player_id?: string
   },
 ) {
@@ -22,6 +22,8 @@ function row(
     admin_corrected: false,
     corrected_by: null,
     correction_reason: null,
+    outcome: null,
+    used_final: false,
     window: { window_number: 2, status: 'open', deadline_at: '2026-08-21T15:00:00.000Z' },
     fixture: { home_team_id: 'liv', away_team_id: 'ars' },
     ...overrides,
@@ -46,6 +48,21 @@ describe('pick history', () => {
     expect(rows[0]?.adminEntered).toBe(true)
     expect(rows[0]?.teamName).toBe('Liverpool')
     expect(rows[0]?.roundLabel).toBe('Round 1')
+  })
+
+  it('shows survived and eliminated outcomes in player history', () => {
+    const survived = buildPickHistoryRows([
+      row({
+        outcome: 'survived',
+        used_final: true,
+        window: { window_number: 2, status: 'resolved', deadline_at: '2026-08-21T15:00:00.000Z' },
+        fixture: { home_team_id: 'mci', away_team_id: 'bou', home_score: 3, away_score: 0 },
+        team_id: 'mci',
+      }),
+    ])
+    expect(survived[0]?.statusLabel).toBe('Survived')
+    expect(survived[0]?.usedFinal).toBe(true)
+    expect(survived[0]?.scoreLabel).toBe('3–0')
   })
 
   it('builds an empty list for an empty history', () => {

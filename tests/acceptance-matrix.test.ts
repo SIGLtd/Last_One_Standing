@@ -244,6 +244,16 @@ describe('acceptance matrix', () => {
     expect(meta.baseline_type).toBe('official_initial_schedule')
     expect(meta.provider_change_detection).toContain('football_data')
   })
+
+  it('22. result sync writes scores without eliminating players', () => {
+    const edgeSource = readFileSync(join(root, 'supabase', 'functions', 'reconcile-fixtures', 'index.ts'), 'utf8')
+    const resultsUi = readFileSync(join(root, 'src', 'components', 'admin', 'AdminRoundResultsSection.tsx'), 'utf8')
+    expect(edgeSource).toContain("action === 'sync_results'")
+    expect(edgeSource).toContain('mapProviderResultToFixture')
+    expect(edgeSource).not.toContain('admin_apply_round_resolution')
+    expect(resultsUi).toContain('Sync latest results')
+    expect(resultsUi).toContain('does not eliminate')
+  })
 })
 
 describe('artefact sample weekends', () => {

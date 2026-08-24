@@ -26,6 +26,10 @@ export const PLAYER_COMPLETE_ENTRY_MESSAGE = `Join Game ${CURRENT_GAME}, pay usi
 
 export const CURRENT_PICKS_ROUND_OPEN_INTRO = `Every player's pick for ${ROUND1_PUBLIC_LABEL} appears here. You do not need to submit your own pick first to view others.`
 
+export function currentPicksBoardIntro(roundLabel: string): string {
+  return `Every player's pick for ${roundLabel} appears here. You do not need to submit your own pick first to view others.`
+}
+
 /** Public Current Picks stay visible for the current operational round, including after the deadline. */
 export const CURRENT_PICKS_VISIBLE_WHILE_OPEN = true
 export const CURRENT_PICKS_EMPTY_MESSAGE = 'No picks submitted yet.'

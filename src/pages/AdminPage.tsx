@@ -7,6 +7,7 @@ import { AdminCommunicationsSection } from '../components/admin/AdminCommunicati
 import { AdminPlayersPaymentsSection } from '../components/admin/AdminPlayersPaymentsSection'
 import { AdminProxyPicksSection } from '../components/admin/AdminProxyPicksSection'
 import { AdminRoundControlCard } from '../components/admin/AdminRoundControlCard'
+import { AdminRoundResultsSection, type ResultSyncSummary } from '../components/admin/AdminRoundResultsSection'
 import { AdminThisRoundSection } from '../components/admin/AdminThisRoundSection'
 import { useAuth, authPhaseLabel } from '../contexts/AuthContext'
 import { useGame } from '../contexts/GameContext'
@@ -21,17 +22,24 @@ import {
   fetchRecentSyncRuns,
   fetchSeasonFixtures,
   fetchWindowEligibleFixtures,
+  formatDeadlineLondon,
   invokeFixtureReconciliation,
+  invokeFixtureResultSync,
 } from '../lib/fixtureOps'
 import { buildWindow2ReadinessPreview } from '../lib/window2Preview'
 import { compareDraftSnapshotToMaster, WINDOW2_NUMBER } from '../lib/window2Draft'
 import {
+  adminApplyRoundResolution,
   adminCountSelectionsForWindow,
+  adminFetchAllWindowSelections,
   adminFetchSelectionWindows,
   adminFetchWindowSelections,
   adminLockSelectionWindow,
+  adminOpenNextRound,
   adminSubmitSelection,
 } from '../lib/selections'
+import { canOpenNextRound } from '../lib/nextRound'
+import { mergeEligibleFixturesWithResults, resolveRoundPreview } from '../lib/roundResolution'
 import { isProtectedHistoricWindow } from '../lib/windowGuards'
 import {
   adminCreateManualPlayer,
@@ -89,9 +97,18 @@ export function AdminPage() {
     null as ReturnType<typeof buildWindow2ReadinessPreview> | null,
   )
   const [seasonFixtures, setSeasonFixtures] = useState<SeasonFixture[]>([])
+  const [syncSummary, setSyncSummary] = useState<ResultSyncSummary | null>(null)
+  const [nextDeadlineLocal, setNextDeadlineLocal] = useState('')
+  const [allWindowSelections, setAllWindowSelections] = useState<Selection[]>([])
 
   const openWindow =
     windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
+
+  const operationalWindow =
+    windows
+      .filter((w) => !isProtectedHistoricWindow(w.window_number))
+      .filter((w) => w.status === 'open' || w.status === 'locked' || w.status === 'resolving' || w.status === 'resolved')
+      .sort((a, b) => b.window_number - a.window_number)[0] ?? null
 
   const loadAdminCore = useCallback(async () => {
     if (!player?.is_admin) {
@@ -128,21 +145,30 @@ export function AdminPage() {
       setWindows(gameWindows)
 
       const liveWindow =
-        gameWindows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
+        gameWindows
+          .filter((w) => !isProtectedHistoricWindow(w.window_number))
+          .filter((w) => w.status === 'open' || w.status === 'locked' || w.status === 'resolving' || w.status === 'resolved')
+          .sort((a, b) => b.window_number - a.window_number)[0] ?? null
+
+      const [seasonRows] = await Promise.all([fetchSeasonFixtures(currentGame.season || '2026/27')])
+      setSeasonFixtures(seasonRows)
 
       if (liveWindow) {
-        const [fixtures, pickCount, picks] = await Promise.all([
+        const [fixtures, pickCount, picks, allPicks] = await Promise.all([
           fetchWindowEligibleFixtures(liveWindow.id),
           adminCountSelectionsForWindow(liveWindow.id),
           adminFetchWindowSelections(liveWindow.id),
+          adminFetchAllWindowSelections(liveWindow.id),
         ])
         setOpenFixtures(fixtures)
         setSelectionsMade(pickCount)
         setWindowSelections(picks)
+        setAllWindowSelections(allPicks)
       } else {
         setOpenFixtures([])
         setSelectionsMade(0)
         setWindowSelections([])
+        setAllWindowSelections([])
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load admin data.'
@@ -326,6 +352,84 @@ export function AdminPage() {
     }
   }
 
+  async function handleSyncLatestResults() {
+    setActionId('sync-results')
+    setPageError(null)
+    try {
+      const result = await invokeFixtureResultSync()
+      setSyncSummary({
+        lastSyncAt: result.lastSyncAt ?? new Date().toISOString(),
+        fixturesChecked: result.fixturesChecked ?? 0,
+        fixturesUpdated: result.fixturesUpdated ?? 0,
+        unresolved: result.unresolved ?? [],
+        ambiguousCount: result.ambiguous?.length ?? 0,
+        unmatchedCount: result.unmatchedCount ?? 0,
+        providerErrors: result.providerErrors ?? [],
+        result: result.result,
+      })
+      await loadAdminCore()
+      await loadAdminAdvanced()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to sync latest results.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleResolveRound() {
+    if (!operationalWindow) return
+    setActionId('resolve-round')
+    setPageError(null)
+    try {
+      const result = await adminApplyRoundResolution(operationalWindow.id)
+      setReconcileMessage(
+        result.result === 'already_resolved' ? 'This round is already resolved.' : 'Round resolved.',
+      )
+      await loadAdminCore()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to resolve round.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleOpenNextRound() {
+    if (!operationalWindow) return
+    setActionId('open-next-round')
+    setPageError(null)
+    try {
+      const check = canOpenNextRound({
+        currentWindow: operationalWindow,
+        windows,
+        fixtures: seasonFixtures,
+        survivorCount: entries.filter((entry) => entry.paid && entry.status === 'active').length,
+      })
+      const deadlineAt = nextDeadlineLocal ? new Date(nextDeadlineLocal).toISOString() : check.weekend?.proposedDeadline
+      if (!check.weekend || !deadlineAt) {
+        throw new Error('Choose a deadline before opening the next round.')
+      }
+      const result = await adminOpenNextRound({
+        currentWindowId: operationalWindow.id,
+        sat: check.weekend.sat,
+        sun: check.weekend.sun,
+        deadlineAt,
+      })
+      const fixtureCount = Number(result.fixture_count ?? check.weekend.eligible.length)
+      const survivorCount = Number(result.survivor_count ?? check.survivorCount)
+      setReconcileMessage(
+        result.result === 'already_open'
+          ? 'The next round is already open.'
+          : `Round opened · ${fixtureCount} fixtures · ${survivorCount} survivors · deadline ${formatDeadlineLondon(String(result.deadline_at ?? deadlineAt))}`,
+      )
+      await loadAdminCore()
+      await loadAdminAdvanced()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to open the next round.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
   async function handleRevalidateDraft(windowId: string) {
     setActionId(windowId)
     setPageError(null)
@@ -347,14 +451,65 @@ export function AdminPage() {
       : null
 
   const paymentSummary = buildPlayerPaymentSummary(entries, players)
-  const roundControl = openWindow
+  const roundControl = operationalWindow
     ? buildRoundControlStats({
-        openWindow,
+        openWindow: operationalWindow,
         snapshotFixtures: openFixtures,
         entries,
         selectionsMade,
       })
     : null
+
+  const resolutionFixtures = mergeEligibleFixturesWithResults(openFixtures, seasonFixtures)
+  const resolutionPreview = operationalWindow
+    ? resolveRoundPreview({
+        window: operationalWindow,
+        fixtures: resolutionFixtures,
+        entries: entries.map((entry) => ({
+          player_id: entry.player_id,
+          display_name: entry.player?.display_name ?? 'Player',
+          status: entry.status,
+          paid: entry.paid,
+        })),
+        selections: allWindowSelections.map((selection) => ({
+          player_id: selection.player_id,
+          team_id: selection.team_id,
+          updated_at: selection.updated_at,
+          created_at: selection.created_at,
+          used_final: selection.used_final,
+          outcome: selection.outcome,
+          outcome_reason: selection.outcome_reason,
+        })),
+      })
+    : null
+
+  const nextRoundCheck = operationalWindow
+    ? canOpenNextRound({
+        currentWindow: operationalWindow,
+        windows,
+        fixtures: seasonFixtures,
+        survivorCount: entries.filter((entry) => entry.paid && entry.status === 'active').length,
+      })
+    : {
+        canOpen: false,
+        reason: 'No current operational round.',
+        survivorCount: 0,
+        alreadyOpen: false,
+        weekend: null,
+      }
+
+  useEffect(() => {
+    const proposed = nextRoundCheck.weekend?.proposedDeadline
+    if (proposed && !nextDeadlineLocal) {
+      const date = new Date(proposed)
+      if (!Number.isNaN(date.getTime())) {
+        const pad = (n: number) => String(n).padStart(2, '0')
+        setNextDeadlineLocal(
+          `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`,
+        )
+      }
+    }
+  }, [nextRoundCheck.weekend?.proposedDeadline, nextDeadlineLocal])
 
   const exportRows = game
     ? buildSelectionExportRows({
@@ -450,6 +605,23 @@ export function AdminPage() {
             </section>
           )}
 
+          {operationalWindow && resolutionPreview ? (
+            <AdminRoundResultsSection
+              window={operationalWindow}
+              preview={resolutionPreview}
+              syncSummary={syncSummary}
+              nextRound={nextRoundCheck}
+              deadlineValue={nextDeadlineLocal}
+              onDeadlineChange={setNextDeadlineLocal}
+              syncBusy={actionId === 'sync-results'}
+              resolveBusy={actionId === 'resolve-round'}
+              openBusy={actionId === 'open-next-round'}
+              onSyncResults={() => void handleSyncLatestResults()}
+              onResolveRound={() => void handleResolveRound()}
+              onOpenNextRound={() => void handleOpenNextRound()}
+            />
+          ) : null}
+
           {openWindow ? (
             <>
               <AdminThisRoundSection
@@ -466,19 +638,20 @@ export function AdminPage() {
                 onCreateManualPlayer={handleCreateManualPlayer}
                 onSaveProxyPick={handleSaveProxyPick}
               />
-              {game ? (
-                <AdminPlayersPaymentsSection
-                  game={game}
-                  entries={entries}
-                  summary={paymentSummary}
-                  actionId={actionId}
-                  onVerifyPayment={(id) => void handleVerifyPayment(id)}
-                  onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
-                />
-              ) : null}
-              <AdminCommunicationsSection />
             </>
           ) : null}
+
+          {game ? (
+            <AdminPlayersPaymentsSection
+              game={game}
+              entries={entries}
+              summary={paymentSummary}
+              actionId={actionId}
+              onVerifyPayment={(id) => void handleVerifyPayment(id)}
+              onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
+            />
+          ) : null}
+          <AdminCommunicationsSection />
 
           <AdminAdvancedOperationsSection
             game={game}

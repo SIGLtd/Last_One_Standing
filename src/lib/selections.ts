@@ -1,4 +1,4 @@
-import { finallyUsedWindowIds } from './pickOptions'
+import { getFinallyUsedTeamsForPlayer } from './pickOptions'
 import { fetchCurrentOperationalWindow } from './fixtureOps'
 import { getSupabaseOrThrow } from './supabase'
 import { parsePickError, pickErrorLabel } from './pickErrors'
@@ -104,29 +104,38 @@ export async function adminCountSelectionsForWindow(windowId: string): Promise<n
 }
 
 export async function fetchFinallyUsedTeamIds(playerId: string, gameId: string): Promise<string[]> {
+  return getFinallyUsedTeamsForPlayerFromDb(playerId, gameId)
+}
+
+export async function getFinallyUsedTeamsForPlayerFromDb(playerId: string, gameId: string): Promise<string[]> {
   const client = getSupabaseOrThrow()
-  const { data: windows, error: windowError } = await client
-    .from('selection_windows')
-    .select('id, status, deadline_at, window_number')
-    .eq('game_id', gameId)
-
-  if (windowError) throw windowError
-
-  const now = Date.now()
-  const finalisedWindowIds = finallyUsedWindowIds(windows ?? [], now)
-
-  if (finalisedWindowIds.length === 0) return []
-
   const { data, error } = await client
     .from('selections')
-    .select('team_id')
+    .select('team_id, used_final, window_id, window:selection_windows!inner(status, window_number)')
     .eq('game_id', gameId)
     .eq('player_id', playerId)
     .not('team_id', 'is', null)
-    .in('window_id', finalisedWindowIds)
 
   if (error) throw error
-  return [...new Set((data ?? []).map((row) => row.team_id as string))]
+
+  return getFinallyUsedTeamsForPlayer(
+    (data ?? []).map((row) => ({
+      player_id: playerId,
+      window_id: row.window_id as string,
+      team_id: row.team_id as string | null,
+      used_final: Boolean((row as { used_final?: boolean }).used_final),
+    })),
+    playerId,
+    (data ?? []).map((row) => {
+      const window = Array.isArray(row.window) ? row.window[0] : row.window
+      return {
+        id: row.window_id as string,
+        window_number: window?.window_number ?? 0,
+        status: window?.status ?? 'open',
+        deadline_at: '1970-01-01T00:00:00.000Z',
+      }
+    }),
+  )
 }
 
 export async function fetchMySelection(
@@ -201,6 +210,18 @@ export async function adminFetchWindowSelections(windowId: string): Promise<Sele
   return data ?? []
 }
 
+export async function adminFetchAllWindowSelections(windowId: string): Promise<Selection[]> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('selections')
+    .select('*')
+    .eq('window_id', windowId)
+    .order('updated_at', { ascending: true })
+
+  if (error) throw error
+  return data ?? []
+}
+
 export async function fetchSubmittedTeamIdsForWindow(windowId: string): Promise<string[]> {
   const client = getSupabaseOrThrow()
   const { data, error } = await client
@@ -228,9 +249,11 @@ export async function fetchCurrentWindowPicks(gameId: string, windowId: string):
       locked_at: row.locked_at ?? null,
       entry_status: 'active',
       updated_at: row.updated_at ?? null,
-      admin_corrected: Boolean(row.admin_corrected),
-    }))
-  }
+        admin_corrected: Boolean(row.admin_corrected),
+        outcome: (row.outcome ?? null) as WindowPickRow['outcome'],
+        used_final: Boolean(row.used_final),
+      }))
+    }
 
   const [{ data: entries, error: entriesError }, { data: selections, error: selectionsError }] = await Promise.all([
     client
@@ -261,6 +284,8 @@ export async function fetchCurrentWindowPicks(gameId: string, windowId: string):
         paid: Boolean((entry as { paid?: boolean }).paid),
         updated_at: selection?.updated_at ?? selection?.created_at ?? null,
         admin_corrected: Boolean(selection?.admin_corrected),
+        outcome: selection?.outcome ?? null,
+        used_final: Boolean(selection?.used_final),
       }
     })
   }
@@ -275,13 +300,49 @@ export async function fetchCurrentWindowPicks(gameId: string, windowId: string):
       entry_status: 'active' as const,
       updated_at: selection.updated_at ?? selection.created_at ?? null,
       admin_corrected: Boolean(selection.admin_corrected),
+      outcome: selection.outcome ?? null,
+      used_final: Boolean(selection.used_final),
     }))
 }
 
 export function getPickStatusLabel(row: WindowPickRow, window: SelectionWindow | null): string {
+  if (row.outcome === 'survived') return 'Survived'
+  if (row.outcome === 'eliminated') return 'Eliminated'
+  if (row.outcome === 'no_pick') return 'No pick'
   if (!row.team_id) return 'No pick yet'
   if (row.locked_at || (window && isWindowLocked(window))) return 'Locked'
   return 'Submitted'
 }
 
-export { parsePickError, pickErrorLabel }
+export function getPickSurvivalLabel(row: WindowPickRow): string {
+  if (row.outcome === 'survived') return 'Survived'
+  if (row.outcome === 'eliminated' || row.outcome === 'no_pick') return 'Eliminated 💀'
+  if (row.entry_status === 'eliminated') return 'Eliminated 💀'
+  return 'Still in'
+}
+
+export async function adminApplyRoundResolution(windowId: string) {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_apply_round_resolution', { p_window_id: windowId })
+  if (error) throw error
+  return data as Record<string, unknown>
+}
+
+export async function adminOpenNextRound(input: {
+  currentWindowId: string
+  sat: string
+  sun: string
+  deadlineAt: string
+}) {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_open_next_round', {
+    p_current_window_id: input.currentWindowId,
+    p_sat: input.sat,
+    p_sun: input.sun,
+    p_deadline: input.deadlineAt,
+  })
+  if (error) throw error
+  return data as Record<string, unknown>
+}
+
+export { parsePickError, pickErrorLabel, getFinallyUsedTeamsForPlayer }

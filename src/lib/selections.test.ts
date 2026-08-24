@@ -7,6 +7,7 @@ import { pickErrorLabel } from './pickErrors'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const migration4 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '4_fixture_operations_core.sql'), 'utf8')
 const migration6 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '6_selection_admin_audit_columns.sql'), 'utf8')
+const migration9 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '9_round_results_and_resolution.sql'), 'utf8')
 const selectionsSource = readFileSync(join(__dirname, 'selections.ts'), 'utf8')
 
 describe('selection save path', () => {
@@ -43,8 +44,18 @@ describe('selection save path', () => {
     expect(selectionsSource).toContain('public_current_window_picks')
     expect(selectionsSource).toContain('fetchSubmittedTeamIdsForWindow')
     expect(selectionsSource).toContain(".eq('window_id', windowId)")
-    expect(selectionsSource).toContain('finallyUsedWindowIds')
+    expect(selectionsSource).toContain('getFinallyUsedTeamsForPlayer')
     expect(selectionsSource).toContain('fetchCurrentOperationalWindow')
     expect(selectionsSource).not.toContain('return fetchOpenSelectionWindow')
+  })
+
+  it('resolves used teams from used_final / resolved windows only', () => {
+    expect(migration9).toContain('used_final')
+    expect(migration9).toContain("or sw.status = 'resolved'")
+    expect(migration9).toContain('admin_apply_round_resolution')
+    expect(migration9).toContain('admin_open_next_round')
+    expect(migration9).toContain('WINDOW_1_PROTECTED')
+    expect(migration9).not.toMatch(/update\s+players/i)
+    expect(migration9).not.toMatch(/update\s+games/i)
   })
 })

@@ -36,7 +36,14 @@ export function buildRoundControlStats(input: {
 
   return {
     roundLabel: operationalWindowToRoundLabel(input.openWindow.window_number) || ROUND1_PUBLIC_LABEL,
-    statusLabel: 'Open',
+    statusLabel:
+      input.openWindow.status === 'resolved'
+        ? 'Resolved'
+        : input.openWindow.status === 'locked'
+          ? 'Locked'
+          : input.openWindow.status === 'resolving'
+            ? 'Resolving'
+            : 'Open',
     deadlineLabel: input.openWindow.deadline_at,
     timeRemaining: formatTimeRemaining(input.openWindow.deadline_at, input.nowMs),
     eligibleFixtureCount: input.snapshotFixtures.length,

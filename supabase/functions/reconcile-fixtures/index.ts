@@ -2,12 +2,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { DateTime } from 'https://esm.sh/luxon@3.5.0'
 import {
   checkFootballDataReadiness,
+  fetchPremierLeagueSeasonMatches,
   FOOTBALL_DATA_API_BASE,
   loadNormalizedSeasonMatches,
   LOS_SEASON_LABEL,
+  LOS_SEASON_YEAR,
+  normalizeFootballDataMatch,
   PL_COMPETITION_CODE,
   type NormalizedProviderMatch,
 } from './footballDataProvider.ts'
+import { isProviderResultFinal, mapProviderResultToFixture, plainProviderError } from './resultSync.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,11 +23,11 @@ const OFFICIAL_BASELINE_URL =
   'https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season/'
 
 type ReconcileBody = {
-  action?: 'reconcile' | 'status' | 'provider_check' | 'provider_sync' | 'map_provider_ids'
+  action?: 'reconcile' | 'status' | 'provider_check' | 'provider_sync' | 'map_provider_ids' | 'sync_results'
   targetSatDate?: string
   targetSunDate?: string
   sourceType?: 'manual' | 'football_data'
-  schedule?: 'monday' | 'friday' | 'saturday_early'
+  schedule?: 'monday' | 'friday' | 'saturday_early' | 'results'
   createCandidateWindow?: boolean
 }
 
@@ -303,6 +307,170 @@ async function mapProviderIdsOnly(
   return { mapped, skipped }
 }
 
+async function syncLatestResults(
+  admin: ReturnType<typeof createClient>,
+  footballDataKey: string,
+  gameId: string | null,
+  actorPlayerId: string | null,
+) {
+  const retrievedAt = new Date().toISOString()
+  const fetched = await fetchPremierLeagueSeasonMatches(footballDataKey, LOS_SEASON_YEAR)
+  if (!fetched.ok) {
+    return {
+      result: 'provider_error',
+      lastSyncAt: retrievedAt,
+      fixturesChecked: 0,
+      fixturesUpdated: 0,
+      unresolved: [],
+      ambiguous: [],
+      unmatched: [],
+      unmatchedCount: 0,
+      providerErrors: [plainProviderError(fetched.status)],
+    }
+  }
+
+  const providerMatches = fetched.matches
+    .map((match) => normalizeFootballDataMatch(match))
+    .filter((match): match is NormalizedProviderMatch => match !== null)
+
+  const { data: fixtures, error: fixtureError } = await admin
+    .from('season_fixtures')
+    .select('id, source_fixture_id, canonical_key, home_team_id, away_team_id, kickoff_at, status, home_score, away_score, result_status')
+    .eq('season', LOS_SEASON_LABEL)
+
+  if (fixtureError) throw fixtureError
+
+  const { data: syncRun } = await admin
+    .from('fixture_sync_runs')
+    .insert({
+      source_type: 'football_data',
+      source_url: `${FOOTBALL_DATA_API_BASE}/competitions/${PL_COMPETITION_CODE}/matches`,
+      validation_status: 'running',
+      run_result: 'running',
+      game_id: gameId,
+      created_by_player_id: actorPlayerId,
+    })
+    .select('id')
+    .maybeSingle()
+
+  let fixturesUpdated = 0
+  const unresolved: Array<{ home_team_id: string; away_team_id: string; reason: string }> = []
+  const ambiguous: Array<{ providerFixtureId: string; reason: string }> = []
+  const unmatched: Array<{ providerFixtureId: string; homeTeamId: string; awayTeamId: string }> = []
+
+  for (const item of providerMatches) {
+    const mapped = mapProviderResultToFixture(
+      {
+        providerFixtureId: item.providerFixtureId,
+        homeTeamId: item.homeTeamId,
+        awayTeamId: item.awayTeamId,
+        kickoffAt: item.kickoffAt,
+        canonicalKey: item.canonicalKey,
+        status: item.status,
+        homeScore: item.homeScore,
+        awayScore: item.awayScore,
+        resultStatus: item.resultStatus,
+        providerStatus: item.status,
+      },
+      fixtures ?? [],
+    )
+
+    if (mapped.kind === 'ambiguous') {
+      ambiguous.push({ providerFixtureId: item.providerFixtureId, reason: mapped.reason })
+      continue
+    }
+
+    if (mapped.kind === 'unmatched') {
+      unmatched.push({
+        providerFixtureId: item.providerFixtureId,
+        homeTeamId: item.homeTeamId,
+        awayTeamId: item.awayTeamId,
+      })
+      continue
+    }
+
+    const storeFinal = isProviderResultFinal({
+      providerFixtureId: item.providerFixtureId,
+      homeTeamId: item.homeTeamId,
+      awayTeamId: item.awayTeamId,
+      kickoffAt: item.kickoffAt,
+      canonicalKey: item.canonicalKey,
+      status: item.status,
+      homeScore: item.homeScore,
+      awayScore: item.awayScore,
+      resultStatus: item.resultStatus,
+      providerStatus: item.status,
+    })
+
+    const mappedStatus = item.status.trim().toLowerCase()
+    const safeStatus = ['finished', 'scheduled', 'in_play', 'postponed', 'cancelled'].includes(mappedStatus)
+      ? mappedStatus
+      : mapped.fixture.status
+
+    const patch = {
+      status: storeFinal ? 'finished' : safeStatus,
+      home_score: storeFinal ? item.homeScore : mapped.fixture.home_score,
+      away_score: storeFinal ? item.awayScore : mapped.fixture.away_score,
+      result_status: storeFinal ? 'final' : mapped.fixture.result_status === 'final' ? 'final' : 'pending',
+      source_fixture_id: mapped.fixture.source_fixture_id ?? item.providerFixtureId,
+      source_retrieved_at: retrievedAt,
+      last_result_sync_at: retrievedAt,
+      result_source: 'football_data',
+      provider_status: item.status,
+      result_match_method: mapped.method,
+      updated_at: retrievedAt,
+    }
+
+    const changed =
+      mapped.fixture.status !== patch.status ||
+      mapped.fixture.home_score !== patch.home_score ||
+      mapped.fixture.away_score !== patch.away_score ||
+      mapped.fixture.result_status !== patch.result_status ||
+      mapped.fixture.source_fixture_id !== patch.source_fixture_id
+
+    const { error: updateError } = await admin.from('season_fixtures').update(patch).eq('id', mapped.fixture.id)
+    if (!updateError && changed) fixturesUpdated += 1
+
+    if (!storeFinal && (safeStatus === 'postponed' || safeStatus === 'cancelled' || safeStatus === 'in_play')) {
+      unresolved.push({
+        home_team_id: mapped.fixture.home_team_id,
+        away_team_id: mapped.fixture.away_team_id,
+        reason:
+          safeStatus === 'postponed'
+            ? 'Postponed — no final score stored'
+            : safeStatus === 'cancelled'
+              ? 'Cancelled — no final score stored'
+              : 'Still in play',
+      })
+    }
+  }
+
+  if (syncRun?.id) {
+    await admin
+      .from('fixture_sync_runs')
+      .update({
+        validation_status: 'passed',
+        run_result: 'results_synced',
+        fixture_total: providerMatches.length,
+        changes_detected: fixturesUpdated,
+        retrieved_at: retrievedAt,
+      })
+      .eq('id', syncRun.id)
+  }
+
+  return {
+    result: 'results_synced',
+    lastSyncAt: retrievedAt,
+    fixturesChecked: providerMatches.length,
+    fixturesUpdated,
+    unresolved,
+    ambiguous,
+    unmatchedCount: unmatched.length,
+    unmatched: unmatched.slice(0, 12),
+    providerErrors: [] as string[],
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -353,6 +521,31 @@ Deno.serve(async (req) => {
         providerMatchCount: providerMatches.length,
         ...mapping,
       })
+    }
+
+    if (action === 'sync_results') {
+      if (caller.kind !== 'admin' && caller.kind !== 'service' && caller.kind !== 'scheduler') {
+        return json({ error: 'ADMIN_REQUIRED' }, 403)
+      }
+      if (!footballDataKey) {
+        return json({
+          result: 'provider_not_configured',
+          lastSyncAt: null,
+          fixturesChecked: 0,
+          fixturesUpdated: 0,
+          unresolved: [],
+          providerErrors: ['football-data.org is not configured on the server.'],
+        })
+      }
+
+      const { data: game } = await admin.from('games').select('id').eq('game_number', 27).maybeSingle()
+      const sync = await syncLatestResults(
+        admin,
+        footballDataKey,
+        game?.id ?? null,
+        caller.kind === 'admin' ? caller.playerId : null,
+      )
+      return json(sync)
     }
 
     if (caller.kind === 'scheduler') {

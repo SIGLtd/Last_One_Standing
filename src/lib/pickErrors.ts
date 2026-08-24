@@ -35,7 +35,7 @@ export function pickErrorLabel(code: PickErrorCode | string): string {
     case 'TEAM_NOT_ELIGIBLE':
       return 'That team is not eligible in this window.'
     case 'TEAM_ALREADY_USED':
-      return 'You have already used that team in a locked window.'
+      return 'You have already used that team in a previous round.'
     case 'FIXTURE_STARTED':
       return 'That fixture has already kicked off.'
     case 'PLAYER_NOT_FOUND':

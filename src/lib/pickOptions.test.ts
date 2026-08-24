@@ -23,10 +23,10 @@ const currentOpenWindow: UsedTeamWindow = {
   deadline_at: '2026-08-21T15:00:00.000Z',
 }
 
-const priorLockedWindow: UsedTeamWindow = {
-  id: 'w2-locked',
+const priorResolvedWindow: UsedTeamWindow = {
+  id: 'w2-resolved',
   window_number: 2,
-  status: 'locked',
+  status: 'resolved',
   deadline_at: '2026-08-14T15:00:00.000Z',
 }
 
@@ -82,10 +82,10 @@ describe('used-team filtering', () => {
     ])
   })
 
-  it('hides a team the player finally used in a previous locked round', () => {
-    const finalised = finallyUsedWindowIds([priorLockedWindow, laterOpenWindow], now)
+  it('hides a team the player finally used in a previous resolved round', () => {
+    const finalised = finallyUsedWindowIds([priorResolvedWindow, laterOpenWindow], now)
     const used = usedTeamIdsForPlayer(
-      [{ player_id: 'p1', window_id: 'w2-locked', team_id: 'mun' }],
+      [{ player_id: 'p1', window_id: 'w2-resolved', team_id: 'mun', used_final: true }],
       'p1',
       finalised,
     )
@@ -124,12 +124,23 @@ describe('used-team filtering', () => {
     expect(filterSelectableTeamOptions(eligibleTeams, used).map((team) => team.team_id)).toContain('mun')
   })
 
+  it('does not treat a locked-but-unresolved round as finally used', () => {
+    const lockedWindow: UsedTeamWindow = {
+      id: 'w2-locked',
+      window_number: 2,
+      status: 'locked',
+      deadline_at: '2026-08-14T15:00:00.000Z',
+    }
+    const finalised = finallyUsedWindowIds([lockedWindow, laterOpenWindow], now)
+    expect(finalised).toEqual([])
+  })
+
   it('does not remove options because other players picked them', () => {
-    const finalised = finallyUsedWindowIds([priorLockedWindow, laterOpenWindow], now)
+    const finalised = finallyUsedWindowIds([priorResolvedWindow, laterOpenWindow], now)
     const used = usedTeamIdsForPlayer(
       [
-        { player_id: 'other', window_id: 'w2-locked', team_id: 'liv' },
-        { player_id: 'p1', window_id: 'w2-locked', team_id: 'mun' },
+        { player_id: 'other', window_id: 'w2-resolved', team_id: 'liv', used_final: true },
+        { player_id: 'p1', window_id: 'w2-resolved', team_id: 'mun', used_final: true },
       ],
       'p1',
       finalised,

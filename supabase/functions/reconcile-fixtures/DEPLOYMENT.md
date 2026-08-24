@@ -54,6 +54,9 @@ No API keys are exposed to the client.
 | `map_provider_ids` | Map football-data match IDs onto existing `season_fixtures` rows |
 | `provider_sync` | Provider reconciliation only (no candidate window creation) |
 | `reconcile` | Provider sync + optional candidate window creation |
+| `sync_results` | Fetch football-data.org scores into `season_fixtures` only. Does **not** eliminate players. |
+
+Admin button **Sync latest results** calls `sync_results`. Admin then reviews the in-app preview and presses **Resolve round** to apply Last One Standing outcomes.
 
 ## Deploy command (when approved)
 
@@ -77,3 +80,7 @@ Do not enable cron until:
 2. Master fixtures are imported.
 3. `FOOTBALL_DATA_API_KEY` is configured.
 4. CEO approves recurring external monitoring.
+
+### Post-match result sync (not enabled)
+
+The Admin **Sync latest results** button is the launch path. To enable scheduled score fetch later, add a Vault-backed cron that POSTs `{ "action": "sync_results", "schedule": "results" }` to `/functions/v1/reconcile-fixtures` with `x-los-scheduler-secret`. Do not enable until the result-sync action is verified in production. This still does not eliminate players; Admin must confirm **Resolve round**.

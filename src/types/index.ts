@@ -76,6 +76,8 @@ export type SelectionWindowWithMeta = SelectionWindow & {
   earliest_kickoff_at: string | null
   approved_at: string | null
   approved_by_player_id: UUID | null
+  resolved_at?: string | null
+  resolved_by_player_id?: UUID | null
 }
 
 export type SeasonFixture = {
@@ -95,6 +97,10 @@ export type SeasonFixture = {
   source_url: string | null
   source_retrieved_at: string | null
   eligibility_override: 'none' | 'force_eligible' | 'force_ineligible'
+  last_result_sync_at?: string | null
+  result_source?: string | null
+  provider_status?: string | null
+  result_match_method?: string | null
   created_at: string
   updated_at: string
 }
@@ -158,6 +164,8 @@ export type Fixture = {
   status: 'scheduled' | 'in_play' | 'finished' | 'postponed'
 }
 
+export type SelectionOutcome = 'survived' | 'eliminated' | 'no_pick' | 'pending'
+
 export type Selection = {
   id: UUID
   game_id: UUID
@@ -171,6 +179,11 @@ export type Selection = {
   admin_corrected: boolean
   corrected_by: UUID | null
   correction_reason: string | null
+  outcome?: SelectionOutcome | null
+  outcome_reason?: string | null
+  used_final?: boolean
+  resolved_at?: string | null
+  resolved_by_player_id?: UUID | null
 }
 
 export type WindowPickRow = {
@@ -182,6 +195,8 @@ export type WindowPickRow = {
   paid?: boolean
   updated_at?: string | null
   admin_corrected?: boolean
+  outcome?: SelectionOutcome | null
+  used_final?: boolean
 }
 
 export type HistoryResultType = 'winner' | 'rollover' | 'active'

@@ -2,7 +2,7 @@ import { TEAM_ID_TO_NAME } from '../config/teams'
 import { getSupabaseOrThrow } from './supabase'
 import { operationalWindowToRoundLabel } from './round1'
 import { MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
-import type { Selection } from '../types'
+import type { Selection, SelectionOutcome } from '../types'
 
 export type PickHistoryRow = {
   selectionId: string
@@ -16,11 +16,16 @@ export type PickHistoryRow = {
   statusLabel: string
   usedFinal: boolean
   adminEntered: boolean
+  outcome: SelectionOutcome | null
+  scoreLabel: string
 }
 
 type HistoryQueryRow = Selection & {
   window: { window_number: number; status: string; deadline_at: string } | { window_number: number; status: string; deadline_at: string }[] | null
-  fixture: { home_team_id: string; away_team_id: string } | { home_team_id: string; away_team_id: string }[] | null
+  fixture:
+    | { home_team_id: string; away_team_id: string; home_score?: number | null; away_score?: number | null; status?: string }
+    | { home_team_id: string; away_team_id: string; home_score?: number | null; away_score?: number | null; status?: string }[]
+    | null
 }
 
 function unwrap<T>(value: T | T[] | null | undefined): T | null {
@@ -28,7 +33,17 @@ function unwrap<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value
 }
 
-export function buildPickHistoryRows(rows: HistoryQueryRow[], nowMs = Date.now()): PickHistoryRow[] {
+function outcomeStatusLabel(outcome: SelectionOutcome | null | undefined, usedFinal: boolean, teamId: string | null, locked: boolean): string {
+  if (outcome === 'survived') return 'Survived'
+  if (outcome === 'eliminated') return 'Eliminated 💀'
+  if (outcome === 'no_pick' || !teamId) return teamId ? 'Submitted' : outcome === 'no_pick' ? 'No pick 💀' : 'No pick'
+  if (outcome === 'pending') return 'Pending'
+  if (usedFinal) return 'Used / final'
+  if (locked) return 'Locked'
+  return 'Current'
+}
+
+export function buildPickHistoryRows(rows: HistoryQueryRow[], _nowMs = Date.now()): PickHistoryRow[] {
   return rows
     .map((row) => {
       const window = unwrap(row.window)
@@ -38,17 +53,13 @@ export function buildPickHistoryRows(rows: HistoryQueryRow[], nowMs = Date.now()
       const fixtureLabel = fixture
         ? `${TEAM_ID_TO_NAME.get(fixture.home_team_id) ?? fixture.home_team_id} v ${TEAM_ID_TO_NAME.get(fixture.away_team_id) ?? fixture.away_team_id}`
         : '—'
-      const deadlinePassed = window ? new Date(window.deadline_at).getTime() <= nowMs : false
       const usedFinal =
-        Boolean(row.team_id) &&
-        windowNumber >= MIN_OPERATIONAL_WINDOW_NUMBER &&
-        (window?.status === 'locked' || window?.status === 'resolved' || Boolean(row.locked_at) || deadlinePassed)
-
-      let statusLabel = 'Submitted'
-      if (!row.team_id) statusLabel = 'No pick'
-      else if (usedFinal) statusLabel = 'Used / final'
-      else if (row.locked_at) statusLabel = 'Locked'
-      else statusLabel = 'Current'
+        Boolean(row.used_final) ||
+        (Boolean(row.team_id) && windowNumber >= MIN_OPERATIONAL_WINDOW_NUMBER && window?.status === 'resolved')
+      const scoreLabel =
+        fixture && fixture.home_score != null && fixture.away_score != null
+          ? `${fixture.home_score}–${fixture.away_score}`
+          : '—'
 
       return {
         selectionId: row.id,
@@ -59,9 +70,11 @@ export function buildPickHistoryRows(rows: HistoryQueryRow[], nowMs = Date.now()
         teamName,
         fixtureLabel,
         submittedAt: row.updated_at ?? row.created_at,
-        statusLabel,
+        statusLabel: outcomeStatusLabel(row.outcome ?? null, usedFinal, row.team_id, Boolean(row.locked_at) || window?.status === 'locked'),
         usedFinal,
         adminEntered: Boolean(row.admin_corrected),
+        outcome: row.outcome ?? null,
+        scoreLabel,
       }
     })
     .sort((a, b) => b.windowNumber - a.windowNumber)
@@ -75,7 +88,7 @@ export async function fetchMyPickHistory(playerId: string, gameId: string): Prom
       `
       *,
       window:selection_windows ( window_number, status, deadline_at ),
-      fixture:season_fixtures ( home_team_id, away_team_id )
+      fixture:season_fixtures ( home_team_id, away_team_id, home_score, away_score, status )
     `,
     )
     .eq('player_id', playerId)

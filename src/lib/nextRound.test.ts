@@ -205,6 +205,7 @@ describe('used teams and next round', () => {
     expect(check.canOpen).toBe(true)
     expect(check.weekend?.sat).toBe('2026-08-29')
     expect(check.weekend?.sun).toBe('2026-08-30')
+    expect(check.weekend?.eligible).toHaveLength(8)
     expect(check.survivorCount).toBe(1)
   })
 
@@ -251,10 +252,14 @@ describe('used teams and next round', () => {
     const weekend = findNextPremierLeagueWeekend(loadSeasonFixtures(), '2026-08-23')
     expect(weekend?.sat).toBe('2026-08-29')
     expect(weekend?.sun).toBe('2026-08-30')
-    expect((weekend?.eligible.length ?? 0) > 0).toBe(true)
+    expect(weekend?.eligible).toHaveLength(8)
     expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'ful' && fixture.away_team_id === 'che')).toBe(
       false,
     )
     expect(weekend?.eligible.every((fixture) => [6, 7].includes(londonDayOfWeek(fixture.kickoff_at)))).toBe(true)
+    expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'cry')).toBe(false)
+    expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'avl')).toBe(false)
+    expect(weekend?.fridayExcluded).toBeGreaterThanOrEqual(1)
+    expect(weekend?.mondayExcluded).toBeGreaterThanOrEqual(1)
   })
 })

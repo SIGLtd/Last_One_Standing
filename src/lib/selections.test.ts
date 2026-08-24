@@ -8,6 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const migration4 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '4_fixture_operations_core.sql'), 'utf8')
 const migration6 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '6_selection_admin_audit_columns.sql'), 'utf8')
 const migration9 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '9_round_results_and_resolution.sql'), 'utf8')
+const migration10 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '10_weekend_snapshot_guard.sql'), 'utf8')
 const selectionsSource = readFileSync(join(__dirname, 'selections.ts'), 'utf8')
 
 describe('selection save path', () => {
@@ -57,5 +58,14 @@ describe('selection save path', () => {
     expect(migration9).toContain('WINDOW_1_PROTECTED')
     expect(migration9).not.toMatch(/update\s+players/i)
     expect(migration9).not.toMatch(/update\s+games/i)
+  })
+
+  it('rebuilds an open Sat/Sun snapshot only when the round has no picks', () => {
+    expect(migration10).toContain('admin_rebuild_open_weekend_snapshot')
+    expect(migration10).toContain('WINDOW_HAS_PICKS')
+    expect(migration10).toContain('NON_WEEKEND_FIXTURES')
+    expect(migration10).toContain('reject_non_weekend_window_snapshot')
+    expect(migration10).not.toMatch(/update\s+players/i)
+    expect(selectionsSource).toContain('adminRebuildOpenWeekendSnapshot')
   })
 })

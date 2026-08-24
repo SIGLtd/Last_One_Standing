@@ -29,6 +29,7 @@ type AdminRoundResultsSectionProps = {
     canOpen: boolean
     reason: string | null
     survivorCount: number
+    alreadyOpen?: boolean
     weekend: NextRoundWeekend | null
   }
   deadlineValue: string
@@ -275,6 +276,11 @@ export function AdminRoundResultsSection({
       ) : (
         <p className="mt-1 text-xs text-muted-ink">{nextRound.reason ?? 'Next weekend is not ready yet.'}</p>
       )}
+      {!nextRound.canOpen && nextRound.reason && !nextRound.alreadyOpen ? (
+        <div className="mt-2 los-alert los-alert-error">
+          <p>{nextRound.reason}</p>
+        </div>
+      ) : null}
 
       <label className="mt-2 grid gap-0.5">
         <span className="los-section-title">Deadline</span>

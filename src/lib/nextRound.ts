@@ -1,7 +1,7 @@
 import { londonDateFromKickoff, londonDayOfWeek } from '../../scripts/lib/fixtureValidation'
-import { isStandardEligibleFixture } from '../../scripts/lib/weekendEligibility'
 import type { SeasonFixture, SelectionWindowWithMeta } from '../types'
 import { MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
+import { inspectWeekendSnapshot, selectEligibleWeekendFixtures } from './weekendSnapshot'
 
 export type NextRoundWeekend = {
   sat: string
@@ -47,14 +47,18 @@ export function findNextPremierLeagueWeekend(
       return londonDay >= sat && londonDay <= sun
     })
 
-    const eligible = weekendFixtures.filter((row) =>
-      isStandardEligibleFixture(
-        row.kickoff_at,
-        row.eligibility_override ?? 'none',
-        row.status,
-        londonDayOfWeek,
-      ),
-    )
+    const eligible = selectEligibleWeekendFixtures(
+      weekendFixtures.map((row) => ({
+        season_fixture_id: row.id,
+        home_team_id: row.home_team_id,
+        away_team_id: row.away_team_id,
+        kickoff_at: row.kickoff_at,
+        eligibility_override: row.eligibility_override,
+        status: row.status,
+      })),
+      sat,
+      sun,
+    ).map((row) => weekendFixtures.find((fixture) => fixture.id === row.season_fixture_id)!)
 
     const fridayExcluded = later.filter((row) => londonDateFromKickoff(row.kickoff_at) === addDays(sat, -1)).length
     const mondayExcluded = later.filter((row) => londonDateFromKickoff(row.kickoff_at) === addDays(sun, 1)).length
@@ -154,6 +158,25 @@ export function canOpenNextRound(input: {
       survivorCount: input.survivorCount,
       alreadyOpen: false,
       weekend: null,
+    }
+  }
+
+  const validity = inspectWeekendSnapshot(
+    weekend.eligible.map((fixture) => ({
+      season_fixture_id: fixture.id,
+      home_team_id: fixture.home_team_id,
+      away_team_id: fixture.away_team_id,
+      kickoff_at: fixture.kickoff_at,
+      eligibility_override: fixture.eligibility_override,
+    })),
+  )
+  if (!validity.valid) {
+    return {
+      canOpen: false,
+      reason: validity.issues[0] ?? 'Next-round fixtures include a non-Saturday/Sunday match without an explicit exception.',
+      survivorCount: input.survivorCount,
+      alreadyOpen: false,
+      weekend,
     }
   }
 

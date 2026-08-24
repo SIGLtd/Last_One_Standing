@@ -1,6 +1,7 @@
 import type { GameEntryWithPlayer, Player, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
 import { ROUND1_PUBLIC_LABEL, formatTimeRemaining, operationalWindowToRoundLabel } from './round1'
 import { buildPlayerCensus, type PlayerCensus } from './playerCensus'
+import { inspectWeekendSnapshot } from './weekendSnapshot'
 
 export const ADMIN_COCKPIT_SECTION_ORDER = [
   'round_control',
@@ -18,6 +19,11 @@ export type RoundControlStats = {
   deadlineLabel: string
   timeRemaining: string
   eligibleFixtureCount: number
+  saturdayCount: number
+  sundayCount: number
+  weekendLabel: string | null
+  snapshotValid: boolean
+  snapshotIssues: string[]
   selectionsMade: number
   paidActivePlayers: number
   awaitingVerification: number
@@ -33,6 +39,18 @@ export function buildRoundControlStats(input: {
 }): RoundControlStats {
   const paidActivePlayers = input.entries.filter((entry) => entry.paid && entry.status === 'active').length
   const awaitingVerification = input.entries.filter((entry) => entry.payment_claimed && !entry.paid).length
+  const validity = inspectWeekendSnapshot(
+    input.snapshotFixtures.map((fixture) => ({
+      season_fixture_id: fixture.season_fixture_id,
+      home_team_id: fixture.home_team_id,
+      away_team_id: fixture.away_team_id,
+      kickoff_at: fixture.kickoff_at,
+    })),
+  )
+  const weekendLabel =
+    input.openWindow.eligible_sat_date && input.openWindow.eligible_sun_date
+      ? `${input.openWindow.eligible_sat_date} to ${input.openWindow.eligible_sun_date}`
+      : validity.weekendLabel
 
   return {
     roundLabel: operationalWindowToRoundLabel(input.openWindow.window_number) || ROUND1_PUBLIC_LABEL,
@@ -47,6 +65,11 @@ export function buildRoundControlStats(input: {
     deadlineLabel: input.openWindow.deadline_at,
     timeRemaining: formatTimeRemaining(input.openWindow.deadline_at, input.nowMs),
     eligibleFixtureCount: input.snapshotFixtures.length,
+    saturdayCount: validity.saturdayCount,
+    sundayCount: validity.sundayCount,
+    weekendLabel,
+    snapshotValid: validity.valid,
+    snapshotIssues: validity.issues,
     selectionsMade: input.selectionsMade,
     paidActivePlayers,
     awaitingVerification,

@@ -13,8 +13,11 @@ const resultsSectionSource = readFileSync(
   join(__dirname, '..', 'components', 'admin', 'AdminRoundResultsSection.tsx'),
   'utf8',
 )
+const thisRoundSource = readFileSync(join(__dirname, '..', 'components', 'admin', 'AdminThisRoundSection.tsx'), 'utf8')
 const currentPicksSource = readFileSync(join(__dirname, '..', 'pages', 'CurrentPicksPage.tsx'), 'utf8')
 const myPicksSource = readFileSync(join(__dirname, '..', 'pages', 'MyPicksPage.tsx'), 'utf8')
+const homeSource = readFileSync(join(__dirname, '..', 'pages', 'HomePage.tsx'), 'utf8')
+const pickSource = readFileSync(join(__dirname, '..', 'pages', 'PickPage.tsx'), 'utf8')
 
 describe('admin page mobile cockpit layout', () => {
   it('renders round control before advanced operations', () => {
@@ -59,5 +62,20 @@ describe('admin round results controls', () => {
     expect(currentPicksSource).not.toContain('row.phone')
     expect(myPicksSource).toContain('row.statusLabel')
     expect(myPicksSource).toContain('TeamChip')
+  })
+
+  it('shows Round fixture count, weekend dates, weekday, and a non-Sat/Sun warning', () => {
+    expect(thisRoundSource).toContain('inspectWeekendSnapshot')
+    expect(thisRoundSource).toContain('eligible_sat_date')
+    expect(thisRoundSource).toContain('londonWeekdayLabel')
+    expect(thisRoundSource).toContain('Snapshot valid')
+    expect(thisRoundSource).toContain('validity.issues')
+    expect(currentPicksSource).toContain('fetchCurrentSelectionWindow')
+    expect(homeSource).toContain('fetchWindowEligibleFixtures')
+    expect(homeSource).toContain('buildSelectableTeamOptions(result.windowFixtures)')
+    expect(adminPageSource).toContain('<AdminThisRoundSection')
+    expect(adminPageSource).toContain('NON_WEEKEND_FIXTURES')
+    expect(adminPageSource).toContain('if (!check.canOpen)')
+    expect(pickSource).toContain('fetchWindowEligibleFixtures')
   })
 })

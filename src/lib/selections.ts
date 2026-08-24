@@ -346,4 +346,11 @@ export async function adminOpenNextRound(input: {
   return data as Record<string, unknown>
 }
 
+export async function adminRebuildOpenWeekendSnapshot(windowId: string) {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_rebuild_open_weekend_snapshot', { p_window_id: windowId })
+  if (error) throw error
+  return data as Record<string, unknown>
+}
+
 export { parsePickError, pickErrorLabel, getFinallyUsedTeamsForPlayer }

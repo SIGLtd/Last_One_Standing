@@ -425,6 +425,9 @@ export function AdminPage() {
         fixtures: seasonFixtures,
         survivorCount: entries.filter((entry) => entry.paid && entry.status === 'active').length,
       })
+      if (!check.canOpen) {
+        throw new Error(check.reason ?? 'Cannot open the next round.')
+      }
       const deadlineAt = nextDeadlineLocal ? new Date(nextDeadlineLocal).toISOString() : check.weekend?.proposedDeadline
       if (!check.weekend || !deadlineAt) {
         throw new Error('Choose a deadline before opening the next round.')
@@ -445,7 +448,12 @@ export function AdminPage() {
       await loadAdminCore()
       await loadAdminAdvanced()
     } catch (err) {
-      setPageError(err instanceof Error ? err.message : 'Failed to open the next round.')
+      const raw = err instanceof Error ? err.message : 'Failed to open the next round.'
+      setPageError(
+        raw.includes('NON_WEEKEND_FIXTURES')
+          ? 'Cannot open this round because it includes Friday, Monday, or midweek fixtures. Only Saturday and Sunday fixtures are eligible unless Admin makes an explicit exception.'
+          : raw,
+      )
     } finally {
       setActionId(null)
     }

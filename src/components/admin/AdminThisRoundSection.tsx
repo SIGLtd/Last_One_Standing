@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Badge } from '../Badge'
 import { formatDeadlineLondon, formatLondonDateTime } from '../../lib/fixtureOps'
+import { operationalWindowToRoundLabel } from '../../lib/round1'
+import { inspectWeekendSnapshot, londonWeekdayLabel } from '../../lib/weekendSnapshot'
 import type { SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../../types'
-import { ROUND1_PUBLIC_LABEL } from '../../lib/round1'
 
 type AdminThisRoundSectionProps = {
   openWindow: SelectionWindowWithMeta
@@ -19,6 +20,19 @@ export function AdminThisRoundSection({
 }: AdminThisRoundSectionProps) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
+  const roundLabel = operationalWindowToRoundLabel(openWindow.window_number)
+  const validity = useMemo(
+    () =>
+      inspectWeekendSnapshot(
+        fixtures.map((fixture) => ({
+          season_fixture_id: fixture.season_fixture_id,
+          home_team_id: fixture.home_team_id,
+          away_team_id: fixture.away_team_id,
+          kickoff_at: fixture.kickoff_at,
+        })),
+      ),
+    [fixtures],
+  )
   const preview = fixtures.slice(0, 4)
   const remainder = fixtures.length - preview.length
 
@@ -33,7 +47,7 @@ export function AdminThisRoundSection({
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'round-1-selections.csv'
+    link.download = `${roundLabel.replace(/\s+/g, '-').toLowerCase()}-selections.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -42,7 +56,7 @@ export function AdminThisRoundSection({
     <section className="los-admin-section los-cockpit-card">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="los-section-title">This round</h2>
-        <Badge variant="success">{ROUND1_PUBLIC_LABEL}</Badge>
+        <Badge variant={validity.valid ? 'success' : 'warning'}>{roundLabel}</Badge>
       </div>
 
       <p className="mt-2 text-xs text-muted-ink">
@@ -56,6 +70,23 @@ export function AdminThisRoundSection({
           : formatLondonDateTime(openWindow.updated_at)}
       </p>
       <p className="mt-1 text-xs text-muted-ink">Deadline: {formatDeadlineLondon(openWindow.deadline_at)}</p>
+      <p className="mt-1 text-xs text-muted-ink">
+        {fixtures.length} fixture{fixtures.length === 1 ? '' : 's'} · {validity.saturdayCount} Saturday ·{' '}
+        {validity.sundayCount} Sunday
+        {openWindow.eligible_sat_date && openWindow.eligible_sun_date
+          ? ` · ${openWindow.eligible_sat_date} to ${openWindow.eligible_sun_date}`
+          : validity.weekendLabel
+            ? ` · ${validity.weekendLabel}`
+            : ''}
+        {validity.valid ? ' · Snapshot valid' : ''}
+      </p>
+      {validity.issues.length > 0 ? (
+        <div className="mt-2 los-alert los-alert-error">
+          {validity.issues.map((issue) => (
+            <p key={issue}>{issue}</p>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-2 flex flex-col gap-2 sm:flex-row">
         <button type="button" onClick={() => void copySummary()} className="los-btn-secondary los-tap-target w-full sm:w-auto">
@@ -76,7 +107,9 @@ export function AdminThisRoundSection({
             <span className="font-medium text-ink">
               {fixture.home_team_name} v {fixture.away_team_name}
             </span>
-            <span className="mt-0.5 block text-muted-ink">{formatLondonDateTime(fixture.kickoff_at)}</span>
+            <span className="mt-0.5 block text-muted-ink">
+              {londonWeekdayLabel(fixture.kickoff_at)} · {formatLondonDateTime(fixture.kickoff_at)}
+            </span>
           </li>
         ))}
       </ul>
@@ -98,7 +131,9 @@ export function AdminThisRoundSection({
               <span className="font-medium text-ink">
                 {fixture.home_team_name} v {fixture.away_team_name}
               </span>
-              <span className="mt-0.5 block text-muted-ink">{formatLondonDateTime(fixture.kickoff_at)}</span>
+              <span className="mt-0.5 block text-muted-ink">
+              {londonWeekdayLabel(fixture.kickoff_at)} · {formatLondonDateTime(fixture.kickoff_at)}
+            </span>
             </li>
           ))}
         </ul>

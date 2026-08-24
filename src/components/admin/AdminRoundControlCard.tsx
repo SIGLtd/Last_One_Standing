@@ -34,6 +34,18 @@ export function AdminRoundControlCard({ stats, currentPot, potBusy, onSavePot }:
         <MetricCell label="Fixtures" value={stats.eligibleFixtureCount} />
         <MetricCell label="Picks in" value={stats.selectionsMade} />
       </MetricStrip>
+      <p className="mt-2 text-xs text-muted-ink">
+        {stats.saturdayCount} Saturday · {stats.sundayCount} Sunday
+        {stats.weekendLabel ? ` · ${stats.weekendLabel}` : ''}
+        {stats.snapshotValid ? ' · Snapshot valid' : ' · Snapshot invalid'}
+      </p>
+      {stats.snapshotIssues.length > 0 ? (
+        <div className="mt-2 los-alert los-alert-error">
+          {stats.snapshotIssues.map((issue) => (
+            <p key={issue}>{issue}</p>
+          ))}
+        </div>
+      ) : null}
 
       <MetricStrip className="mt-2">
         <MetricCell label="Paid active" value={stats.paidActivePlayers} />

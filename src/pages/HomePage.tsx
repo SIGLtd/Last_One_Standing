@@ -4,12 +4,14 @@ import { ButtonLink } from '../components/ButtonLink'
 import { FixtureMatchRow } from '../components/FixtureMatchRow'
 import { PickDistributionRowView } from '../components/PickDistributionRowView'
 import { TeamChip } from '../components/TeamChip'
+import { WhoSurvivedSection } from '../components/WhoSurvivedSection'
 import { useAuth } from '../contexts/AuthContext'
 import { useGame } from '../contexts/GameContext'
 import { CURRENT_GAME } from '../lib/constants'
 import {
   buildSelectableTeamOptions,
   fetchLatestOperationalWindow,
+  fetchLatestResolvedOperationalWindow,
   fetchWindowEligibleFixtures,
   formatCompactDeadlineLondon,
   type SelectableTeamOption,
@@ -24,6 +26,7 @@ import { buildPickDistribution, type PickDistributionRow } from '../lib/pickDist
 import { filterSelectableTeamOptions } from '../lib/pickOptions'
 import { PLAYER_COMPLETE_ENTRY_MESSAGE, operationalWindowToRoundLabel } from '../lib/round1'
 import {
+  fetchCurrentWindowPicks,
   fetchFinallyUsedTeamIds,
   fetchMySelection,
   fetchSubmittedTeamIdsForWindow,
@@ -31,6 +34,7 @@ import {
   isWindowLocked,
   saveSelection,
 } from '../lib/selections'
+import { buildHomeSurvivorRows, type HomeSurvivorRow } from '../lib/survivalStatus'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { getTeamIdentity } from '../lib/teamIdentity'
 import type { Game, GameEntry, Selection, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
@@ -57,6 +61,8 @@ export function HomePage() {
   const [showFixtures, setShowFixtures] = useState(false)
   const [showAllPicks, setShowAllPicks] = useState(false)
   const [roundReloadKey, setRoundReloadKey] = useState(0)
+  const [survivors, setSurvivors] = useState<HomeSurvivorRow[]>([])
+  const [survivorRoundLabel, setSurvivorRoundLabel] = useState<string | null>(null)
 
   const locked = window ? isWindowLocked(window) : false
   const editable = window ? isWindowEditable(window) : false
@@ -151,6 +157,24 @@ export function HomePage() {
     }
   }, [])
 
+  const loadSurvivors = useCallback(async (gameId: string) => {
+    try {
+      const resolvedWindow = await fetchLatestResolvedOperationalWindow(gameId)
+      if (!resolvedWindow) {
+        setSurvivors([])
+        setSurvivorRoundLabel(null)
+        return
+      }
+      const picks = await fetchCurrentWindowPicks(gameId, resolvedWindow.id)
+      setSurvivorRoundLabel(operationalWindowToRoundLabel(resolvedWindow.window_number))
+      setSurvivors(buildHomeSurvivorRows(picks))
+    } catch (err) {
+      console.error('Failed to load survivors', err)
+      setSurvivors([])
+      setSurvivorRoundLabel(null)
+    }
+  }, [])
+
   useEffect(() => {
     void loadRound()
   }, [loadRound, roundReloadKey])
@@ -171,6 +195,11 @@ export function HomePage() {
     if (!window?.id || roundLoading) return
     void loadDistribution(window.id)
   }, [loadDistribution, roundLoading, window?.id])
+
+  useEffect(() => {
+    if (!game?.id || roundLoading) return
+    void loadSurvivors(game.id)
+  }, [game?.id, loadSurvivors, roundLoading])
 
   const selectedOption = useMemo(
     () => teamOptions.find((team) => team.team_id === selectedTeamId) ?? null,
@@ -375,6 +404,10 @@ export function HomePage() {
           </>
         )}
       </section>
+
+      {survivors.length > 0 && survivorRoundLabel ? (
+        <WhoSurvivedSection roundLabel={survivorRoundLabel} survivors={survivors} />
+      ) : null}
 
       <section className="los-home-panel">
         <div className="flex items-center justify-between gap-2">

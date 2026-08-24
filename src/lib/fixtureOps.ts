@@ -124,6 +124,21 @@ export async function fetchLatestOperationalWindow(gameId: string): Promise<Sele
   return null
 }
 
+export async function fetchLatestResolvedOperationalWindow(gameId: string): Promise<SelectionWindowWithMeta | null> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('selection_windows')
+    .select('*')
+    .eq('game_id', gameId)
+    .eq('status', 'resolved')
+    .gte('window_number', MIN_OPERATIONAL_WINDOW_NUMBER)
+    .order('window_number', { ascending: false })
+    .limit(1)
+
+  if (error) throw error
+  return data?.[0] ?? null
+}
+
 export async function fetchPendingCandidateWindows(gameId: string): Promise<SelectionWindowWithMeta[]> {
   const client = getSupabaseOrThrow()
   const { data, error } = await client

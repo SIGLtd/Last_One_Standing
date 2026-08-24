@@ -1,17 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { AppLogo } from './AppLogo'
 import { AppMenu } from './AppMenu'
+import { EliminatedBanner } from './EliminatedBanner'
 import { useAuth } from '../contexts/AuthContext'
 import { useGame } from '../contexts/GameContext'
 import { buildAppMenuItems } from '../lib/appNavigation'
 import { APP_NAME, APP_TAGLINE, formatGBP } from '../lib/constants'
+import { fetchMyGameEntry } from '../lib/gameEntries'
+import {
+  playerSurvivalStatusFromEntry,
+  shouldShowEliminatedBanner,
+  type PlayerSurvivalStatus,
+} from '../lib/survivalStatus'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, player, signOut } = useAuth()
-  const { currentPot } = useGame()
+  const { user, player, loading: authLoading, signOut } = useAuth()
+  const { game, currentPot } = useGame()
   const [signingOut, setSigningOut] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [survivalStatus, setSurvivalStatus] = useState<PlayerSurvivalStatus>('unknown')
 
   const isAdmin = Boolean(player?.is_admin)
   const menuItems = useMemo(
@@ -22,6 +30,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }),
     [isAdmin, user],
   )
+
+  useEffect(() => {
+    if (authLoading) {
+      setSurvivalStatus('unknown')
+      return
+    }
+    if (!user || !player) {
+      setSurvivalStatus('other')
+      return
+    }
+    if (!game) return
+
+    let cancelled = false
+    setSurvivalStatus('unknown')
+    void fetchMyGameEntry(player.id, game.id)
+      .then((entry) => {
+        if (!cancelled) setSurvivalStatus(playerSurvivalStatusFromEntry(entry, true))
+      })
+      .catch((error) => {
+        console.error('Failed to load entry status', error)
+        if (!cancelled) setSurvivalStatus('unknown')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, game, player, user])
 
   async function handleSignOut() {
     setSigningOut(true)
@@ -69,7 +104,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-xl px-3 py-2 md:max-w-2xl md:py-4">{children}</main>
+      <main className="mx-auto w-full max-w-xl px-3 py-2 md:max-w-2xl md:py-4">
+        {shouldShowEliminatedBanner(survivalStatus) ? <EliminatedBanner /> : null}
+        {children}
+      </main>
     </div>
   )
 }

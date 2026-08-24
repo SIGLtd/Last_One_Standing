@@ -60,3 +60,13 @@ export function selectLatestOperationalWindow<T extends OperationalWindowCandida
       .sort((a, b) => b.window_number - a.window_number)[0] ?? null
   )
 }
+
+/** Latest resolved operational round, used for the public Who survived list. */
+export function selectLatestResolvedOperationalWindow<T extends OperationalWindowCandidate>(windows: T[]): T | null {
+  return (
+    windows
+      .filter((window) => isOperationalWindowNumber(window.window_number))
+      .filter((window) => window.status === 'resolved')
+      .sort((a, b) => b.window_number - a.window_number)[0] ?? null
+  )
+}

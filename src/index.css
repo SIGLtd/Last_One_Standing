@@ -733,3 +733,100 @@ body {
   font-size: 0.75rem;
   color: var(--los-purple);
 }
+
+.los-elim-banner {
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 40, 130, 0.35);
+  border-radius: var(--los-radius-sm);
+  background: #2a1020;
+  color: var(--los-white);
+}
+
+.los-elim-banner-copy {
+  padding: 0.7rem 0.85rem 0.45rem;
+}
+
+.los-elim-banner-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.los-elim-banner-body {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.los-elim-ticker {
+  position: relative;
+  overflow: hidden;
+  min-height: 2rem;
+  border-top: 1px solid rgba(255, 40, 130, 0.25);
+  background: rgba(0, 255, 234, 0.08);
+}
+
+.los-elim-ticker-static {
+  display: none;
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--los-cyan);
+}
+
+.los-elim-ticker-track {
+  display: flex;
+  width: max-content;
+  gap: 2.5rem;
+  padding: 0.4rem 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--los-cyan);
+  animation: los-elim-ticker 22s linear infinite;
+}
+
+.los-elim-ticker-track span {
+  padding: 0 1.25rem;
+  white-space: nowrap;
+}
+
+@keyframes los-elim-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .los-elim-ticker-track {
+    display: none;
+    animation: none;
+  }
+
+  .los-elim-ticker-static {
+    display: block;
+  }
+}
+
+.los-audit-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--los-radius-sm);
+  padding: 0 0.5rem 0.4rem;
+  background: var(--los-white);
+}
+
+.los-audit-summary {
+  cursor: pointer;
+  list-style-position: inside;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--los-ink);
+}
+
+.los-audit-summary::-webkit-details-marker {
+  color: var(--los-muted);
+}

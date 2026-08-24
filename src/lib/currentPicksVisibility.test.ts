@@ -11,6 +11,7 @@ import {
   isPlayerFacingOpenWindow,
   MIN_OPERATIONAL_WINDOW_NUMBER,
   selectLatestOperationalWindow,
+  selectLatestResolvedOperationalWindow,
 } from './windowGuards'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -136,6 +137,12 @@ describe('current picks remain visible after deadline', () => {
       { window_number: 3, status: 'open', deadline_at: '2026-08-28T15:00:00.000Z', snapshot_fixture_count: 10 },
     ])
     expect(afterNextOpens?.window_number).toBe(3)
+    expect(
+      selectLatestResolvedOperationalWindow([
+        { window_number: 2, status: 'resolved', deadline_at: ROUND1_LIVE_DEADLINE_UTC, snapshot_fixture_count: 8 },
+        { window_number: 3, status: 'open', deadline_at: '2026-08-28T15:00:00.000Z', snapshot_fixture_count: 8 },
+      ])?.window_number,
+    ).toBe(2)
   })
 
   it('does not hide picks just because the deadline has passed', () => {

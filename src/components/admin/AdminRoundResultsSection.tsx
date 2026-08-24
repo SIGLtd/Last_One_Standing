@@ -6,6 +6,7 @@ import { TEAM_ID_TO_NAME } from '../../config/teams'
 import { formatDeadlineLondon, formatLondonDateTime } from '../../lib/fixtureOps'
 import { operationalWindowToRoundLabel } from '../../lib/round1'
 import type { NextRoundWeekend } from '../../lib/nextRound'
+import { survivalAuditGroupOpenByDefault } from '../../lib/survivalStatus'
 import type { RoundResolutionPreview, RoundResolutionRow } from '../../lib/roundResolution'
 import type { SelectionWindowWithMeta } from '../../types'
 
@@ -65,6 +66,39 @@ function outcomeText(row: RoundResolutionRow): string {
   if (row.outcomeReason === 'unresolved') return 'Awaiting result'
   if (row.group === 'withdrawn') return 'Not in live round'
   return row.outcome ?? '—'
+}
+
+function AuditGroup({
+  group,
+  title,
+  rows,
+}: {
+  group: (typeof GROUP_ORDER)[number]
+  title: string
+  rows: RoundResolutionRow[]
+}) {
+  const [open, setOpen] = useState(() => survivalAuditGroupOpenByDefault(group, rows.length))
+
+  return (
+    <details
+      className="los-audit-group"
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className="los-audit-summary los-tap-target">
+        {title} ({rows.length})
+      </summary>
+      {rows.length === 0 ? (
+        <p className="mt-1 px-1 text-xs text-muted-ink">None</p>
+      ) : (
+        <ul className="mt-1 grid gap-1">
+          {rows.map((row) => (
+            <AuditRow key={row.playerId} row={row} />
+          ))}
+        </ul>
+      )}
+    </details>
+  )
 }
 
 function AuditRow({ row }: { row: RoundResolutionRow }) {
@@ -250,20 +284,9 @@ export function AdminRoundResultsSection({
       )}
 
       <h3 className="los-section-title mt-4">Survival audit</h3>
-      <div className="mt-2 grid gap-3">
+      <div className="mt-2 grid gap-2">
         {grouped.map((section) => (
-          <div key={section.group}>
-            <h4 className="text-xs font-semibold text-ink">{section.title}</h4>
-            {section.rows.length === 0 ? (
-              <p className="mt-1 text-xs text-muted-ink">None</p>
-            ) : (
-              <ul className="mt-1 grid gap-1">
-                {section.rows.map((row) => (
-                  <AuditRow key={row.playerId} row={row} />
-                ))}
-              </ul>
-            )}
-          </div>
+          <AuditGroup key={section.group} group={section.group} title={section.title} rows={section.rows} />
         ))}
       </div>
 

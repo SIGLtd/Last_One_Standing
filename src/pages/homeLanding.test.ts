@@ -29,6 +29,7 @@ describe('home landing page', () => {
     expect(homeSource).toContain('<select')
     expect(homeSource).toContain('saveSelection')
     expect(homeSource).toContain('Most picked')
+    expect(homeSource).toContain('WhoSurvivedSection')
     expect(homeSource).toContain('View all picks')
     expect(homeSource).toContain('FixtureMatchRow')
     expect(homeSource).toContain('fetchWindowEligibleFixtures')

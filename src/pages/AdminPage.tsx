@@ -36,6 +36,7 @@ import {
   adminFetchWindowSelections,
   adminLockSelectionWindow,
   adminOpenNextRound,
+  adminSubmitLateSelection,
   adminSubmitSelection,
 } from '../lib/selections'
 import { canOpenNextRound } from '../lib/nextRound'
@@ -298,14 +299,31 @@ export function AdminPage() {
   }
 
   async function handleSaveProxyPick(playerId: string, teamId: string) {
-    if (!openWindow) return
+    const targetWindow = liveOpenWindow ?? openWindow
+    if (!targetWindow) return
     setActionId('proxy-pick')
     setPageError(null)
     try {
-      await adminSubmitSelection({ playerId, windowId: openWindow.id, teamId })
+      await adminSubmitSelection({ playerId, windowId: targetWindow.id, teamId })
       await loadAdminCore()
     } catch (err) {
       setPageError(err instanceof Error ? err.message : 'Failed to save proxy pick.')
+      throw err
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleSaveLatePick(playerId: string, teamId: string, reason: string) {
+    const targetWindow = liveOpenWindow ?? openWindow
+    if (!targetWindow) return
+    setActionId('late-pick')
+    setPageError(null)
+    try {
+      await adminSubmitLateSelection({ playerId, windowId: targetWindow.id, teamId, reason })
+      await loadAdminCore()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to save late pick.')
       throw err
     } finally {
       setActionId(null)
@@ -555,18 +573,19 @@ export function AdminPage() {
         game,
       })
     : []
-  const roundLabel = openWindow ? operationalWindowToRoundLabel(openWindow.window_number) : 'Round 1'
-  const whatsAppSummary = openWindow
+  const pickWindow = liveOpenWindow ?? openWindow
+  const roundLabel = pickWindow ? operationalWindowToRoundLabel(pickWindow.window_number) : 'Round 1'
+  const whatsAppSummary = pickWindow
     ? buildWhatsAppSelectionSummary({
         roundLabel,
-        deadlineAt: openWindow.deadline_at,
+        deadlineAt: pickWindow.deadline_at,
         rows: exportRows,
       })
     : ''
-  const csvContents = openWindow
+  const csvContents = pickWindow
     ? buildSelectionCsv({
         roundLabel,
-        deadlineAt: openWindow.deadline_at,
+        deadlineAt: pickWindow.deadline_at,
         rows: exportRows,
       })
     : ''
@@ -659,10 +678,10 @@ export function AdminPage() {
             />
           ) : null}
 
-          {openWindow ? (
+          {pickWindow ? (
             <>
               <AdminThisRoundSection
-                openWindow={openWindow}
+                openWindow={pickWindow}
                 fixtures={openFixtures}
                 whatsAppSummary={whatsAppSummary}
                 csvContents={csvContents}
@@ -671,9 +690,11 @@ export function AdminPage() {
                 players={players}
                 fixtures={openFixtures}
                 existingSelectionByPlayer={existingSelectionByPlayer}
-                busy={actionId === 'proxy-pick' || actionId === 'manual-player'}
+                window={pickWindow}
+                busy={actionId === 'proxy-pick' || actionId === 'late-pick' || actionId === 'manual-player'}
                 onCreateManualPlayer={handleCreateManualPlayer}
                 onSaveProxyPick={handleSaveProxyPick}
+                onSaveLatePick={handleSaveLatePick}
               />
             </>
           ) : null}

@@ -101,7 +101,9 @@ export function MyPicksPage() {
                       <Badge variant={row.usedFinal || row.outcome === 'eliminated' || row.outcome === 'no_pick' ? 'muted' : row.outcome === 'survived' ? 'success' : 'open'}>
                         {row.statusLabel}
                       </Badge>
-                      {row.adminEntered ? <span className="ml-1 text-[0.625rem] text-muted-ink">Admin entered</span> : null}
+                      {row.adminEntryLabel ? (
+                        <span className="ml-1 text-[0.625rem] text-muted-ink">{row.adminEntryLabel}</span>
+                      ) : null}
                     </td>
                     <td className="text-muted-ink">{row.scoreLabel}</td>
                   </tr>
@@ -125,7 +127,7 @@ export function MyPicksPage() {
                 </div>
                 <div className="text-[0.6875rem] text-muted-ink">{row.fixtureLabel}</div>
                 {row.scoreLabel !== '—' ? <div className="text-[0.6875rem] text-muted-ink">{row.scoreLabel}</div> : null}
-                {row.adminEntered ? <div className="text-[0.625rem] text-muted-ink">Entered by admin</div> : null}
+                {row.adminEntryLabel ? <div className="text-[0.625rem] text-muted-ink">{row.adminEntryLabel}</div> : null}
               </div>
             ))}
           </div>

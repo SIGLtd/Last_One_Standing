@@ -46,8 +46,23 @@ describe('pick history', () => {
       }),
     ])
     expect(rows[0]?.adminEntered).toBe(true)
+    expect(rows[0]?.adminEntryLabel).toBe('Admin entered')
     expect(rows[0]?.teamName).toBe('Liverpool')
     expect(rows[0]?.roundLabel).toBe('Round 1')
+  })
+
+  it('marks a post-deadline admin pick as a late admin entry', () => {
+    const rows = buildPickHistoryRows([
+      row({
+        admin_corrected: true,
+        correction_reason: 'Accepted by organiser: player had no WiFi before deadline.',
+        corrected_by: 'admin-id',
+        updated_at: '2026-08-21T16:00:00.000Z',
+        window: { window_number: 2, status: 'open', deadline_at: '2026-08-21T15:00:00.000Z' },
+      }),
+    ])
+    expect(rows[0]?.adminEntered).toBe(true)
+    expect(rows[0]?.adminEntryLabel).toBe('Late admin entry')
   })
 
   it('shows survived and eliminated outcomes in player history', () => {

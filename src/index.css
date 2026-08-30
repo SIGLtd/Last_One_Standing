@@ -273,6 +273,12 @@ body {
   color: var(--los-ink);
 }
 
+.los-alert-warning {
+  border-color: rgba(180, 83, 9, 0.25);
+  background: rgba(180, 83, 9, 0.08);
+  color: var(--los-ink);
+}
+
 .los-notice {
   border-left: 3px solid var(--los-purple);
   padding: 0.4rem 0.6rem;

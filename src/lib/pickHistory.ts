@@ -1,4 +1,5 @@
 import { TEAM_ID_TO_NAME } from '../config/teams'
+import { adminEntryLabel } from './latePick'
 import { getSupabaseOrThrow } from './supabase'
 import { operationalWindowToRoundLabel } from './round1'
 import { MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
@@ -16,6 +17,7 @@ export type PickHistoryRow = {
   statusLabel: string
   usedFinal: boolean
   adminEntered: boolean
+  adminEntryLabel: string | null
   outcome: SelectionOutcome | null
   scoreLabel: string
 }
@@ -73,6 +75,11 @@ export function buildPickHistoryRows(rows: HistoryQueryRow[], _nowMs = Date.now(
         statusLabel: outcomeStatusLabel(row.outcome ?? null, usedFinal, row.team_id, Boolean(row.locked_at) || window?.status === 'locked'),
         usedFinal,
         adminEntered: Boolean(row.admin_corrected),
+        adminEntryLabel: adminEntryLabel({
+          adminCorrected: row.admin_corrected,
+          submittedAt: row.updated_at ?? row.created_at,
+          deadlineAt: window?.deadline_at,
+        }),
         outcome: row.outcome ?? null,
         scoreLabel,
       }

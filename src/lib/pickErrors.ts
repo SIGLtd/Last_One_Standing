@@ -7,6 +7,8 @@ export type PickErrorCode =
   | 'TEAM_ALREADY_USED'
   | 'FIXTURE_STARTED'
   | 'PLAYER_NOT_FOUND'
+  | 'LATE_REASON_REQUIRED'
+  | 'ROUND_ALREADY_RESOLVED'
 
 export function parsePickError(message: string): PickErrorCode | string {
   const codes: PickErrorCode[] = [
@@ -18,6 +20,8 @@ export function parsePickError(message: string): PickErrorCode | string {
     'TEAM_ALREADY_USED',
     'FIXTURE_STARTED',
     'PLAYER_NOT_FOUND',
+    'LATE_REASON_REQUIRED',
+    'ROUND_ALREADY_RESOLVED',
   ]
   return codes.find((code) => message.includes(code)) ?? message
 }
@@ -40,6 +44,10 @@ export function pickErrorLabel(code: PickErrorCode | string): string {
       return 'That fixture has already kicked off.'
     case 'PLAYER_NOT_FOUND':
       return 'Player profile not found.'
+    case 'LATE_REASON_REQUIRED':
+      return 'A reason is required for a post-deadline admin override.'
+    case 'ROUND_ALREADY_RESOLVED':
+      return 'This round has already been resolved. Reopen/correction workflow required.'
     default:
       return code
   }

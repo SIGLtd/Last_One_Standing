@@ -14,6 +14,7 @@ import {
   operationalWindowToRoundLabel,
 } from '../lib/round1'
 import { PUBLIC_PRE_LAUNCH_POINTS } from '../lib/preLaunch'
+import { adminEntryLabel } from '../lib/latePick'
 import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks, getPickStatusLabel, getPickSurvivalLabel } from '../lib/selections'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { canViewCurrentPicks } from '../lib/windowGuards'
@@ -143,6 +144,11 @@ export function CurrentPicksPage() {
                     const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
                     const statusLabel = getPickStatusLabel(row, window)
                     const survivalLabel = getPickSurvivalLabel(row)
+                    const entryLabel = adminEntryLabel({
+                      adminCorrected: row.admin_corrected,
+                      submittedAt: row.updated_at,
+                      deadlineAt: window?.deadline_at,
+                    })
                     return (
                       <tr key={row.player_id}>
                         <td className="font-medium text-ink">{row.display_name}</td>
@@ -155,6 +161,9 @@ export function CurrentPicksPage() {
                           ) : (
                             <span className="text-muted-ink font-normal">No pick</span>
                           )}
+                          {entryLabel ? (
+                            <span className="ml-2 text-[0.625rem] font-normal text-muted-ink">{entryLabel}</span>
+                          ) : null}
                         </td>
                         <td>
                           <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
@@ -178,6 +187,11 @@ export function CurrentPicksPage() {
                 const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
                 const statusLabel = getPickStatusLabel(row, window)
                 const survivalLabel = getPickSurvivalLabel(row)
+                const entryLabel = adminEntryLabel({
+                  adminCorrected: row.admin_corrected,
+                  submittedAt: row.updated_at,
+                  deadlineAt: window?.deadline_at,
+                })
                 return (
                   <div key={row.player_id} className="los-divider-row">
                     <div className="flex items-center justify-between gap-2">
@@ -191,6 +205,7 @@ export function CurrentPicksPage() {
                       </span>
                     </div>
                     <div className="mt-0.5 text-[0.6875rem] text-muted-ink">{survivalLabel}</div>
+                    {entryLabel ? <div className="mt-0.5 text-[0.625rem] text-muted-ink">{entryLabel}</div> : null}
                   </div>
                 )
               })

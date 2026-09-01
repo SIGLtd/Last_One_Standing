@@ -405,4 +405,14 @@ export async function adminRebuildOpenWeekendSnapshot(windowId: string) {
   return data as Record<string, unknown>
 }
 
+export async function adminStripNonWeekendSnapshotFixtures(windowId: string) {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_strip_non_weekend_snapshot_fixtures', { p_window_id: windowId })
+  if (error) {
+    const code = parsePickError(error.message)
+    throw new Error(pickErrorLabel(code))
+  }
+  return data as Record<string, unknown>
+}
+
 export { parsePickError, pickErrorLabel, getFinallyUsedTeamsForPlayer }

@@ -12,7 +12,7 @@ import {
   buildSelectableTeamOptions,
   fetchLatestOperationalWindow,
   fetchLatestResolvedOperationalWindow,
-  fetchWindowEligibleFixtures,
+  fetchPlayerFacingWindowFixtures,
   formatCompactDeadlineLondon,
   type SelectableTeamOption,
 } from '../lib/fixtureOps'
@@ -89,7 +89,7 @@ export function HomePage() {
           if (!liveWindow) {
             return { currentGame, liveWindow: null, windowFixtures: [] as SelectionWindowEligibleFixture[] }
           }
-          const windowFixtures = await fetchWindowEligibleFixtures(liveWindow.id)
+          const windowFixtures = await fetchPlayerFacingWindowFixtures(liveWindow.id)
           return { currentGame, liveWindow, windowFixtures }
         })(),
         ESSENTIAL_FETCH_TIMEOUT_MS,

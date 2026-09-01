@@ -71,6 +71,17 @@ describe('selection save path', () => {
     expect(selectionsSource).toContain('adminRebuildOpenWeekendSnapshot')
   })
 
+  it('strips non-weekend snapshot fixtures without rebuilding the whole round', () => {
+    const migration13 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '13_uk_kickoff_day_eligibility.sql'), 'utf8')
+    expect(migration13).toContain('is_los_weekend_eligible')
+    expect(migration13).toContain('admin_strip_non_weekend_snapshot_fixtures')
+    expect(migration13).toContain('WINDOW_HAS_PICKS_ON_INVALID')
+    expect(migration13).toContain('Europe/London')
+    expect(migration13).not.toMatch(/update\s+players/i)
+    expect(migration13).not.toMatch(/update\s+games/i)
+    expect(selectionsSource).toContain('adminStripNonWeekendSnapshotFixtures')
+  })
+
   it('adds an admin-only late selection RPC without weakening submit_selection', () => {
     expect(migration11).toContain('admin_submit_late_selection')
     expect(migration11).toContain("perform public.pick_error('LATE_REASON_REQUIRED')")

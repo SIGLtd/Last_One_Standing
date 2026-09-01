@@ -32,7 +32,7 @@ describe('home landing page', () => {
     expect(homeSource).toContain('WhoSurvivedSection')
     expect(homeSource).toContain('View all picks')
     expect(homeSource).toContain('FixtureMatchRow')
-    expect(homeSource).toContain('fetchWindowEligibleFixtures')
+    expect(homeSource).toContain('fetchPlayerFacingWindowFixtures')
     expect(homeSource).toContain('buildSelectableTeamOptions(result.windowFixtures)')
     expect(formatCompactDeadlineLondon(ROUND1_LIVE_DEADLINE_UTC)).toContain('21')
     expect(formatCompactDeadlineLondon(ROUND1_LIVE_DEADLINE_UTC).toLowerCase()).toContain('4:00pm')

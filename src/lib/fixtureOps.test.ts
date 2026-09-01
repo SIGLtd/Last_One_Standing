@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSelectableTeamOptions } from './fixtureOps'
+import { buildSelectableTeamOptions, playerFacingEligibleFixtures } from './fixtureOps'
 import { parsePickError, pickErrorLabel } from './pickErrors'
 import {
   isPlayerFacingOpenWindow,
@@ -73,6 +73,46 @@ describe('selectable team options', () => {
 
     expect(options).toHaveLength(2)
     expect(options.find((o: { team_id: string }) => o.team_id === 'ars')?.venue).toBe('Home')
+  })
+
+  it('hides Ipswich and Liverpool when the snapshot row is a Friday fixture', () => {
+    const snapshot = [
+      {
+        id: '1',
+        window_id: 'w4',
+        season_fixture_id: 'ips-liv',
+        home_team_id: 'ips',
+        away_team_id: 'liv',
+        home_team_name: 'Ipswich Town',
+        away_team_name: 'Liverpool',
+        kickoff_at: '2026-09-05T14:00:00.000Z',
+        snapshot_kickoff_at: '2026-09-05T14:00:00.000Z',
+        fixture_status: 'scheduled' as const,
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: '2',
+        window_id: 'w4',
+        season_fixture_id: 'hul-avl',
+        home_team_id: 'hul',
+        away_team_id: 'avl',
+        home_team_name: 'Hull City',
+        away_team_name: 'Aston Villa',
+        kickoff_at: '2026-09-05T14:00:00.000Z',
+        snapshot_kickoff_at: '2026-09-05T14:00:00.000Z',
+        fixture_status: 'scheduled' as const,
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+    ]
+    const filtered = playerFacingEligibleFixtures(snapshot, [
+      { id: 'ips-liv', kickoff_at: '2026-09-05T14:00:00.000Z', canonical_key: '2026/27|ips|liv|2026-09-04', eligibility_override: 'none' },
+      { id: 'hul-avl', kickoff_at: '2026-09-05T14:00:00.000Z', canonical_key: '2026/27|hul|avl|2026-09-05', eligibility_override: 'none' },
+    ])
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0]?.home_team_id).toBe('hul')
+    const options = buildSelectableTeamOptions(filtered)
+    expect(options.some((option) => option.team_id === 'ips' || option.team_id === 'liv')).toBe(false)
+    expect(options.some((option) => option.team_id === 'hul')).toBe(true)
   })
 })
 

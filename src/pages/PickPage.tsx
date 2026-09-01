@@ -10,7 +10,7 @@ import {
   buildSelectableTeamOptions,
   fetchOpenSelectionWindow,
   fetchPlannedOperationalWindow,
-  fetchWindowEligibleFixtures,
+  fetchPlayerFacingWindowFixtures,
   formatDeadlineLondon,
 } from '../lib/fixtureOps'
 import {
@@ -83,7 +83,7 @@ export function PickPage() {
 
       if (openWindow) {
         const [fixtures, mySelection, usedTeams] = await Promise.all([
-          fetchWindowEligibleFixtures(openWindow.id),
+          fetchPlayerFacingWindowFixtures(openWindow.id),
           fetchMySelection(player.id, currentGame.id, openWindow.id),
           fetchFinallyUsedTeamIds(player.id, currentGame.id),
         ])

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { isStandardEligibleFixture } from '../../scripts/lib/weekendEligibility'
 import { londonDayOfWeek } from '../../scripts/lib/fixtureValidation'
-import { isDefaultEligibleUkKickoff, isUkWeekendKickoff, snapshotHasNonWeekendFixture, ukIsoDayOfWeek } from './weekendFixtures'
+import { isDefaultEligibleUkKickoff, isLosRoundEligibleFixture, isUkWeekendKickoff, snapshotHasNonWeekendFixture, ukIsoDayOfWeek, hasReliableKickoff } from './weekendFixtures'
 
 describe('UK weekend fixture eligibility', () => {
   it('includes Saturday and Sunday kickoffs in UK local time', () => {
@@ -41,5 +41,32 @@ describe('UK weekend fixture eligibility', () => {
     expect(
       snapshotHasNonWeekendFixture([{ kickoff_at: '2026-08-24T19:00:00.000Z', season_fixture_id: 'ful-che' }]),
     ).toBe(true)
+  })
+
+  it('excludes fixtures with no reliable kickoff timestamp', () => {
+    expect(hasReliableKickoff('')).toBe(false)
+    expect(hasReliableKickoff('not-a-date')).toBe(false)
+    expect(isLosRoundEligibleFixture({ kickoff_at: '' })).toBe(false)
+    expect(isStandardEligibleFixture('', 'none', 'scheduled', londonDayOfWeek)).toBe(false)
+  })
+
+  it('does not let provider matchday make a Friday fixture eligible', () => {
+    expect(
+      isLosRoundEligibleFixture({
+        kickoff_at: '2026-09-04T19:00:00.000Z',
+        canonical_key: '2026/27|ips|liv|2026-09-04',
+        matchday: 3,
+      }),
+    ).toBe(false)
+  })
+
+  it('excludes a Saturday placeholder kickoff whose canonical key is Friday', () => {
+    expect(
+      isLosRoundEligibleFixture({
+        kickoff_at: '2026-09-05T14:00:00.000Z',
+        canonical_key: '2026/27|ips|liv|2026-09-04',
+      }),
+    ).toBe(false)
+    expect(isUkWeekendKickoff('2026-09-05T14:00:00.000Z')).toBe(true)
   })
 })

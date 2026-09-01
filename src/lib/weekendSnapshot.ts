@@ -1,6 +1,10 @@
 import { londonDateFromKickoff, londonDayOfWeek } from '../../scripts/lib/fixtureValidation'
 import { isStandardEligibleFixture } from '../../scripts/lib/weekendEligibility'
-import { isUkWeekendKickoff } from './weekendFixtures'
+import {
+  INVALID_WEEKDAY_SNAPSHOT_WARNING,
+  hasReliableKickoff,
+  isLosRoundEligibleFixture,
+} from './weekendFixtures'
 
 const DAY_LABEL = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const
 
@@ -13,6 +17,7 @@ export type WeekendSnapshotFixture = {
   kickoff_at: string
   eligibility_override?: string | null
   status?: string
+  canonical_key?: string | null
 }
 
 export type SnapshotFixtureIssue = {
@@ -36,6 +41,7 @@ export type WeekendSnapshotValidity = {
 }
 
 export function londonWeekdayLabel(kickoffAt: string): string {
+  if (!hasReliableKickoff(kickoffAt)) return 'Unknown'
   return DAY_LABEL[londonDayOfWeek(kickoffAt)] ?? 'Unknown'
 }
 
@@ -45,8 +51,18 @@ export function selectEligibleWeekendFixtures<T extends WeekendSnapshotFixture>(
   sun: string,
 ): T[] {
   return fixtures.filter((fixture) => {
+    if (!hasReliableKickoff(fixture.kickoff_at)) return false
     const day = londonDateFromKickoff(fixture.kickoff_at)
     if (day < sat || day > sun) return false
+    if (
+      !isLosRoundEligibleFixture({
+        kickoff_at: fixture.kickoff_at,
+        eligibility_override: fixture.eligibility_override ?? 'none',
+        canonical_key: fixture.canonical_key,
+      })
+    ) {
+      return false
+    }
     return isStandardEligibleFixture(
       fixture.kickoff_at,
       fixture.eligibility_override ?? 'none',
@@ -57,31 +73,46 @@ export function selectEligibleWeekendFixtures<T extends WeekendSnapshotFixture>(
 }
 
 export function inspectWeekendSnapshot(
-  fixtures: Array<Pick<WeekendSnapshotFixture, 'season_fixture_id' | 'home_team_id' | 'away_team_id' | 'kickoff_at' | 'eligibility_override'>>,
+  fixtures: Array<
+    Pick<
+      WeekendSnapshotFixture,
+      'season_fixture_id' | 'home_team_id' | 'away_team_id' | 'kickoff_at' | 'eligibility_override' | 'canonical_key'
+    >
+  >,
 ): WeekendSnapshotValidity {
   const issues: string[] = []
   const nonWeekend: SnapshotFixtureIssue[] = []
   let saturdayCount = 0
   let sundayCount = 0
-  const dates = fixtures.map((fixture) => londonDateFromKickoff(fixture.kickoff_at)).sort()
+  const dates = fixtures
+    .filter((fixture) => hasReliableKickoff(fixture.kickoff_at))
+    .map((fixture) => londonDateFromKickoff(fixture.kickoff_at))
+    .sort()
 
   for (const fixture of fixtures) {
-    const dow = londonDayOfWeek(fixture.kickoff_at)
-    const londonDate = londonDateFromKickoff(fixture.kickoff_at)
+    const dow = hasReliableKickoff(fixture.kickoff_at) ? londonDayOfWeek(fixture.kickoff_at) : 0
+    const londonDate = hasReliableKickoff(fixture.kickoff_at) ? londonDateFromKickoff(fixture.kickoff_at) : 'unknown'
     const londonDay = londonWeekdayLabel(fixture.kickoff_at)
     if (dow === 6) saturdayCount += 1
     if (dow === 7) sundayCount += 1
     const override = fixture.eligibility_override ?? 'none'
-    if (override === 'force_eligible') continue
-    if (!isUkWeekendKickoff(fixture.kickoff_at)) {
+    if (override === 'force_eligible' && hasReliableKickoff(fixture.kickoff_at)) continue
+    const eligible = isLosRoundEligibleFixture({
+      kickoff_at: fixture.kickoff_at,
+      eligibility_override: override,
+      canonical_key: fixture.canonical_key,
+    })
+    if (!eligible) {
       nonWeekend.push({
         season_fixture_id: fixture.season_fixture_id,
         home_team_id: fixture.home_team_id,
         away_team_id: fixture.away_team_id,
         kickoff_at: fixture.kickoff_at,
         londonDate,
-        londonDay,
-        reason: `${londonDay} fixtures are excluded unless Admin makes an explicit exception.`,
+        londonDay: hasReliableKickoff(fixture.kickoff_at) ? londonDay : 'Unknown',
+        reason: hasReliableKickoff(fixture.kickoff_at)
+          ? `${londonDay} fixtures are excluded unless Admin makes an explicit exception.`
+          : 'Fixture has no reliable kickoff timestamp and cannot be included by default.',
       })
     }
   }
@@ -90,9 +121,7 @@ export function inspectWeekendSnapshot(
     issues.push('This round has no eligible fixtures.')
   }
   if (nonWeekend.length > 0) {
-    issues.push(
-      `This round includes ${nonWeekend.length} Friday/Monday/midweek fixture${nonWeekend.length === 1 ? '' : 's'} without an explicit exception.`,
-    )
+    issues.push(INVALID_WEEKDAY_SNAPSHOT_WARNING)
   }
 
   return {
@@ -156,6 +185,57 @@ export function planOpenWindowSnapshotCorrection<T extends WeekendSnapshotFixtur
   }
 
   return { action: 'replace', reason: null, nextSnapshot }
+}
+
+export function planStripInvalidSnapshotFixtures<T extends WeekendSnapshotFixture>(input: {
+  windowStatus: string
+  currentSnapshot: T[]
+  picks: Array<{ team_id?: string | null; season_fixture_id?: string | null }>
+}): {
+  action: 'noop' | 'strip' | 'blocked'
+  reason: string | null
+  nextSnapshot: T[]
+  removed: T[]
+  preserveDeadline: true
+} {
+  const removed = input.currentSnapshot.filter(
+    (fixture) =>
+      !isLosRoundEligibleFixture({
+        kickoff_at: fixture.kickoff_at,
+        eligibility_override: fixture.eligibility_override ?? 'none',
+        canonical_key: fixture.canonical_key,
+      }),
+  )
+  const kept = input.currentSnapshot.filter((fixture) => !removed.includes(fixture))
+  if (removed.length === 0) {
+    return { action: 'noop', reason: null, nextSnapshot: input.currentSnapshot.map((row) => ({ ...row })), removed: [], preserveDeadline: true }
+  }
+  if (input.windowStatus !== 'open' && input.windowStatus !== 'pending') {
+    return {
+      action: 'blocked',
+      reason: 'Only an open or pending future round can have invalid fixtures removed.',
+      nextSnapshot: input.currentSnapshot.map((row) => ({ ...row })),
+      removed,
+      preserveDeadline: true,
+    }
+  }
+  const invalidTeams = new Set(removed.flatMap((fixture) => [fixture.home_team_id, fixture.away_team_id]))
+  const invalidIds = new Set(removed.map((fixture) => fixture.season_fixture_id))
+  const picksOnInvalid = input.picks.filter((pick) => {
+    if (!pick.team_id) return false
+    if (pick.season_fixture_id && invalidIds.has(pick.season_fixture_id)) return true
+    return invalidTeams.has(pick.team_id)
+  })
+  if (picksOnInvalid.length > 0) {
+    return {
+      action: 'blocked',
+      reason: 'This round already has picks on the invalid Friday/Monday fixture. The snapshot cannot be stripped without an explicit pick-handling plan.',
+      nextSnapshot: input.currentSnapshot.map((row) => ({ ...row })),
+      removed,
+      preserveDeadline: true,
+    }
+  }
+  return { action: 'strip', reason: null, nextSnapshot: kept, removed, preserveDeadline: true }
 }
 
 function snapshotIdentity(fixtures: WeekendSnapshotFixture[]): string {

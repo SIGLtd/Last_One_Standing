@@ -22,6 +22,7 @@ import {
   fetchRecentSyncRuns,
   fetchSeasonFixtures,
   fetchWindowEligibleFixtures,
+  playerFacingEligibleFixtures,
   formatDeadlineLondon,
   invokeFixtureReconciliation,
   invokeFixtureResultSync,
@@ -37,6 +38,7 @@ import {
   adminFetchWindowSelections,
   adminLockSelectionWindow,
   adminOpenNextRound,
+  adminStripNonWeekendSnapshotFixtures,
   adminSubmitSelection,
 } from '../lib/selections'
 import { canOpenNextRound } from '../lib/nextRound'
@@ -446,6 +448,23 @@ export function AdminPage() {
     }
   }
 
+  async function handleStripInvalidFixtures() {
+    if (!pickWindow) return
+    setActionId('strip-invalid')
+    setPageError(null)
+    try {
+      const result = await adminStripNonWeekendSnapshotFixtures(pickWindow.id)
+      setReconcileMessage(
+        `Removed ${Number(result.removed ?? 0)} invalid fixture(s). ${Number(result.remaining ?? 0)} Saturday/Sunday fixtures remain. Deadline unchanged.`,
+      )
+      await loadAdminCore()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to remove invalid fixtures.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
   async function handleResolveRound() {
     if (!auditWindow) return
     setActionId('resolve-round')
@@ -530,9 +549,10 @@ export function AdminPage() {
 
   const paymentSummary = buildPlayerPaymentSummary(entries, players)
   const roundControl = thisRoundWindow
-    ? buildRoundControlStats({
+      ? buildRoundControlStats({
         openWindow: thisRoundWindow,
         snapshotFixtures: openFixtures,
+        seasonFixtures,
         entries,
         selectionsMade,
       })
@@ -715,12 +735,15 @@ export function AdminPage() {
               <AdminThisRoundSection
                 openWindow={pickWindow}
                 fixtures={openFixtures}
+                seasonFixtures={seasonFixtures}
                 whatsAppSummary={whatsAppSummary}
                 csvContents={csvContents}
+                stripBusy={actionId === 'strip-invalid'}
+                onStripInvalidFixtures={() => void handleStripInvalidFixtures()}
               />
               <AdminProxyPicksSection
                 players={players}
-                fixtures={openFixtures}
+                fixtures={playerFacingEligibleFixtures(openFixtures, seasonFixtures)}
                 existingSelectionByPlayer={existingSelectionByPlayer}
                 window={pickWindow}
                 busy={actionId === 'proxy-pick' || actionId === 'late-pick' || actionId === 'manual-player'}

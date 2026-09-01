@@ -262,4 +262,19 @@ describe('used teams and next round', () => {
     expect(weekend?.fridayExcluded).toBeGreaterThanOrEqual(1)
     expect(weekend?.mondayExcluded).toBeGreaterThanOrEqual(1)
   })
+
+  it('excludes Ipswich v Liverpool when its canonical key is Friday even if kickoff is Saturday', () => {
+    const fixtures = loadSeasonFixtures().map((row) =>
+      row.home_team_id === 'ips' && row.away_team_id === 'liv'
+        ? { ...row, canonical_key: '2026/27|ips|liv|2026-09-04' }
+        : row,
+    )
+    const weekend = findNextPremierLeagueWeekend(fixtures, '2026-08-30')
+    expect(weekend?.sat).toBe('2026-09-05')
+    expect(weekend?.sun).toBe('2026-09-06')
+    expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'ips' && fixture.away_team_id === 'liv')).toBe(
+      false,
+    )
+    expect(weekend?.eligible.every((fixture) => [6, 7].includes(londonDayOfWeek(fixture.kickoff_at)))).toBe(true)
+  })
 })

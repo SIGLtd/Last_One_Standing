@@ -5,6 +5,7 @@ export function isStandardEligibleFixture(
   londonIsodow: (kickoffUtc: string) => number,
 ): boolean {
   const fixtureStatus = status ?? 'scheduled'
+  if (!kickoff || !Number.isFinite(Date.parse(kickoff))) return false
   if (override === 'force_ineligible') return false
   if (override === 'force_eligible') return ['scheduled', 'in_play'].includes(fixtureStatus)
   if (override === 'none' || !override) {

@@ -18,6 +18,7 @@ const currentPicksSource = readFileSync(join(__dirname, '..', 'pages', 'CurrentP
 const myPicksSource = readFileSync(join(__dirname, '..', 'pages', 'MyPicksPage.tsx'), 'utf8')
 const homeSource = readFileSync(join(__dirname, '..', 'pages', 'HomePage.tsx'), 'utf8')
 const pickSource = readFileSync(join(__dirname, '..', 'pages', 'PickPage.tsx'), 'utf8')
+const weekendFixturesSource = readFileSync(join(__dirname, '..', 'lib', 'weekendFixtures.ts'), 'utf8')
 
 describe('admin page mobile cockpit layout', () => {
   it('renders round control before advanced operations', () => {
@@ -71,14 +72,16 @@ describe('admin round results controls', () => {
     expect(thisRoundSource).toContain('eligible_sat_date')
     expect(thisRoundSource).toContain('londonWeekdayLabel')
     expect(thisRoundSource).toContain('Snapshot valid')
-    expect(thisRoundSource).toContain('validity.issues')
+    expect(thisRoundSource).toContain('INVALID_WEEKDAY_SNAPSHOT_WARNING')
+    expect(thisRoundSource).toContain('Remove invalid fixtures')
+    expect(weekendFixturesSource).toContain('This round includes a Friday/Monday fixture. Review required.')
     expect(currentPicksSource).toContain('fetchCurrentSelectionWindow')
-    expect(homeSource).toContain('fetchWindowEligibleFixtures')
+    expect(homeSource).toContain('fetchPlayerFacingWindowFixtures')
     expect(homeSource).toContain('buildSelectableTeamOptions(result.windowFixtures)')
     expect(adminPageSource).toContain('<AdminThisRoundSection')
     expect(adminPageSource).toContain('NON_WEEKEND_FIXTURES')
     expect(adminPageSource).toContain('if (!check.canOpen)')
-    expect(pickSource).toContain('fetchWindowEligibleFixtures')
+    expect(pickSource).toContain('fetchPlayerFacingWindowFixtures')
   })
 
   it('exposes the admin late pick override without private player fields', () => {

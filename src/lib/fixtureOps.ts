@@ -1,5 +1,6 @@
 import { getSupabaseOrThrow } from './supabase'
 import { canViewCurrentPicks, isPlayerFacingOpenWindow, MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
+import { isLosRoundEligibleFixture } from './weekendFixtures'
 import type { SelectionWindowEligibleFixture, SelectionWindowWithMeta, SeasonFixture } from '../types'
 
 export function formatLondonDateTime(iso: string): string {
@@ -187,6 +188,39 @@ export async function fetchWindowEligibleFixtures(windowId: string): Promise<Sel
 
   if (error) throw error
   return data ?? []
+}
+
+export function playerFacingEligibleFixtures(
+  snapshot: SelectionWindowEligibleFixture[],
+  seasonRows: Array<{
+    id: string
+    kickoff_at?: string | null
+    canonical_key?: string | null
+    eligibility_override?: string | null
+  }>,
+): SelectionWindowEligibleFixture[] {
+  const byId = new Map(seasonRows.map((row) => [row.id, row]))
+  return snapshot.filter((fixture) => {
+    const live = byId.get(fixture.season_fixture_id)
+    return isLosRoundEligibleFixture({
+      kickoff_at: live?.kickoff_at || fixture.kickoff_at,
+      eligibility_override: live?.eligibility_override ?? 'none',
+      canonical_key: live?.canonical_key,
+    })
+  })
+}
+
+export async function fetchPlayerFacingWindowFixtures(windowId: string): Promise<SelectionWindowEligibleFixture[]> {
+  const snapshot = await fetchWindowEligibleFixtures(windowId)
+  if (snapshot.length === 0) return []
+  const ids = snapshot.map((row) => row.season_fixture_id)
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('season_fixtures')
+    .select('id, kickoff_at, canonical_key, eligibility_override')
+    .in('id', ids)
+  if (error) throw error
+  return playerFacingEligibleFixtures(snapshot, data ?? [])
 }
 
 export type SelectableTeamOption = {

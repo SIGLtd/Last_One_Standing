@@ -3,35 +3,48 @@ import { Badge } from '../Badge'
 import { formatDeadlineLondon, formatLondonDateTime } from '../../lib/fixtureOps'
 import { operationalWindowToRoundLabel } from '../../lib/round1'
 import { inspectWeekendSnapshot, londonWeekdayLabel } from '../../lib/weekendSnapshot'
-import type { SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../../types'
+import { INVALID_WEEKDAY_SNAPSHOT_WARNING, isLosRoundEligibleFixture } from '../../lib/weekendFixtures'
+import type { SeasonFixture, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../../types'
 
 type AdminThisRoundSectionProps = {
   openWindow: SelectionWindowWithMeta
   fixtures: SelectionWindowEligibleFixture[]
+  seasonFixtures?: SeasonFixture[]
   whatsAppSummary: string
   csvContents: string
+  stripBusy?: boolean
+  onStripInvalidFixtures?: () => void
 }
 
 export function AdminThisRoundSection({
   openWindow,
   fixtures,
+  seasonFixtures = [],
   whatsAppSummary,
   csvContents,
+  stripBusy,
+  onStripInvalidFixtures,
 }: AdminThisRoundSectionProps) {
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const roundLabel = operationalWindowToRoundLabel(openWindow.window_number)
+  const seasonById = useMemo(() => new Map(seasonFixtures.map((row) => [row.id, row])), [seasonFixtures])
   const validity = useMemo(
     () =>
       inspectWeekendSnapshot(
-        fixtures.map((fixture) => ({
-          season_fixture_id: fixture.season_fixture_id,
-          home_team_id: fixture.home_team_id,
-          away_team_id: fixture.away_team_id,
-          kickoff_at: fixture.kickoff_at,
-        })),
+        fixtures.map((fixture) => {
+          const live = seasonById.get(fixture.season_fixture_id)
+          return {
+            season_fixture_id: fixture.season_fixture_id,
+            home_team_id: fixture.home_team_id,
+            away_team_id: fixture.away_team_id,
+            kickoff_at: live?.kickoff_at || fixture.kickoff_at,
+            eligibility_override: live?.eligibility_override ?? 'none',
+            canonical_key: live?.canonical_key,
+          }
+        }),
       ),
-    [fixtures],
+    [fixtures, seasonById],
   )
   const preview = fixtures.slice(0, 4)
   const remainder = fixtures.length - preview.length
@@ -50,6 +63,32 @@ export function AdminThisRoundSection({
     link.download = `${roundLabel.replace(/\s+/g, '-').toLowerCase()}-selections.csv`
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  function fixtureMeta(fixture: SelectionWindowEligibleFixture) {
+    const live = seasonById.get(fixture.season_fixture_id)
+    const kickoff = live?.kickoff_at || fixture.kickoff_at
+    const eligible = isLosRoundEligibleFixture({
+      kickoff_at: kickoff,
+      eligibility_override: live?.eligibility_override ?? 'none',
+      canonical_key: live?.canonical_key,
+    })
+    return { kickoff, eligible, day: londonWeekdayLabel(kickoff) }
+  }
+
+  function renderFixtureRow(fixture: SelectionWindowEligibleFixture) {
+    const meta = fixtureMeta(fixture)
+    return (
+      <li key={fixture.id} className="rounded border border-border bg-surface px-2 py-2">
+        <span className="font-medium text-ink">
+          {fixture.home_team_name} v {fixture.away_team_name}
+        </span>
+        <span className="mt-0.5 block text-muted-ink">
+          {meta.day} · {formatLondonDateTime(meta.kickoff)}
+          {meta.eligible ? '' : ' · Invalid weekday'}
+        </span>
+      </li>
+    )
   }
 
   return (
@@ -82,9 +121,22 @@ export function AdminThisRoundSection({
       </p>
       {validity.issues.length > 0 ? (
         <div className="mt-2 los-alert los-alert-error">
-          {validity.issues.map((issue) => (
-            <p key={issue}>{issue}</p>
-          ))}
+          {validity.nonWeekend.length > 0 ? <p>{INVALID_WEEKDAY_SNAPSHOT_WARNING}</p> : null}
+          {validity.issues
+            .filter((issue) => issue !== INVALID_WEEKDAY_SNAPSHOT_WARNING)
+            .map((issue) => (
+              <p key={issue}>{issue}</p>
+            ))}
+          {onStripInvalidFixtures && validity.nonWeekend.length > 0 ? (
+            <button
+              type="button"
+              onClick={onStripInvalidFixtures}
+              disabled={stripBusy}
+              className="mt-2 los-btn-secondary los-tap-target disabled:opacity-50"
+            >
+              {stripBusy ? 'Removing…' : 'Remove invalid fixtures'}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -102,16 +154,7 @@ export function AdminThisRoundSection({
       </pre>
 
       <ul className="mt-2 grid gap-1 text-xs">
-        {preview.map((fixture) => (
-          <li key={fixture.id} className="rounded border border-border bg-surface px-2 py-2">
-            <span className="font-medium text-ink">
-              {fixture.home_team_name} v {fixture.away_team_name}
-            </span>
-            <span className="mt-0.5 block text-muted-ink">
-              {londonWeekdayLabel(fixture.kickoff_at)} · {formatLondonDateTime(fixture.kickoff_at)}
-            </span>
-          </li>
-        ))}
+        {preview.map((fixture) => renderFixtureRow(fixture))}
       </ul>
 
       {remainder > 0 && !expanded ? (
@@ -126,16 +169,7 @@ export function AdminThisRoundSection({
 
       {expanded ? (
         <ul className="mt-2 grid gap-1 text-xs">
-          {fixtures.slice(4).map((fixture) => (
-            <li key={fixture.id} className="rounded border border-border bg-surface px-2 py-2">
-              <span className="font-medium text-ink">
-                {fixture.home_team_name} v {fixture.away_team_name}
-              </span>
-              <span className="mt-0.5 block text-muted-ink">
-              {londonWeekdayLabel(fixture.kickoff_at)} · {formatLondonDateTime(fixture.kickoff_at)}
-            </span>
-            </li>
-          ))}
+          {fixtures.slice(4).map((fixture) => renderFixtureRow(fixture))}
         </ul>
       ) : null}
     </section>

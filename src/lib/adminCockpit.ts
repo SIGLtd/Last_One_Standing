@@ -1,7 +1,8 @@
-import type { GameEntryWithPlayer, Player, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
+import type { GameEntryWithPlayer, Player, SeasonFixture, SelectionWindowEligibleFixture, SelectionWindowWithMeta } from '../types'
 import { ROUND1_PUBLIC_LABEL, formatTimeRemaining, operationalWindowToRoundLabel } from './round1'
 import { buildPlayerCensus, type PlayerCensus } from './playerCensus'
 import { inspectWeekendSnapshot } from './weekendSnapshot'
+import { INVALID_WEEKDAY_SNAPSHOT_WARNING } from './weekendFixtures'
 
 export const ADMIN_COCKPIT_SECTION_ORDER = [
   'round_control',
@@ -33,24 +34,36 @@ export type RoundControlStats = {
 export function buildRoundControlStats(input: {
   openWindow: SelectionWindowWithMeta
   snapshotFixtures: SelectionWindowEligibleFixture[]
+  seasonFixtures?: SeasonFixture[]
   entries: GameEntryWithPlayer[]
   selectionsMade: number
   nowMs?: number
 }): RoundControlStats {
   const paidActivePlayers = input.entries.filter((entry) => entry.paid && entry.status === 'active').length
   const awaitingVerification = input.entries.filter((entry) => entry.payment_claimed && !entry.paid).length
+  const seasonById = new Map((input.seasonFixtures ?? []).map((row) => [row.id, row]))
   const validity = inspectWeekendSnapshot(
-    input.snapshotFixtures.map((fixture) => ({
-      season_fixture_id: fixture.season_fixture_id,
-      home_team_id: fixture.home_team_id,
-      away_team_id: fixture.away_team_id,
-      kickoff_at: fixture.kickoff_at,
-    })),
+    input.snapshotFixtures.map((fixture) => {
+      const live = seasonById.get(fixture.season_fixture_id)
+      return {
+        season_fixture_id: fixture.season_fixture_id,
+        home_team_id: fixture.home_team_id,
+        away_team_id: fixture.away_team_id,
+        kickoff_at: live?.kickoff_at || fixture.kickoff_at,
+        eligibility_override: live?.eligibility_override ?? 'none',
+        canonical_key: live?.canonical_key,
+      }
+    }),
   )
   const weekendLabel =
     input.openWindow.eligible_sat_date && input.openWindow.eligible_sun_date
       ? `${input.openWindow.eligible_sat_date} to ${input.openWindow.eligible_sun_date}`
       : validity.weekendLabel
+
+  const snapshotIssues =
+    validity.nonWeekend.length > 0 && !validity.issues.includes(INVALID_WEEKDAY_SNAPSHOT_WARNING)
+      ? [INVALID_WEEKDAY_SNAPSHOT_WARNING, ...validity.issues]
+      : validity.issues
 
   return {
     roundLabel: operationalWindowToRoundLabel(input.openWindow.window_number) || ROUND1_PUBLIC_LABEL,
@@ -69,7 +82,7 @@ export function buildRoundControlStats(input: {
     sundayCount: validity.sundayCount,
     weekendLabel,
     snapshotValid: validity.valid,
-    snapshotIssues: validity.issues,
+    snapshotIssues,
     selectionsMade: input.selectionsMade,
     paidActivePlayers,
     awaitingVerification,

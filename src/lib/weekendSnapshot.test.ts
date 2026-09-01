@@ -4,6 +4,7 @@ import {
   canCorrectOpenWindowSnapshot,
   inspectWeekendSnapshot,
   planOpenWindowSnapshotCorrection,
+  planStripInvalidSnapshotFixtures,
   selectEligibleWeekendFixtures,
 } from './weekendSnapshot'
 import type { SeasonFixture, SelectionWindowWithMeta } from '../types'
@@ -217,6 +218,7 @@ describe('weekend snapshot eligibility', () => {
     expect(validity.valid).toBe(false)
     expect(validity.saturdayCount).toBe(1)
     expect(validity.nonWeekend[0]?.londonDay).toBe('Friday')
+    expect(validity.issues).toContain('This round includes a Friday/Monday fixture. Review required.')
   })
 })
 
@@ -230,5 +232,48 @@ describe('artefact Round 2 weekend', () => {
     expect(weekend?.mondayExcluded).toBeGreaterThanOrEqual(1)
     expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'cry')).toBe(false)
     expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'avl')).toBe(false)
+  })
+})
+
+describe('stale Saturday kickoff with Friday canonical key', () => {
+  it('excludes Ipswich Town v Liverpool when the canonical date is Friday', () => {
+    const staleSaturday = {
+      season_fixture_id: 'ips-liv',
+      home_team_id: 'ips',
+      away_team_id: 'liv',
+      kickoff_at: '2026-09-05T14:00:00.000Z',
+      canonical_key: '2026/27|ips|liv|2026-09-04',
+      eligibility_override: 'none',
+      status: 'scheduled',
+    }
+    const saturday = {
+      season_fixture_id: 'hul-avl',
+      home_team_id: 'hul',
+      away_team_id: 'avl',
+      kickoff_at: '2026-09-05T14:00:00.000Z',
+      canonical_key: '2026/27|hul|avl|2026-09-05',
+      eligibility_override: 'none',
+      status: 'scheduled',
+    }
+    const eligible = selectEligibleWeekendFixtures([staleSaturday, saturday], '2026-09-05', '2026-09-06')
+    expect(eligible.map((row) => row.home_team_id)).toEqual(['hul'])
+
+    const stripped = planStripInvalidSnapshotFixtures({
+      windowStatus: 'open',
+      currentSnapshot: [staleSaturday, saturday],
+      picks: [],
+    })
+    expect(stripped.action).toBe('strip')
+    expect(stripped.preserveDeadline).toBe(true)
+    expect(stripped.removed).toHaveLength(1)
+    expect(stripped.nextSnapshot).toEqual([saturday])
+
+    const blocked = planStripInvalidSnapshotFixtures({
+      windowStatus: 'open',
+      currentSnapshot: [staleSaturday, saturday],
+      picks: [{ team_id: 'liv' }],
+    })
+    expect(blocked.action).toBe('blocked')
+    expect(blocked.nextSnapshot).toHaveLength(2)
   })
 })

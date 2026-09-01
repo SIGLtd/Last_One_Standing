@@ -52,10 +52,26 @@ function londonIsodow(iso: string): number {
   return DateTime.fromISO(iso, { zone: 'utc' }).setZone('Europe/London').weekday
 }
 
-function isStandardEligible(kickoff: string, override: string, status: string): boolean {
+function canonicalKeyIsodow(canonicalKey: string | null | undefined): number | null {
+  const date = canonicalKey?.split('|')[3]?.trim() ?? ''
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
+  const dow = DateTime.fromISO(`${date}T12:00:00`, { zone: 'Europe/London' }).weekday
+  return Number.isFinite(dow) ? dow : null
+}
+
+function isStandardEligible(
+  kickoff: string,
+  override: string,
+  status: string,
+  canonicalKey?: string | null,
+): boolean {
+  if (!kickoff || !DateTime.fromISO(kickoff).isValid) return false
   if (override === 'force_ineligible') return false
   if (override === 'force_eligible') return ['scheduled', 'in_play'].includes(status)
-  return ['scheduled', 'in_play'].includes(status) && [6, 7].includes(londonIsodow(kickoff))
+  if (!['scheduled', 'in_play'].includes(status) || ![6, 7].includes(londonIsodow(kickoff))) return false
+  const keyDow = canonicalKeyIsodow(canonicalKey)
+  if (keyDow != null && ![6, 7].includes(keyDow)) return false
+  return true
 }
 
 function shouldExecuteScheduledScan(
@@ -139,6 +155,38 @@ type ProviderSyncResult = {
   providerMapped: number
 }
 
+async function findExistingSeasonFixture(
+  admin: ReturnType<typeof createClient>,
+  item: NormalizedProviderMatch,
+) {
+  const { data: byCanonical } = await admin
+    .from('season_fixtures')
+    .select('*')
+    .eq('season', LOS_SEASON_LABEL)
+    .eq('canonical_key', item.canonicalKey)
+    .maybeSingle()
+  if (byCanonical) return byCanonical
+
+  if (item.providerFixtureId) {
+    const { data: byProvider } = await admin
+      .from('season_fixtures')
+      .select('*')
+      .eq('season', LOS_SEASON_LABEL)
+      .eq('source_fixture_id', item.providerFixtureId)
+      .maybeSingle()
+    if (byProvider) return byProvider
+  }
+
+  const { data: byTeams } = await admin
+    .from('season_fixtures')
+    .select('*')
+    .eq('season', LOS_SEASON_LABEL)
+    .eq('home_team_id', item.homeTeamId)
+    .eq('away_team_id', item.awayTeamId)
+  if ((byTeams ?? []).length === 1) return byTeams![0]
+  return null
+}
+
 async function applyProviderMatches(
   admin: ReturnType<typeof createClient>,
   syncRunId: string,
@@ -150,13 +198,7 @@ async function applyProviderMatches(
   let providerMapped = 0
 
   for (const item of providerMatches) {
-    const { data: existing } = await admin
-      .from('season_fixtures')
-      .select('*')
-      .eq('season', LOS_SEASON_LABEL)
-      .eq('canonical_key', item.canonicalKey)
-      .maybeSingle()
-
+    const existing = await findExistingSeasonFixture(admin, item)
     if (!existing) continue
 
     const kickoff = item.kickoffAt
@@ -200,7 +242,6 @@ async function applyProviderMatches(
         affected_window_id: openWindows?.[0]?.id ?? null,
       })
       changesDetected += 1
-      continue
     }
 
     const shouldMapProviderId = !existing.source_fixture_id && item.providerFixtureId
@@ -225,9 +266,10 @@ async function applyProviderMatches(
           : existing?.last_changed_at,
       rescheduled_count:
         existing && kickoffChanged ? (existing.rescheduled_count ?? 0) + 1 : (existing?.rescheduled_count ?? 0),
+      updated_at: new Date().toISOString(),
     }
 
-    const { error: upsertError } = await admin.from('season_fixtures').upsert(row, { onConflict: 'season,canonical_key' })
+    const { error: upsertError } = await admin.from('season_fixtures').update(row).eq('id', existing.id)
     if (!upsertError) {
       masterUpdated += 1
       if (shouldMapProviderId) providerMapped += 1
@@ -449,6 +491,7 @@ async function syncLatestResults(
       provider_status: item.status,
       result_match_method: mapped.method,
       canonical_key: item.canonicalKey,
+      kickoff_at: item.kickoffAt,
       updated_at: retrievedAt,
     }
 
@@ -458,7 +501,8 @@ async function syncLatestResults(
       mapped.fixture.away_score !== patch.away_score ||
       mapped.fixture.result_status !== patch.result_status ||
       mapped.fixture.source_fixture_id !== patch.source_fixture_id ||
-      mapped.fixture.canonical_key !== patch.canonical_key
+      mapped.fixture.canonical_key !== patch.canonical_key ||
+      mapped.fixture.kickoff_at !== patch.kickoff_at
 
     const { error: updateError } = await admin.from('season_fixtures').update(patch).eq('id', mapped.fixture.id)
     if (!updateError && changed) fixturesUpdated += 1
@@ -761,7 +805,7 @@ Deno.serve(async (req) => {
       (f) =>
         londonDate(f.kickoff_at) >= weekend.sat &&
         londonDate(f.kickoff_at) <= weekend.sun &&
-        isStandardEligible(f.kickoff_at, f.eligibility_override, f.status),
+        isStandardEligible(f.kickoff_at, f.eligibility_override, f.status, f.canonical_key),
     )
 
     const { data: unresolved } = await admin

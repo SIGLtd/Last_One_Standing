@@ -40,7 +40,17 @@ export function resolveTeamId(plName: string): string | null {
   return plNameToId.get(plName.trim()) ?? null
 }
 
+function londonDateFromKickoffUtc(kickoffUtc: string): string {
+  const parsed = Date.parse(kickoffUtc)
+  if (!Number.isFinite(parsed)) return kickoffUtc.slice(0, 10)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(parsed))
+}
+
 export function canonicalKey(season: string, homeId: string, awayId: string, kickoffUtc: string): string {
-  const day = kickoffUtc.slice(0, 10)
-  return `${season}|${homeId}|${awayId}|${day}`
+  return `${season}|${homeId}|${awayId}|${londonDateFromKickoffUtc(kickoffUtc)}`
 }

@@ -55,6 +55,7 @@ export function findNextPremierLeagueWeekend(
         kickoff_at: row.kickoff_at,
         eligibility_override: row.eligibility_override,
         status: row.status,
+        canonical_key: row.canonical_key,
       })),
       sat,
       sun,
@@ -168,6 +169,7 @@ export function canOpenNextRound(input: {
       away_team_id: fixture.away_team_id,
       kickoff_at: fixture.kickoff_at,
       eligibility_override: fixture.eligibility_override,
+      canonical_key: fixture.canonical_key,
     })),
   )
   if (!validity.valid) {

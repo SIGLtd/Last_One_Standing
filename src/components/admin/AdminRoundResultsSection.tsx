@@ -12,11 +12,14 @@ import type { SelectionWindowWithMeta } from '../../types'
 
 export type ResultSyncSummary = {
   lastSyncAt: string | null
+  lastAttemptedAt?: string | null
+  lastSuccessfulAt?: string | null
   fixturesChecked: number
   fixturesUpdated: number
   unresolved: Array<{ home_team_id?: string; away_team_id?: string; reason?: string }>
   ambiguousCount: number
   unmatchedCount: number
+  missingFinalCount?: number
   providerErrors: string[]
   result?: string
 }
@@ -41,6 +44,7 @@ type AdminRoundResultsSectionProps = {
   onSyncResults: () => void
   onResolveRound: () => void
   onOpenNextRound: () => void
+  schedulerConfigured?: boolean
 }
 
 const GROUP_ORDER = ['survived', 'eliminated', 'no_pick', 'pending', 'withdrawn'] as const
@@ -134,6 +138,7 @@ export function AdminRoundResultsSection({
   onSyncResults,
   onResolveRound,
   onOpenNextRound,
+  schedulerConfigured = false,
 }: AdminRoundResultsSectionProps) {
   const [confirmingResolve, setConfirmingResolve] = useState(false)
   const [confirmingOpen, setConfirmingOpen] = useState(false)
@@ -170,6 +175,13 @@ export function AdminRoundResultsSection({
         Scores come from football-data.org. Syncing results does not eliminate anyone. Resolve only after you have
         reviewed the preview.
       </p>
+      {schedulerConfigured ? (
+        <p className="mt-1 text-xs text-muted-ink">A scheduled result sync secret is configured on the server.</p>
+      ) : (
+        <div className="mt-2 los-alert los-alert-warning">
+          Result sync is admin-triggered. No scheduled weekend sync is active.
+        </div>
+      )}
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <button
@@ -184,11 +196,22 @@ export function AdminRoundResultsSection({
 
       <MetricStrip className="mt-3">
         <MetricCell
-          label="Last sync"
-          value={syncSummary?.lastSyncAt ? formatLondonDateTime(syncSummary.lastSyncAt) : 'Not yet'}
+          label="Last successful sync"
+          value={syncSummary?.lastSuccessfulAt ? formatLondonDateTime(syncSummary.lastSuccessfulAt) : 'Not yet'}
+        />
+        <MetricCell
+          label="Last attempted sync"
+          value={
+            syncSummary?.lastAttemptedAt || syncSummary?.lastSyncAt
+              ? formatLondonDateTime(String(syncSummary.lastAttemptedAt ?? syncSummary.lastSyncAt))
+              : 'Not since this weekend'
+          }
         />
         <MetricCell label="Fixtures checked" value={syncSummary?.fixturesChecked ?? 0} />
         <MetricCell label="Fixtures updated" value={syncSummary?.fixturesUpdated ?? 0} />
+      </MetricStrip>
+      <MetricStrip className="mt-2">
+        <MetricCell label="Still missing final scores" value={syncSummary?.missingFinalCount ?? syncSummary?.unresolved.length ?? 0} />
         <MetricCell label="Unresolved" value={syncSummary?.unresolved.length ?? 0} />
       </MetricStrip>
 

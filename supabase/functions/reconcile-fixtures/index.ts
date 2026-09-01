@@ -314,24 +314,54 @@ async function syncLatestResults(
   actorPlayerId: string | null,
 ) {
   const retrievedAt = new Date().toISOString()
-  const fetched = await fetchPremierLeagueSeasonMatches(footballDataKey, LOS_SEASON_YEAR)
-  if (!fetched.ok) {
+  const londonNow = DateTime.now().setZone('Europe/London')
+  const dateTo = londonNow.toISODate()!
+  const dateFrom = londonNow.minus({ days: 16 }).toISODate()!
+
+  const fetchedSeason = await fetchPremierLeagueSeasonMatches(footballDataKey, LOS_SEASON_YEAR)
+  const fetchedRange = await fetchPremierLeagueSeasonMatches(footballDataKey, LOS_SEASON_YEAR, dateFrom, dateTo)
+  const fetchedOk = fetchedSeason.ok || fetchedRange.ok
+  if (!fetchedOk) {
     return {
       result: 'provider_error',
       lastSyncAt: retrievedAt,
+      lastAttemptedAt: retrievedAt,
+      lastSuccessfulAt: null,
       fixturesChecked: 0,
       fixturesUpdated: 0,
       unresolved: [],
       ambiguous: [],
       unmatched: [],
       unmatchedCount: 0,
-      providerErrors: [plainProviderError(fetched.status)],
+      missingFinalCount: 0,
+      providerErrors: [plainProviderError(fetchedSeason.status || fetchedRange.status)],
     }
   }
 
-  const providerMatches = fetched.matches
+  const byId = new Map<number, (typeof fetchedSeason.matches)[number]>()
+  for (const match of [...(fetchedSeason.ok ? fetchedSeason.matches : []), ...(fetchedRange.ok ? fetchedRange.matches : [])]) {
+    byId.set(match.id, match)
+  }
+  const providerMatches = [...byId.values()]
     .map((match) => normalizeFootballDataMatch(match))
     .filter((match): match is NormalizedProviderMatch => match !== null)
+
+  if (providerMatches.length === 0) {
+    return {
+      result: 'provider_no_data',
+      lastSyncAt: retrievedAt,
+      lastAttemptedAt: retrievedAt,
+      lastSuccessfulAt: null,
+      fixturesChecked: 0,
+      fixturesUpdated: 0,
+      unresolved: [],
+      ambiguous: [],
+      unmatched: [],
+      unmatchedCount: 0,
+      missingFinalCount: 0,
+      providerErrors: ['football-data.org returned no Premier League matches for the requested dates.'],
+    }
+  }
 
   const { data: fixtures, error: fixtureError } = await admin
     .from('season_fixtures')
@@ -418,6 +448,7 @@ async function syncLatestResults(
       result_source: 'football_data',
       provider_status: item.status,
       result_match_method: mapped.method,
+      canonical_key: item.canonicalKey,
       updated_at: retrievedAt,
     }
 
@@ -426,7 +457,8 @@ async function syncLatestResults(
       mapped.fixture.home_score !== patch.home_score ||
       mapped.fixture.away_score !== patch.away_score ||
       mapped.fixture.result_status !== patch.result_status ||
-      mapped.fixture.source_fixture_id !== patch.source_fixture_id
+      mapped.fixture.source_fixture_id !== patch.source_fixture_id ||
+      mapped.fixture.canonical_key !== patch.canonical_key
 
     const { error: updateError } = await admin.from('season_fixtures').update(patch).eq('id', mapped.fixture.id)
     if (!updateError && changed) fixturesUpdated += 1
@@ -445,29 +477,109 @@ async function syncLatestResults(
     }
   }
 
+  const missingFinal: Array<{ home_team_id: string; away_team_id: string; reason: string }> = []
+  if (gameId) {
+    const { data: liveWindows } = await admin
+      .from('selection_windows')
+      .select('id')
+      .eq('game_id', gameId)
+      .gte('window_number', 2)
+      .in('status', ['open', 'locked', 'resolving'])
+
+    const liveWindowIds = (liveWindows ?? []).map((window) => window.id)
+    if (liveWindowIds.length > 0) {
+      const { data: snaps } = await admin
+        .from('selection_window_eligible_fixtures')
+        .select('season_fixture_id, home_team_id, away_team_id')
+        .in('window_id', liveWindowIds)
+      const snapIds = [...new Set((snaps ?? []).map((row) => row.season_fixture_id).filter(Boolean))]
+      if (snapIds.length > 0) {
+        const { data: liveFixtures } = await admin
+          .from('season_fixtures')
+          .select('id, home_team_id, away_team_id, status, result_status, home_score, away_score')
+          .in('id', snapIds)
+        for (const fixture of liveFixtures ?? []) {
+          const final =
+            fixture.status === 'finished' &&
+            fixture.result_status === 'final' &&
+            fixture.home_score != null &&
+            fixture.away_score != null
+          if (!final) {
+            missingFinal.push({
+              home_team_id: fixture.home_team_id,
+              away_team_id: fixture.away_team_id,
+              reason: 'Still missing a stored final score after sync.',
+            })
+          }
+        }
+      }
+    }
+  }
+
+  const finishedUnmatched = unmatched.filter((row) => {
+    const match = providerMatches.find((item) => item.providerFixtureId === row.providerFixtureId)
+    return match ? isProviderResultFinal({
+      providerFixtureId: match.providerFixtureId,
+      homeTeamId: match.homeTeamId,
+      awayTeamId: match.awayTeamId,
+      kickoffAt: match.kickoffAt,
+      canonicalKey: match.canonicalKey,
+      status: match.status,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      resultStatus: match.resultStatus,
+      providerStatus: match.status,
+    }) : false
+  })
+
+  for (const row of finishedUnmatched.slice(0, 12)) {
+    unresolved.push({
+      home_team_id: row.homeTeamId,
+      away_team_id: row.awayTeamId,
+      reason: 'Provider has a finished score, but it did not match a stored fixture.',
+    })
+  }
+  unresolved.push(...missingFinal)
+
+  const providerErrors: string[] = []
+  let result = 'results_synced'
+  if (providerMatches.length === 0) {
+    result = 'provider_no_data'
+    providerErrors.push('football-data.org returned no Premier League matches for this season.')
+  } else if (missingFinal.length > 0) {
+    result = 'results_incomplete'
+    providerErrors.push(
+      `${missingFinal.length} current-round fixture${missingFinal.length === 1 ? '' : 's'} still missing a final score.`,
+    )
+  }
+
   if (syncRun?.id) {
     await admin
       .from('fixture_sync_runs')
       .update({
-        validation_status: 'passed',
-        run_result: 'results_synced',
+        validation_status: result === 'results_synced' ? 'passed' : 'failed',
+        run_result: result,
         fixture_total: providerMatches.length,
         changes_detected: fixturesUpdated,
         retrieved_at: retrievedAt,
+        error_summary: providerErrors[0] ?? null,
       })
       .eq('id', syncRun.id)
   }
 
   return {
-    result: 'results_synced',
+    result,
     lastSyncAt: retrievedAt,
+    lastAttemptedAt: retrievedAt,
+    lastSuccessfulAt: result === 'results_synced' || fixturesUpdated > 0 ? retrievedAt : null,
     fixturesChecked: providerMatches.length,
     fixturesUpdated,
     unresolved,
     ambiguous,
     unmatchedCount: unmatched.length,
     unmatched: unmatched.slice(0, 12),
-    providerErrors: [] as string[],
+    missingFinalCount: missingFinal.length,
+    providerErrors,
   }
 }
 

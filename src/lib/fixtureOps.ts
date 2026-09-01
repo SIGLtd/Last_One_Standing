@@ -302,11 +302,14 @@ export async function invokeFixtureResultSync() {
   return data as {
     result?: string
     lastSyncAt?: string | null
+    lastAttemptedAt?: string | null
+    lastSuccessfulAt?: string | null
     fixturesChecked?: number
     fixturesUpdated?: number
     unresolved?: Array<{ home_team_id?: string; away_team_id?: string; reason?: string }>
     ambiguous?: Array<{ reason?: string }>
     unmatchedCount?: number
+    missingFinalCount?: number
     providerErrors?: string[]
   }
 }

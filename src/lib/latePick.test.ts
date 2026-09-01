@@ -4,13 +4,17 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { pickErrorLabel } from './pickErrors'
 import {
+  LATE_PICK_ORGANISER_NOTE,
   LATE_PICK_REASON_EXAMPLE,
   LATE_PICK_RESOLVED_MESSAGE,
   LATE_PICK_WARNING,
   adminEntryLabel,
+  applyPlayerCorrectionState,
+  canAdminApplyPostResultCorrection,
   canAdminSubmitLateSelection,
   getLatePickWindowMode,
   isLatePickReasonValid,
+  outcomeFromFinalFixture,
 } from './latePick'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -74,13 +78,15 @@ describe('admin late pick override rules', () => {
       'late_override',
     )
     expect(getLatePickWindowMode({ status: 'resolved', deadline_at: openAfterDeadline.deadline_at }, afterDeadline)).toBe(
-      'resolved',
+      'post_result_correction',
     )
     expect(canAdminSubmitLateSelection({ isAdmin: true, windowStatus: 'resolved', reason: LATE_PICK_REASON_EXAMPLE })).toEqual({
       allowed: false,
       error: 'ROUND_ALREADY_RESOLVED',
     })
-    expect(pickErrorLabel('ROUND_ALREADY_RESOLVED')).toBe(LATE_PICK_RESOLVED_MESSAGE)
+    expect(pickErrorLabel('ROUND_ALREADY_RESOLVED')).toBe(
+      'This round has already been resolved. Reopen/correction workflow required.',
+    )
   })
 
   it('labels late admin entries without exposing private data', () => {
@@ -144,19 +150,158 @@ describe('admin_submit_late_selection RPC', () => {
 
 describe('admin late pick UI', () => {
   it('shows the late override warning and required reason in Admin', () => {
-    expect(proxySource).toContain('Admin late pick override')
-    expect(proxySource).toContain('Enter late pick')
+    expect(proxySource).toContain('Accepted late pick')
+    expect(proxySource).toContain('Post-deadline correction')
     expect(proxySource).toContain('{LATE_PICK_WARNING}')
     expect(proxySource).toContain('{LATE_PICK_REASON_EXAMPLE}')
     expect(proxySource).toContain('{LATE_PICK_RESOLVED_MESSAGE}')
     expect(LATE_PICK_WARNING).toBe('This is a post-deadline admin override. It will be recorded in the audit trail.')
     expect(LATE_PICK_REASON_EXAMPLE).toBe('Accepted by organiser: player had no WiFi before deadline.')
     expect(LATE_PICK_RESOLVED_MESSAGE).toBe(
-      'This round has already been resolved. Reopen/correction workflow required.',
+      "This round is already resolved. Saving this correction will recalculate this player's outcome from the stored final score.",
     )
+    expect(proxySource).toContain('{LATE_PICK_ORGANISER_NOTE}')
+    expect(LATE_PICK_ORGANISER_NOTE).toBe('Use only when the organiser has accepted a late selection reason.')
     expect(proxySource).toContain('onSaveLatePick')
-    expect(adminPageSource).toContain('adminSubmitLateSelection')
+    expect(adminPageSource).toContain('adminApplyPostResultSelectionCorrection')
     expect(adminPageSource).toContain('handleSaveLatePick')
     expect(adminPageSource).not.toContain('FOOTBALL_DATA_API_KEY')
+  })
+})
+
+describe('post-result correction path', () => {
+  const migration12 = readFileSync(join(root, 'supabase', 'migrations', '12_post_result_selection_correction.sql'), 'utf8')
+  const reason = LATE_PICK_REASON_EXAMPLE
+
+  it('requires admin, reason, confirmation, eligible unused team, and upserts', () => {
+    expect(canAdminApplyPostResultCorrection({
+      isAdmin: false,
+      windowStatus: 'resolved',
+      reason,
+      confirmed: true,
+      teamEligible: true,
+      teamAlreadyFinallyUsed: false,
+    })).toEqual({ allowed: false, error: 'ADMIN_REQUIRED' })
+    expect(canAdminApplyPostResultCorrection({
+      isAdmin: true,
+      windowStatus: 'resolved',
+      reason: '',
+      confirmed: true,
+      teamEligible: true,
+      teamAlreadyFinallyUsed: false,
+    })).toEqual({ allowed: false, error: 'LATE_REASON_REQUIRED' })
+    expect(canAdminApplyPostResultCorrection({
+      isAdmin: true,
+      windowStatus: 'resolved',
+      reason,
+      confirmed: false,
+      teamEligible: true,
+      teamAlreadyFinallyUsed: false,
+    })).toEqual({ allowed: false, error: 'CORRECTION_NOT_CONFIRMED' })
+    expect(canAdminApplyPostResultCorrection({
+      isAdmin: true,
+      windowStatus: 'resolved',
+      reason,
+      confirmed: true,
+      teamEligible: false,
+      teamAlreadyFinallyUsed: false,
+    })).toEqual({ allowed: false, error: 'TEAM_NOT_ELIGIBLE' })
+    expect(canAdminApplyPostResultCorrection({
+      isAdmin: true,
+      windowStatus: 'resolved',
+      reason,
+      confirmed: true,
+      teamEligible: true,
+      teamAlreadyFinallyUsed: true,
+    })).toEqual({ allowed: false, error: 'TEAM_ALREADY_USED' })
+    expect(canAdminApplyPostResultCorrection({
+      isAdmin: true,
+      windowStatus: 'open',
+      reason,
+      confirmed: true,
+      teamEligible: true,
+      teamAlreadyFinallyUsed: false,
+    })).toEqual({ allowed: true, error: null })
+    expect(migration12).toContain('admin_apply_post_result_selection_correction')
+    expect(migration12).toContain('if not public.is_admin() then')
+    expect(migration12).toContain("perform public.pick_error('LATE_REASON_REQUIRED')")
+    expect(migration12).toContain('on conflict (window_id, player_id) do update')
+    expect(migration12).toContain('admin_corrected = true')
+    expect(migration12).toContain('v_apply_outcome := v_fixture_final')
+    expect(migration12).toContain('to authenticated')
+    expect(migration12).not.toContain('to anon')
+    expect(selectionsSource).toContain("client.rpc('admin_apply_post_result_selection_correction'")
+    expect(selectionsSource).not.toContain('p_admin_corrected')
+  })
+
+  it('treats a Manchester United win as a survived/active correction and a draw/loss as eliminated', () => {
+    const millUnitedWin = outcomeFromFinalFixture({
+      teamId: 'mun',
+      homeTeamId: 'mun',
+      awayTeamId: 'ips',
+      homeScore: 2,
+      awayScore: 1,
+      status: 'finished',
+      resultStatus: 'final',
+    })
+    expect(millUnitedWin).toEqual({ outcome: 'survived', reason: 'win', usedFinal: true })
+    expect(applyPlayerCorrectionState({ entryStatus: 'active', outcome: 'survived' })).toEqual({
+      entryStatus: 'active',
+      survived: true,
+    })
+    expect(applyPlayerCorrectionState({ entryStatus: 'eliminated', outcome: 'survived' })).toEqual({
+      entryStatus: 'active',
+      survived: true,
+    })
+
+    const millDraw = outcomeFromFinalFixture({
+      teamId: 'mun',
+      homeTeamId: 'mun',
+      awayTeamId: 'ips',
+      homeScore: 1,
+      awayScore: 1,
+      status: 'finished',
+      resultStatus: 'final',
+    })
+    expect(millDraw).toEqual({ outcome: 'eliminated', reason: 'draw', usedFinal: true })
+    expect(applyPlayerCorrectionState({ entryStatus: 'active', outcome: 'eliminated' })).toEqual({
+      entryStatus: 'eliminated',
+      survived: false,
+    })
+
+    const pending = outcomeFromFinalFixture({
+      teamId: 'mun',
+      homeTeamId: 'mun',
+      awayTeamId: 'ips',
+      homeScore: null,
+      awayScore: null,
+      status: 'scheduled',
+      resultStatus: 'pending',
+    })
+    expect(pending.usedFinal).toBe(false)
+    expect(pending.outcome).toBe('pending')
+  })
+
+  it('is idempotent for the same player/window/team correction', () => {
+    const first = outcomeFromFinalFixture({
+      teamId: 'mun',
+      homeTeamId: 'mun',
+      awayTeamId: 'ips',
+      homeScore: 2,
+      awayScore: 1,
+      status: 'finished',
+      resultStatus: 'final',
+    })
+    const second = outcomeFromFinalFixture({
+      teamId: 'mun',
+      homeTeamId: 'mun',
+      awayTeamId: 'ips',
+      homeScore: 2,
+      awayScore: 1,
+      status: 'finished',
+      resultStatus: 'final',
+    })
+    expect(first).toEqual(second)
+    expect(migration12).toContain('on conflict (window_id, player_id) do update')
   })
 })

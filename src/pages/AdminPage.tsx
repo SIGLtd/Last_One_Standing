@@ -29,6 +29,7 @@ import {
 import { buildWindow2ReadinessPreview } from '../lib/window2Preview'
 import { compareDraftSnapshotToMaster, WINDOW2_NUMBER } from '../lib/window2Draft'
 import {
+  adminApplyPostResultSelectionCorrection,
   adminApplyRoundResolution,
   adminCountSelectionsForWindow,
   adminFetchAllWindowSelections,
@@ -36,7 +37,6 @@ import {
   adminFetchWindowSelections,
   adminLockSelectionWindow,
   adminOpenNextRound,
-  adminSubmitLateSelection,
   adminSubmitSelection,
 } from '../lib/selections'
 import { canOpenNextRound } from '../lib/nextRound'
@@ -218,6 +218,28 @@ export function AdminPage() {
       setChangeAlerts(alerts)
       setProviderConfigured(opsStatus.providerConfigured)
       setSchedulerConfigured(opsStatus.schedulerConfigured)
+      setSeasonFixtures(seasonRows)
+      const latestRun = runs[0] ?? null
+      if (latestRun) {
+        const successful = latestRun.run_result === 'results_synced'
+        setSyncSummary((current) =>
+          current?.result
+            ? current
+            : {
+                lastSyncAt: latestRun.retrieved_at ?? latestRun.created_at,
+                lastAttemptedAt: latestRun.created_at,
+                lastSuccessfulAt: successful ? latestRun.retrieved_at ?? latestRun.created_at : null,
+                fixturesChecked: latestRun.fixture_total ?? 0,
+                fixturesUpdated: latestRun.changes_detected ?? 0,
+                unresolved: [],
+                ambiguousCount: 0,
+                unmatchedCount: 0,
+                missingFinalCount: 0,
+                providerErrors: latestRun.error_summary ? [latestRun.error_summary] : [],
+                result: latestRun.run_result,
+              },
+        )
+      }
       setWindow2Preview(buildWindow2ReadinessPreview(seasonRows, windows))
       setSeasonFixtures(seasonRows)
 
@@ -314,13 +336,19 @@ export function AdminPage() {
     }
   }
 
-  async function handleSaveLatePick(playerId: string, teamId: string, reason: string) {
-    const targetWindow = liveOpenWindow ?? openWindow
+  async function handleSaveLatePick(playerId: string, teamId: string, reason: string, confirm: boolean) {
+    const targetWindow = liveOpenWindow ?? openWindow ?? auditWindow
     if (!targetWindow) return
     setActionId('late-pick')
     setPageError(null)
     try {
-      await adminSubmitLateSelection({ playerId, windowId: targetWindow.id, teamId, reason })
+      await adminApplyPostResultSelectionCorrection({
+        playerId,
+        windowId: targetWindow.id,
+        teamId,
+        reason,
+        confirm,
+      })
       await loadAdminCore()
     } catch (err) {
       setPageError(err instanceof Error ? err.message : 'Failed to save late pick.')
@@ -398,11 +426,14 @@ export function AdminPage() {
       const result = await invokeFixtureResultSync()
       setSyncSummary({
         lastSyncAt: result.lastSyncAt ?? new Date().toISOString(),
+        lastAttemptedAt: result.lastAttemptedAt ?? result.lastSyncAt ?? new Date().toISOString(),
+        lastSuccessfulAt: result.lastSuccessfulAt ?? (result.result === 'results_synced' ? result.lastSyncAt : null),
         fixturesChecked: result.fixturesChecked ?? 0,
         fixturesUpdated: result.fixturesUpdated ?? 0,
         unresolved: result.unresolved ?? [],
         ambiguousCount: result.ambiguous?.length ?? 0,
         unmatchedCount: result.unmatchedCount ?? 0,
+        missingFinalCount: result.missingFinalCount ?? result.unresolved?.length ?? 0,
         providerErrors: result.providerErrors ?? [],
         result: result.result,
       })
@@ -573,7 +604,7 @@ export function AdminPage() {
         game,
       })
     : []
-  const pickWindow = liveOpenWindow ?? openWindow
+  const pickWindow = liveOpenWindow ?? openWindow ?? auditWindow
   const roundLabel = pickWindow ? operationalWindowToRoundLabel(pickWindow.window_number) : 'Round 1'
   const whatsAppSummary = pickWindow
     ? buildWhatsAppSelectionSummary({
@@ -675,6 +706,7 @@ export function AdminPage() {
               onSyncResults={() => void handleSyncLatestResults()}
               onResolveRound={() => void handleResolveRound()}
               onOpenNextRound={() => void handleOpenNextRound()}
+              schedulerConfigured={schedulerConfigured}
             />
           ) : null}
 

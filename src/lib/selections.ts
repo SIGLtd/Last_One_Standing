@@ -223,6 +223,33 @@ export async function adminSubmitLateSelection(input: {
   return data as Selection
 }
 
+export async function adminApplyPostResultSelectionCorrection(input: {
+  playerId: string
+  windowId: string
+  teamId: string
+  reason: string
+  confirm: boolean
+}): Promise<Record<string, unknown>> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_apply_post_result_selection_correction', {
+    p_player_id: input.playerId,
+    p_window_id: input.windowId,
+    p_team_id: input.teamId,
+    p_reason: input.reason,
+    p_confirm: input.confirm,
+  })
+
+  if (error) {
+    if (error.message.includes('ADMIN_REQUIRED')) {
+      throw new Error('Admin access is required to enter a late pick.')
+    }
+    const code = parsePickError(error.message)
+    throw new Error(pickErrorLabel(code))
+  }
+
+  return (data ?? {}) as Record<string, unknown>
+}
+
 export async function adminFetchWindowSelections(windowId: string): Promise<Selection[]> {
   const client = getSupabaseOrThrow()
   const { data, error } = await client

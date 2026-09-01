@@ -82,7 +82,7 @@ describe('admin round results controls', () => {
   })
 
   it('exposes the admin late pick override without private player fields', () => {
-    expect(adminPageSource).toContain('adminSubmitLateSelection')
+    expect(adminPageSource).toContain('adminApplyPostResultSelectionCorrection')
     expect(adminPageSource).toContain('handleSaveLatePick')
     expect(adminPageSource).not.toContain('entry.email')
     expect(currentPicksSource).toContain('adminEntryLabel')

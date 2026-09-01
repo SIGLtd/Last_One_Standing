@@ -160,4 +160,17 @@ describe('used-team filtering', () => {
     expect(used).toEqual(['mun'])
     expect(filterSelectableTeamOptions(eligibleTeams, used).some((team) => team.team_id === 'mun')).toBe(false)
   })
+
+  it('blocks Manchester United after a used_final correction even if the round is still open', () => {
+    const used = usedTeamIdsForPlayer(
+      [
+        { player_id: 'p-mills', window_id: 'w3-open', team_id: 'eve', used_final: true },
+        { player_id: 'p-mills', window_id: 'w3-open', team_id: 'mun', used_final: true },
+      ],
+      'p-mills',
+      [],
+    )
+    expect(used).toEqual(['eve', 'mun'])
+    expect(filterSelectableTeamOptions(eligibleTeams, used).some((team) => team.team_id === 'mun')).toBe(false)
+  })
 })

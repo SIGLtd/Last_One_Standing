@@ -10,6 +10,7 @@ const migration6 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrati
 const migration9 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '9_round_results_and_resolution.sql'), 'utf8')
 const migration10 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '10_weekend_snapshot_guard.sql'), 'utf8')
 const migration11 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '11_admin_late_selection.sql'), 'utf8')
+const migration12 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '12_post_result_selection_correction.sql'), 'utf8')
 const selectionsSource = readFileSync(join(__dirname, 'selections.ts'), 'utf8')
 
 describe('selection save path', () => {
@@ -76,6 +77,17 @@ describe('selection save path', () => {
     expect(migration11).toContain('on conflict (window_id, player_id) do update')
     expect(migration4).toContain("perform public.pick_error('DEADLINE_PASSED')")
     expect(selectionsSource).toContain('adminSubmitLateSelection')
+    expect(selectionsSource).not.toContain('p_admin_corrected')
+  })
+
+  it('adds a post-result correction RPC without weakening submit_selection', () => {
+    expect(migration12).toContain('admin_apply_post_result_selection_correction')
+    expect(migration12).toContain('admin_submit_late_selection')
+    expect(migration12).toContain("perform public.pick_error('LATE_REASON_REQUIRED')")
+    expect(migration12).toContain("perform public.pick_error('CORRECTION_NOT_CONFIRMED')")
+    expect(migration12).toContain('v_apply_outcome := v_fixture_final')
+    expect(migration4).toContain("perform public.pick_error('DEADLINE_PASSED')")
+    expect(selectionsSource).toContain('adminApplyPostResultSelectionCorrection')
     expect(selectionsSource).not.toContain('p_admin_corrected')
   })
 })

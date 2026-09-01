@@ -439,4 +439,109 @@ describe('round resolution', () => {
     expect(merged[0]?.home_score).toBe(2)
     expect(merged[0]?.kickoff_at).toBe(snapshots[0]?.kickoff_at)
   })
+
+  it('recalculates one accepted late pick after the round is resolved', () => {
+    const munIpswich: ResolutionFixture = {
+      season_fixture_id: 'f-mun-ips',
+      home_team_id: 'mun',
+      away_team_id: 'ips',
+      home_team_name: 'Manchester United',
+      away_team_name: 'Ipswich Town',
+      kickoff_at: '2026-08-30T15:30:00.000Z',
+      status: 'finished',
+      home_score: 2,
+      away_score: 1,
+      result_status: 'final',
+    }
+    const round2: RoundResolutionWindow = {
+      id: 'w3',
+      window_number: 3,
+      status: 'resolved',
+      deadline_at: '2026-08-28T15:00:00.000Z',
+    }
+    const before = preview({
+      window: round2,
+      fixtures: [munIpswich],
+      entries: [
+        entry('p-other', 'Other Survivor', { status: 'active' }),
+        entry('p-mills', 'David Mills', { status: 'eliminated' }),
+      ],
+      selections: [
+        { player_id: 'p-other', team_id: 'che', outcome: 'survived', outcome_reason: 'win', used_final: true },
+        { player_id: 'p-mills', team_id: null, outcome: 'no_pick', outcome_reason: 'no_pick', used_final: false },
+      ],
+    })
+    expect(before.survived).toBe(1)
+
+    const after = preview({
+      window: round2,
+      fixtures: [munIpswich],
+      entries: [
+        entry('p-other', 'Other Survivor', { status: 'active' }),
+        entry('p-mills', 'David Mills', { status: 'active' }),
+      ],
+      selections: [
+        { player_id: 'p-other', team_id: 'che', outcome: 'survived', outcome_reason: 'win', used_final: true },
+        {
+          player_id: 'p-mills',
+          team_id: 'mun',
+          outcome: 'survived',
+          outcome_reason: 'win',
+          used_final: true,
+        },
+      ],
+    })
+    expect(after.survived).toBe(2)
+    expect(after.rows.find((row) => row.playerId === 'p-mills')?.group).toBe('survived')
+    expect(after.rows.find((row) => row.playerId === 'p-other')?.group).toBe('survived')
+
+    const state: RoundResolutionState = {
+      windowStatus: 'resolved',
+      resolvedAt: '2026-09-01T12:00:00.000Z',
+      selections: [
+        { playerId: 'p-other', teamId: 'che', outcome: 'survived', outcomeReason: 'win', usedFinal: true },
+        { playerId: 'p-mills', teamId: 'mun', outcome: 'survived', outcomeReason: 'win', usedFinal: true },
+      ],
+      entries: [
+        { playerId: 'p-other', status: 'active', eliminatedReason: null },
+        { playerId: 'p-mills', status: 'active', eliminatedReason: null },
+      ],
+    }
+    const corrected = applyRoundCorrection(state, after, '2026-09-01T16:00:00.000Z')
+    expect(corrected.entries.find((row) => row.playerId === 'p-mills')?.status).toBe('active')
+    expect(corrected.selections.find((row) => row.playerId === 'p-mills')?.usedFinal).toBe(true)
+    expect(corrected.selections.find((row) => row.playerId === 'p-other')?.teamId).toBe('che')
+  })
+
+  it('treats a Manchester United win as a surviving Round 2 pick while the round is still open', () => {
+    const munIpswich: ResolutionFixture = {
+      season_fixture_id: 'f-mun-ips',
+      home_team_id: 'mun',
+      away_team_id: 'ips',
+      home_team_name: 'Manchester United',
+      away_team_name: 'Ipswich Town',
+      kickoff_at: '2026-08-30T15:30:00.000Z',
+      status: 'finished',
+      home_score: 2,
+      away_score: 1,
+      result_status: 'final',
+    }
+    const result = preview({
+      window: {
+        id: 'w3',
+        window_number: 3,
+        status: 'open',
+        deadline_at: '2026-08-28T15:00:00.000Z',
+      },
+      fixtures: [munIpswich],
+      entries: [entry('p-mills', 'David Mills')],
+      selections: [selection('p-mills', 'mun')],
+      nowMs: Date.parse('2026-09-01T15:00:00.000Z'),
+    })
+    expect(result.alreadyResolved).toBe(false)
+    expect(result.survived).toBe(1)
+    expect(result.rows[0]?.displayName).toBe('David Mills')
+    expect(result.rows[0]?.outcomeReason).toBe('win')
+    expect(result.rows[0]?.usedFinal).toBe(true)
+  })
 })

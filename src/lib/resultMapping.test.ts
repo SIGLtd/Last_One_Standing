@@ -154,7 +154,52 @@ describe('provider result mapping', () => {
   })
 
   it('leaves unmatched provider rows for admin review', () => {
-    const mapped = mapProviderResultsToFixtures([provider({ canonicalKey: 'nope', providerFixtureId: 'nope' })], [fixture()])
+    const mapped = mapProviderResultsToFixtures(
+      [provider({ canonicalKey: 'nope', providerFixtureId: 'nope', homeTeamId: 'xxx', awayTeamId: 'yyy' })],
+      [fixture()],
+    )
     expect(mapped[0]?.kind).toBe('unmatched')
+  })
+
+  it('matches Sunday scores when stored canonical_key still has Saturday UTC date', () => {
+    const sunday = fixture({
+      id: 'fx-mun-ips',
+      source_fixture_id: null,
+      canonical_key: '2026/27|mun|ips|2026-08-29',
+      home_team_id: 'mun',
+      away_team_id: 'ips',
+      kickoff_at: '2026-08-30T15:30:00.000Z',
+    })
+    const mapped = mapProviderResultToFixture(
+      provider({
+        providerFixtureId: '560570',
+        homeTeamId: 'mun',
+        awayTeamId: 'ips',
+        kickoffAt: '2026-08-30T15:30:00.000Z',
+        canonicalKey: '2026/27|mun|ips|2026-08-30',
+        homeScore: 2,
+        awayScore: 1,
+      }),
+      [sunday],
+    )
+    expect(mapped.kind).toBe('matched')
+    if (mapped.kind !== 'matched') return
+    expect(mapped.method).toBe('kickoff_teams')
+    expect(mapped.fixture.id).toBe('fx-mun-ips')
+  })
+
+  it('does not guess when two fixtures share the same home and away pairing', () => {
+    const mapped = mapProviderResultToFixture(
+      provider({
+        providerFixtureId: 'missing',
+        canonicalKey: 'nope',
+        kickoffAt: '2026-10-01T14:00:00.000Z',
+      }),
+      [
+        fixture({ id: 'a', source_fixture_id: null, canonical_key: 'one' }),
+        fixture({ id: 'b', source_fixture_id: null, canonical_key: 'two', kickoff_at: '2026-12-26T15:00:00.000Z' }),
+      ],
+    )
+    expect(mapped.kind).toBe('ambiguous')
   })
 })

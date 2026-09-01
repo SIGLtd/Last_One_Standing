@@ -155,3 +155,17 @@ describe('eliminated banner', () => {
     expect(resultsSource).not.toContain('admin_apply_round_resolution')
   })
 })
+
+describe('post-result correction display', () => {
+  it('puts a corrected survivor back on Who survived and hides the eliminated banner', () => {
+    const rows = buildHomeSurvivorRows([
+      pick('p-mills', 'David Mills', 'eve', 'survived'),
+      pick('p-out', 'Out Player', 'liv', 'eliminated'),
+    ])
+    expect(rows.some((row) => row.displayName === 'David Mills')).toBe(true)
+    expect(rows.some((row) => row.displayName === 'Out Player')).toBe(false)
+    expect(shouldShowEliminatedBanner(playerSurvivalStatusFromEntry({ status: 'active' }, true))).toBe(false)
+    expect(currentPicksSource).toContain('adminEntryLabel')
+    expect(read('pages/MyPicksPage.tsx')).toContain('row.adminEntryLabel')
+  })
+})

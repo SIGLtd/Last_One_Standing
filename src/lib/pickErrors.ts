@@ -9,6 +9,8 @@ export type PickErrorCode =
   | 'PLAYER_NOT_FOUND'
   | 'LATE_REASON_REQUIRED'
   | 'ROUND_ALREADY_RESOLVED'
+  | 'CORRECTION_NOT_CONFIRMED'
+  | 'RESULT_NOT_FINAL'
 
 export function parsePickError(message: string): PickErrorCode | string {
   const codes: PickErrorCode[] = [
@@ -22,6 +24,8 @@ export function parsePickError(message: string): PickErrorCode | string {
     'PLAYER_NOT_FOUND',
     'LATE_REASON_REQUIRED',
     'ROUND_ALREADY_RESOLVED',
+    'CORRECTION_NOT_CONFIRMED',
+    'RESULT_NOT_FINAL',
   ]
   return codes.find((code) => message.includes(code)) ?? message
 }
@@ -48,6 +52,10 @@ export function pickErrorLabel(code: PickErrorCode | string): string {
       return 'A reason is required for a post-deadline admin override.'
     case 'ROUND_ALREADY_RESOLVED':
       return 'This round has already been resolved. Reopen/correction workflow required.'
+    case 'CORRECTION_NOT_CONFIRMED':
+      return 'Confirm that this is an organiser-approved exception.'
+    case 'RESULT_NOT_FINAL':
+      return 'The selected fixture does not yet have a stored final score.'
     default:
       return code
   }

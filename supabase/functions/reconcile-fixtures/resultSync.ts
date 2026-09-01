@@ -26,6 +26,17 @@ export type AppFixtureInput = {
 
 const NON_FINAL = new Set(['postponed', 'cancelled', 'canceled', 'suspended', 'abandoned'])
 
+export function londonDateFromKickoffUtc(iso: string): string {
+  const parsed = Date.parse(iso)
+  if (!Number.isFinite(parsed)) return iso.slice(0, 10)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(parsed))
+}
+
 export function isProviderResultFinal(provider: ProviderMatchInput): boolean {
   const mapped = provider.status.trim().toLowerCase()
   const raw = (provider.providerStatus ?? '').trim().toLowerCase()
@@ -38,19 +49,33 @@ export function mapProviderResultToFixture(
   provider: ProviderMatchInput,
   fixtures: AppFixtureInput[],
 ):
-  | { kind: 'matched'; fixture: AppFixtureInput; method: 'provider_id' | 'canonical_key' }
+  | { kind: 'matched'; fixture: AppFixtureInput; method: 'provider_id' | 'canonical_key' | 'kickoff_teams' | 'home_away' }
   | { kind: 'ambiguous'; fixtureIds: string[]; reason: string }
   | { kind: 'unmatched'; reason: string } {
+  const providerLondon = londonDateFromKickoffUtc(provider.kickoffAt)
   const byProviderId = provider.providerFixtureId
     ? fixtures.filter((fixture) => fixture.source_fixture_id && fixture.source_fixture_id === provider.providerFixtureId)
     : []
   const byCanonical = fixtures.filter((fixture) => fixture.canonical_key === provider.canonicalKey)
+  const byKickoffTeams = fixtures.filter(
+    (fixture) =>
+      fixture.home_team_id === provider.homeTeamId &&
+      fixture.away_team_id === provider.awayTeamId &&
+      londonDateFromKickoffUtc(fixture.kickoff_at) === providerLondon,
+  )
 
   if (byProviderId.length > 1) {
     return { kind: 'ambiguous', fixtureIds: byProviderId.map((f) => f.id), reason: 'Multiple fixtures share this provider match ID.' }
   }
   if (byCanonical.length > 1) {
     return { kind: 'ambiguous', fixtureIds: byCanonical.map((f) => f.id), reason: 'Multiple fixtures share this home/away/date key.' }
+  }
+  if (byKickoffTeams.length > 1) {
+    return {
+      kind: 'ambiguous',
+      fixtureIds: byKickoffTeams.map((f) => f.id),
+      reason: 'Multiple fixtures share this home/away/kickoff date.',
+    }
   }
   if (byProviderId.length === 1 && byCanonical.length === 1 && byProviderId[0].id !== byCanonical[0].id) {
     return {
@@ -64,6 +89,22 @@ export function mapProviderResultToFixture(
   }
   if (byCanonical.length === 1) {
     return { kind: 'matched', fixture: byCanonical[0], method: 'canonical_key' }
+  }
+  if (byKickoffTeams.length === 1) {
+    return { kind: 'matched', fixture: byKickoffTeams[0], method: 'kickoff_teams' }
+  }
+  const byHomeAway = fixtures.filter(
+    (fixture) => fixture.home_team_id === provider.homeTeamId && fixture.away_team_id === provider.awayTeamId,
+  )
+  if (byHomeAway.length > 1) {
+    return {
+      kind: 'ambiguous',
+      fixtureIds: byHomeAway.map((fixture) => fixture.id),
+      reason: 'Multiple fixtures share this home and away team pairing.',
+    }
+  }
+  if (byHomeAway.length === 1) {
+    return { kind: 'matched', fixture: byHomeAway[0], method: 'home_away' }
   }
   return { kind: 'unmatched', reason: 'No fixture matched this provider result.' }
 }

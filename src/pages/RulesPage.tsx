@@ -4,12 +4,13 @@ import { APP_TAGLINE, CURRENT_GAME, formatGBP } from '../lib/constants'
 import { buildRulesSections } from '../lib/rulesContent'
 
 export function RulesPage() {
-  const { currentPot } = useGame()
+  const { currentPot, game } = useGame()
   const sections = buildRulesSections()
   const potLabel = currentPot == null ? '' : ` · ${formatGBP(currentPot)}`
+  const gameNumber = game?.game_number ?? CURRENT_GAME
 
   return (
-    <Card title="Rules" description={`${APP_TAGLINE} Game ${CURRENT_GAME}${potLabel}`} compact>
+    <Card title="Rules" description={`${APP_TAGLINE} Game ${gameNumber}${potLabel}`} compact>
       <div>
         {sections.map((section) => (
           <section key={section.title} className="los-rules-section">

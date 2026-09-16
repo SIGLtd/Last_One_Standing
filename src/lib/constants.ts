@@ -7,6 +7,7 @@ import {
 export const APP_NAME = 'Last One Standing'
 export const APP_TAGLINE = 'Pick, survive, repeat.'
 
+/** Fallback game number when a live games row is not loaded yet. */
 export const CURRENT_GAME = 27
 
 /** Fallback copy only. Live amounts come from games.standard_entry_fee / newbie_entry_fee. */

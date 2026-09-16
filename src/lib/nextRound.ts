@@ -98,7 +98,28 @@ export function canOpenNextRound(input: {
   windows: Array<Pick<SelectionWindowWithMeta, 'status' | 'window_number' | 'eligible_sat_date' | 'eligible_sun_date'>>
   fixtures: SeasonFixture[]
   survivorCount: number
+  gameStatus?: string
 }): OpenNextRoundCheck {
+  if (input.gameStatus === 'complete' || input.gameStatus === 'rolled_over' || input.gameStatus === 'off_season') {
+    return {
+      canOpen: false,
+      reason: 'This game is complete. Start a new game instead of opening another round.',
+      survivorCount: input.survivorCount,
+      alreadyOpen: false,
+      weekend: null,
+    }
+  }
+
+  if (input.survivorCount === 1) {
+    return {
+      canOpen: false,
+      reason: 'This game has a winner. Complete the game before starting a new one.',
+      survivorCount: 1,
+      alreadyOpen: false,
+      weekend: null,
+    }
+  }
+
   if (input.currentWindow.window_number < MIN_OPERATIONAL_WINDOW_NUMBER) {
     return { canOpen: false, reason: 'Historic Window 1 cannot open the next round.', survivorCount: 0, alreadyOpen: false, weekend: null }
   }

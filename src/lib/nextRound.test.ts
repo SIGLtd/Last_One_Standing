@@ -200,13 +200,72 @@ describe('used teams and next round', () => {
       currentWindow,
       windows: [currentWindow],
       fixtures: loadSeasonFixtures(),
-      survivorCount: survivors.length,
+      survivorCount: 2,
     })
     expect(check.canOpen).toBe(true)
     expect(check.weekend?.sat).toBe('2026-08-29')
     expect(check.weekend?.sun).toBe('2026-08-30')
     expect(check.weekend?.eligible).toHaveLength(8)
-    expect(check.survivorCount).toBe(1)
+    expect(check.survivorCount).toBe(2)
+  })
+
+  it('does not open another round when only one survivor remains', () => {
+    const currentWindow: SelectionWindowWithMeta = {
+      id: 'w2',
+      game_id: 'g27',
+      window_number: 2,
+      start_at: '2026-08-20T00:00:00.000Z',
+      end_at: '2026-08-24T00:00:00.000Z',
+      deadline_at: '2026-08-21T15:00:00.000Z',
+      status: 'resolved',
+      created_at: '2026-08-01T00:00:00.000Z',
+      updated_at: '2026-08-24T18:00:00.000Z',
+      eligible_sat_date: '2026-08-22',
+      eligible_sun_date: '2026-08-23',
+      review_outcome: null,
+      sync_run_id: null,
+      earliest_kickoff_at: '2026-08-22T11:30:00.000Z',
+      approved_at: '2026-08-01T00:00:00.000Z',
+      approved_by_player_id: null,
+    }
+    const check = canOpenNextRound({
+      currentWindow,
+      windows: [currentWindow],
+      fixtures: loadSeasonFixtures(),
+      survivorCount: 1,
+    })
+    expect(check.canOpen).toBe(false)
+    expect(check.reason).toContain('Complete the game')
+  })
+
+  it('does not open another round after the game is complete', () => {
+    const currentWindow: SelectionWindowWithMeta = {
+      id: 'w2',
+      game_id: 'g27',
+      window_number: 2,
+      start_at: '2026-08-20T00:00:00.000Z',
+      end_at: '2026-08-24T00:00:00.000Z',
+      deadline_at: '2026-08-21T15:00:00.000Z',
+      status: 'resolved',
+      created_at: '2026-08-01T00:00:00.000Z',
+      updated_at: '2026-08-24T18:00:00.000Z',
+      eligible_sat_date: '2026-08-22',
+      eligible_sun_date: '2026-08-23',
+      review_outcome: null,
+      sync_run_id: null,
+      earliest_kickoff_at: '2026-08-22T11:30:00.000Z',
+      approved_at: '2026-08-01T00:00:00.000Z',
+      approved_by_player_id: null,
+    }
+    const check = canOpenNextRound({
+      currentWindow,
+      windows: [currentWindow],
+      fixtures: loadSeasonFixtures(),
+      survivorCount: 4,
+      gameStatus: 'complete',
+    })
+    expect(check.canOpen).toBe(false)
+    expect(check.reason).toContain('Start a new game')
   })
 
   it('does not open a duplicate next round when one is already open', () => {

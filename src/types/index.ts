@@ -16,21 +16,34 @@ export type EntryType = 'existing' | 'newbie' | 'admin_comp'
 
 export type EntryStatus = 'pending_payment' | 'active' | 'eliminated' | 'winner' | 'withdrawn'
 
+export type GameStatus = 'off_season' | 'open' | 'in_progress' | 'complete' | 'rolled_over'
+
+export type CompletionType = 'winner_paid' | 'rollover'
+
 export type Game = {
   id: UUID
   game_number: number
   season: string
-  status: 'off_season' | 'open' | 'in_progress' | 'complete' | 'rolled_over'
+  status: GameStatus
   standard_entry_fee: number
   newbie_entry_fee: number
   rollover_contribution: number
   opening_pot: number
   current_pot: number
   winner_player_id: UUID | null
+  winner_display_name: string | null
   result_type: string
   created_at: string
   opened_at: string | null
   closed_at: string | null
+  completed_at: string | null
+  final_pot: number | null
+  prize_paid_amount: number | null
+  rollover_amount: number | null
+  completion_notes: string | null
+  previous_game_id: UUID | null
+  rolled_from_game_id: UUID | null
+  rolled_from_game_number: number | null
 }
 
 export type GameEntry = {
@@ -209,6 +222,9 @@ export type HistoricalResult = {
   winner_name: string | null
   pot: number
   notes?: string | null
+  prize_paid?: number | null
+  rollover_amount?: number | null
+  rolled_into_game_number?: number | null
 }
 
 export type AdminAction = {

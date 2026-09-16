@@ -398,6 +398,23 @@ export async function adminOpenNextRound(input: {
   return data as Record<string, unknown>
 }
 
+export async function adminOpenFirstRound(input: {
+  gameId: string
+  sat: string
+  sun: string
+  deadlineAt: string
+}) {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_open_first_round', {
+    p_game_id: input.gameId,
+    p_sat: input.sat,
+    p_sun: input.sun,
+    p_deadline: input.deadlineAt,
+  })
+  if (error) throw error
+  return data as Record<string, unknown>
+}
+
 export async function adminRebuildOpenWeekendSnapshot(windowId: string) {
   const client = getSupabaseOrThrow()
   const { data, error } = await client.rpc('admin_rebuild_open_weekend_snapshot', { p_window_id: windowId })

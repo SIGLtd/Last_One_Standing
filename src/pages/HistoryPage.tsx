@@ -1,10 +1,14 @@
+import { useEffect, useState } from 'react'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { DataTable } from '../components/DataTable'
 import { MetricCell, MetricStrip } from '../components/MetricCell'
 import { formatHistorySeason, getHistorySummary, HISTORY_GAMES_1_TO_27 } from '../config/history'
-import { CURRENT_GAME, formatGBP } from '../lib/constants'
-import type { HistoricalResult } from '../types'
+import { formatGBP } from '../lib/constants'
+import { fetchGames } from '../lib/gameEntries'
+import { historyOutcomeNote, mergeHistoryWithLiveGames } from '../lib/gameLifecycle'
+import { isSupabaseConfigured } from '../lib/supabase'
+import type { Game, HistoricalResult } from '../types'
 
 function resultLabel(resultType: HistoricalResult['result_type']) {
   switch (resultType) {
@@ -34,13 +38,27 @@ function winnerDisplay(row: HistoricalResult) {
 }
 
 export function HistoryPage() {
-  const summary = getHistorySummary(HISTORY_GAMES_1_TO_27)
-  const rows = [...HISTORY_GAMES_1_TO_27].reverse()
+  const [liveGames, setLiveGames] = useState<Game[]>([])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    void fetchGames()
+      .then(setLiveGames)
+      .catch((error) => {
+        console.error('Failed to load live game history', error)
+        setLiveGames([])
+      })
+  }, [])
+
+  const history = mergeHistoryWithLiveGames(HISTORY_GAMES_1_TO_27, liveGames)
+  const summary = getHistorySummary(history)
+  const rows = [...history].reverse()
+  const latestNumber = history[history.length - 1]?.game_number ?? 27
 
   return (
-    <Card title="History" description={`Games 1–${CURRENT_GAME}`} compact>
+    <Card title="History" description={`Games 1–${latestNumber}`} compact>
       <p className="mb-3 text-xs text-muted-ink">
-        Seasons marked TBC are waiting for Iain to confirm historic winner years. Game 27 is 2026/27.
+        Seasons marked TBC are waiting for Iain to confirm historic winner years. Completed games stay in this list.
       </p>
       <MetricStrip className="mb-3">
         <MetricCell label="Paid to winners" value={formatGBP(summary.totalPaidOut)} />
@@ -78,7 +96,7 @@ export function HistoryPage() {
                 {winnerDisplay(row)}
               </td>
               <td className="num font-medium tabular-nums">{formatGBP(row.pot)}</td>
-              <td className="text-muted-ink text-[0.6875rem]">{row.notes ?? ''}</td>
+              <td className="text-muted-ink text-[0.6875rem]">{historyOutcomeNote(row)}</td>
             </tr>
           ))}
         </tbody>

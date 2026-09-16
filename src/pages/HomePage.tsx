@@ -7,7 +7,11 @@ import { TeamChip } from '../components/TeamChip'
 import { WhoSurvivedSection } from '../components/WhoSurvivedSection'
 import { useAuth } from '../contexts/AuthContext'
 import { useGame } from '../contexts/GameContext'
-import { CURRENT_GAME } from '../lib/constants'
+import {
+  homeCompletionView,
+  homeRolloverOpeningLabel,
+  isCompletedGame,
+} from '../lib/gameLifecycle'
 import {
   buildSelectableTeamOptions,
   fetchLatestOperationalWindow,
@@ -197,7 +201,13 @@ export function HomePage() {
   }, [loadDistribution, roundLoading, window?.id])
 
   useEffect(() => {
-    if (!game?.id || roundLoading) return
+    if (!game?.id || roundLoading || isCompletedGame(game)) {
+      if (isCompletedGame(game)) {
+        setSurvivors([])
+        setSurvivorRoundLabel(null)
+      }
+      return
+    }
     void loadSurvivors(game.id)
   }, [game?.id, loadSurvivors, roundLoading])
 
@@ -226,6 +236,9 @@ export function HomePage() {
     }
   }
 
+  const completion = game ? homeCompletionView(game) : null
+  const rolloverOpeningLabel = game ? homeRolloverOpeningLabel(game) : null
+  const gameFinished = isCompletedGame(game)
   const roundLabel = window ? operationalWindowToRoundLabel(window.window_number) : 'This round'
   const roundOpen = Boolean(window && editable && window.status === 'open')
   const statusLabel = !window ? 'Closed' : locked || !roundOpen ? 'Closed' : 'Open'
@@ -260,6 +273,19 @@ export function HomePage() {
 
   return (
     <div className="los-home">
+      {completion ? (
+        <section className="los-home-panel">
+          <h1 className="text-lg font-semibold tracking-tight">{completion.title}</h1>
+          <p className="mt-1 text-sm text-ink">{completion.winnerLine}</p>
+          <p className="mt-0.5 text-sm text-ink">{completion.amountLine}</p>
+        </section>
+      ) : null}
+      {rolloverOpeningLabel && !completion ? (
+        <section className="los-home-panel">
+          <h1 className="text-lg font-semibold tracking-tight">Game {game?.game_number}</h1>
+          <p className="mt-1 text-sm text-ink">{rolloverOpeningLabel}</p>
+        </section>
+      ) : null}
       <section className="los-home-round">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold tracking-tight">{window ? roundLabel : 'No round yet'}</h1>
@@ -281,7 +307,9 @@ export function HomePage() {
       </section>
 
       <section className="los-home-panel">
-        {!user && authLoading ? (
+        {gameFinished ? (
+          <p className="text-sm text-ink">This game is complete. History keeps every pick, outcome and payment record.</p>
+        ) : !user && authLoading ? (
           <p className="text-base text-ink">Checking your sign-in...</p>
         ) : !user ? (
           <div className="grid gap-3">
@@ -405,7 +433,7 @@ export function HomePage() {
         )}
       </section>
 
-      {survivors.length > 0 && survivorRoundLabel ? (
+      {survivors.length > 0 && survivorRoundLabel && !gameFinished ? (
         <WhoSurvivedSection roundLabel={survivorRoundLabel} survivors={survivors} />
       ) : null}
 
@@ -431,7 +459,7 @@ export function HomePage() {
         ) : null}
       </section>
 
-      <p className="text-center text-xs text-white/65">Game {game?.game_number ?? CURRENT_GAME}</p>
+      <p className="text-center text-xs text-white/65">Game {game?.game_number ?? ''}</p>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { AdminAdvancedOperationsSection } from '../components/admin/AdminAdvancedOperationsSection'
+import { AdminGameStatusSection, type CompleteGameSubmit, type StartNewGameSubmit } from '../components/admin/AdminGameStatusSection'
 import { AdminCommunicationsSection } from '../components/admin/AdminCommunicationsSection'
 import { AdminPlayersPaymentsSection } from '../components/admin/AdminPlayersPaymentsSection'
 import { AdminProxyPicksSection } from '../components/admin/AdminProxyPicksSection'
@@ -38,18 +39,24 @@ import {
   adminFetchWindowSelections,
   adminLockSelectionWindow,
   adminOpenNextRound,
+  adminOpenFirstRound,
   adminStripNonWeekendSnapshotFixtures,
   adminSubmitSelection,
 } from '../lib/selections'
+import { londonDateFromKickoff } from '../../scripts/lib/fixtureValidation'
+import { canOpenFirstRound, isLiveGameStatus } from '../lib/gameLifecycle'
 import { canOpenNextRound } from '../lib/nextRound'
+import { MIN_OPERATIONAL_WINDOW_NUMBER } from '../lib/windowGuards'
 import { mergeEligibleFixturesWithResults, resolveRoundPreview } from '../lib/roundResolution'
 import { getAdminLiveOpenWindow, getAdminResolutionWindow } from '../lib/adminResolutionWindow'
 import { isProtectedHistoricWindow } from '../lib/windowGuards'
 import {
   adminCreateManualPlayer,
+  adminCompleteGame,
   adminFetchGameEntries,
   adminFetchPlayers,
   adminSetEntryType,
+  adminStartNewGame,
   adminUpdateCurrentPot,
   adminVerifyPayment,
   fetchCurrentGame,
@@ -103,6 +110,7 @@ export function AdminPage() {
   const [seasonFixtures, setSeasonFixtures] = useState<SeasonFixture[]>([])
   const [syncSummary, setSyncSummary] = useState<ResultSyncSummary | null>(null)
   const [nextDeadlineLocal, setNextDeadlineLocal] = useState('')
+  const [firstRoundDeadlineLocal, setFirstRoundDeadlineLocal] = useState('')
   const [allWindowSelections, setAllWindowSelections] = useState<Selection[]>([])
   const [auditFixtures, setAuditFixtures] = useState<SelectionWindowEligibleFixture[]>([])
 
@@ -492,6 +500,7 @@ export function AdminPage() {
         windows,
         fixtures: seasonFixtures,
         survivorCount: entries.filter((entry) => entry.paid && entry.status === 'active').length,
+        gameStatus: game?.status,
       })
       if (!check.canOpen) {
         throw new Error(check.reason ?? 'Cannot open the next round.')
@@ -535,6 +544,108 @@ export function AdminPage() {
       await loadAdminAdvanced()
     } catch (err) {
       setPageError(err instanceof Error ? err.message : 'Failed to revalidate draft snapshot.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleCompleteGame(input: CompleteGameSubmit) {
+    if (!game) return
+    setActionId('complete-game')
+    setPageError(null)
+    try {
+      const result = await adminCompleteGame({
+        gameId: game.id,
+        completionType: input.completionType,
+        winnerPlayerId: input.winnerPlayerId,
+        finalPot: input.finalPot,
+        prizePaidAmount: input.prizePaidAmount,
+        rolloverAmount: input.rolloverAmount,
+        notes: input.notes,
+        nonSurvivorReason: input.nonSurvivorReason,
+      })
+      setGame(result.game)
+      applyGameUpdate(result.game)
+      setReconcileMessage(
+        result.result === 'already_complete'
+          ? `Game ${result.game.game_number} is already complete.`
+          : `Game ${result.game.game_number} completed.`,
+      )
+      await loadAdminCore()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to complete the game.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleStartNewGame(input: StartNewGameSubmit) {
+    if (!game) return
+    setActionId('start-new-game')
+    setPageError(null)
+    try {
+      const result = await adminStartNewGame({
+        previousGameId: game.id,
+        gameNumber: input.gameNumber,
+        season: input.season,
+        openingPot: input.openingPot,
+        carryForwardPlayers: input.carryForwardPlayers,
+      })
+      setGame(result.game)
+      applyGameUpdate(result.game)
+      setReconcileMessage(
+        result.result === 'already_exists'
+          ? `Game ${result.game.game_number} already exists.`
+          : `Game ${result.game.game_number} started.`,
+      )
+      await loadAdminCore()
+      await loadAdminAdvanced()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to start the new game.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleOpenFirstRound() {
+    if (!game) return
+    setActionId('open-first-round')
+    setPageError(null)
+    try {
+      const check = canOpenFirstRound({
+        gameStatus: game.status,
+        windows,
+        fixtures: seasonFixtures,
+        afterLondonDate: londonDateFromKickoff(new Date().toISOString()),
+      })
+      if (!check.canOpen) {
+        throw new Error(check.reason ?? 'Cannot open Round 1.')
+      }
+      const deadlineAt = firstRoundDeadlineLocal ? new Date(firstRoundDeadlineLocal).toISOString() : check.weekend?.proposedDeadline
+      if (!check.weekend || !deadlineAt) {
+        throw new Error('Choose a deadline before opening Round 1.')
+      }
+      const result = await adminOpenFirstRound({
+        gameId: game.id,
+        sat: check.weekend.sat,
+        sun: check.weekend.sun,
+        deadlineAt,
+      })
+      const fixtureCount = Number(result.fixture_count ?? check.weekend.eligible.length)
+      setReconcileMessage(
+        result.result === 'already_open'
+          ? 'Round 1 is already open for this game.'
+          : `Round 1 opened · ${fixtureCount} fixtures · deadline ${formatDeadlineLondon(String(result.deadline_at ?? deadlineAt))}`,
+      )
+      await loadAdminCore()
+      await loadAdminAdvanced()
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : 'Failed to open Round 1.'
+      setPageError(
+        raw.includes('NON_WEEKEND_FIXTURES')
+          ? 'Cannot open this round because it includes Friday, Monday, or midweek fixtures. Only Saturday and Sunday fixtures are eligible unless Admin makes an explicit exception.'
+          : raw,
+      )
     } finally {
       setActionId(null)
     }
@@ -594,6 +705,7 @@ export function AdminPage() {
         windows,
         fixtures: seasonFixtures,
         survivorCount: entries.filter((entry) => entry.paid && entry.status === 'active').length,
+        gameStatus: game?.status,
       })
     : {
         canOpen: false,
@@ -602,6 +714,25 @@ export function AdminPage() {
         alreadyOpen: false,
         weekend: null,
       }
+
+  const firstRoundCheck = game
+    ? canOpenFirstRound({
+        gameStatus: game.status,
+        windows,
+        fixtures: seasonFixtures,
+        afterLondonDate: londonDateFromKickoff(new Date().toISOString()),
+      })
+    : {
+        canOpen: false,
+        reason: 'No current game.',
+        survivorCount: 0,
+        alreadyOpen: false,
+        weekend: null,
+      }
+
+  const showFirstRound =
+    Boolean(game && isLiveGameStatus(game.status)) &&
+    !windows.some((window) => window.window_number >= MIN_OPERATIONAL_WINDOW_NUMBER)
 
   useEffect(() => {
     const proposed = nextRoundCheck.weekend?.proposedDeadline
@@ -615,6 +746,19 @@ export function AdminPage() {
       }
     }
   }, [nextRoundCheck.weekend?.proposedDeadline, nextDeadlineLocal])
+
+  useEffect(() => {
+    const proposed = firstRoundCheck.weekend?.proposedDeadline
+    if (proposed && !firstRoundDeadlineLocal) {
+      const date = new Date(proposed)
+      if (!Number.isNaN(date.getTime())) {
+        const pad = (n: number) => String(n).padStart(2, '0')
+        setFirstRoundDeadlineLocal(
+          `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`,
+        )
+      }
+    }
+  }, [firstRoundCheck.weekend?.proposedDeadline, firstRoundDeadlineLocal])
 
   const exportRows = game
     ? buildSelectionExportRows({
@@ -695,6 +839,25 @@ export function AdminPage() {
         {advancedLoading ? <p className="mb-2 text-xs text-muted-ink">Loading admin diagnostics…</p> : null}
 
         <div className="grid gap-3">
+          {game ? (
+            <AdminGameStatusSection
+              game={game}
+              entries={entries}
+              firstRound={firstRoundCheck}
+              firstRoundDeadline={firstRoundDeadlineLocal}
+              onFirstRoundDeadlineChange={setFirstRoundDeadlineLocal}
+              showFirstRound={showFirstRound}
+              busy={
+                actionId === 'complete-game' ||
+                actionId === 'start-new-game' ||
+                actionId === 'open-first-round'
+              }
+              onComplete={(input) => void handleCompleteGame(input)}
+              onStartNewGame={(input) => void handleStartNewGame(input)}
+              onOpenFirstRound={() => void handleOpenFirstRound()}
+            />
+          ) : null}
+
           {roundControl ? (
             <AdminRoundControlCard
               stats={roundControl}

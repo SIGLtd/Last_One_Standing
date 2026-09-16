@@ -694,7 +694,13 @@ Deno.serve(async (req) => {
         })
       }
 
-      const { data: game } = await admin.from('games').select('id').eq('game_number', 27).maybeSingle()
+      const { data: liveGames } = await admin
+        .from('games')
+        .select('id')
+        .in('status', ['open', 'in_progress'])
+        .order('game_number', { ascending: false })
+        .limit(1)
+      const game = liveGames?.[0] ?? null
       const sync = await syncLatestResults(
         admin,
         footballDataKey,
@@ -725,7 +731,13 @@ Deno.serve(async (req) => {
         ? { sat: body.targetSatDate, sun: body.targetSunDate }
         : nextLondonWeekend()
 
-    const { data: game } = await admin.from('games').select('*').eq('game_number', 27).maybeSingle()
+    const { data: liveGames } = await admin
+      .from('games')
+      .select('*')
+      .in('status', ['open', 'in_progress'])
+      .order('game_number', { ascending: false })
+      .limit(1)
+    const game = liveGames?.[0] ?? null
     if (!game || !['open', 'in_progress'].includes(game.status)) {
       return json({ result: 'game_not_live', weekend })
     }

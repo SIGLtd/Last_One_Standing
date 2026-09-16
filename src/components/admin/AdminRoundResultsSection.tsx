@@ -314,6 +314,14 @@ export function AdminRoundResultsSection({
       </div>
 
       <h3 className="los-section-title mt-4">Open next round</h3>
+      <p className="mt-1 text-xs text-muted-ink">
+        Open next round continues this game. Complete game closes it. Start new game creates the next game number.
+      </p>
+      {nextRound.survivorCount === 1 ? (
+        <div className="mt-2 los-alert los-alert-warning">
+          <p>This game has a winner. Complete the game before starting a new one.</p>
+        </div>
+      ) : null}
       {nextRound.weekend ? (
         <p className="mt-1 text-xs text-muted-ink">
           Next weekend: {nextRound.weekend.sat} to {nextRound.weekend.sun} · {nextRound.weekend.eligible.length}{' '}

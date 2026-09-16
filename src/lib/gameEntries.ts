@@ -1,7 +1,7 @@
-import { CURRENT_GAME } from './constants'
 import { getAmountDue as calculateAmountDue } from './entryFees'
+import { isLiveGameStatus, selectCurrentGame } from './gameLifecycle'
 import { getSupabaseOrThrow } from './supabase'
-import type { EntryType, Game, GameEntry, GameEntryWithPlayer, Player } from '../types'
+import type { CompletionType, EntryType, Game, GameEntry, GameEntryWithPlayer, Player } from '../types'
 
 export { getAmountDue, getDisplayAmountDue } from './entryFees'
 
@@ -42,19 +42,61 @@ export async function adminCreateManualPlayer(displayName: string, phone?: strin
   return data as Player
 }
 
-export async function fetchCurrentGame(): Promise<Game | null> {
+export async function fetchGames(): Promise<Game[]> {
   const client = getSupabaseOrThrow()
-  const { data, error } = await client
-    .from('games')
-    .select('*')
-    .eq('game_number', CURRENT_GAME)
-    .maybeSingle()
+  const { data, error } = await client.from('games').select('*').order('game_number', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as Game[]
+}
 
-  if (error) {
-    throw error
-  }
+export async function fetchCurrentGame(): Promise<Game | null> {
+  const games = await fetchGames()
+  return selectCurrentGame(games)
+}
 
-  return data
+export async function adminCompleteGame(input: {
+  gameId: string
+  completionType: CompletionType
+  winnerPlayerId?: string | null
+  finalPot: number
+  prizePaidAmount: number
+  rolloverAmount: number
+  notes?: string | null
+  nonSurvivorReason?: string | null
+}): Promise<{ result: string; game: Game }> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_complete_game', {
+    p_game_id: input.gameId,
+    p_completion_type: input.completionType,
+    p_winner_player_id: input.winnerPlayerId ?? null,
+    p_final_pot: input.finalPot,
+    p_prize_paid_amount: input.prizePaidAmount,
+    p_rollover_amount: input.rolloverAmount,
+    p_notes: input.notes ?? null,
+    p_non_survivor_reason: input.nonSurvivorReason ?? null,
+  })
+  if (error) throw error
+  return data as { result: string; game: Game }
+}
+
+export async function adminStartNewGame(input: {
+  previousGameId: string
+  gameNumber: number
+  season?: string | null
+  openingPot: number
+  carryForwardPlayers: boolean
+}): Promise<{ result: string; game: Game; entry_count?: number }> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_start_new_game', {
+    p_previous_game_id: input.previousGameId,
+    p_game_number: input.gameNumber,
+    p_season: input.season ?? null,
+    p_opening_pot: input.openingPot,
+    p_carry_forward_players: input.carryForwardPlayers,
+    p_allow_standalone: false,
+  })
+  if (error) throw error
+  return data as { result: string; game: Game; entry_count?: number }
 }
 
 export async function fetchMyGameEntry(playerId: string, gameId: string): Promise<GameEntry | null> {
@@ -74,6 +116,10 @@ export async function fetchMyGameEntry(playerId: string, gameId: string): Promis
 }
 
 export async function fetchOrCreateGameEntry(playerId: string, game: Game): Promise<GameEntry> {
+  if (!isLiveGameStatus(game.status)) {
+    throw new Error('This game is complete. Join the next game when it opens.')
+  }
+
   const existing = await fetchMyGameEntry(playerId, game.id)
   if (existing) {
     return existing

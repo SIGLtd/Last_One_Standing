@@ -16,8 +16,8 @@ function getPaymentBadgeVariant(entry: GameEntry): 'success' | 'warning' | 'mute
   return 'muted'
 }
 
-function getNextAction(entry: GameEntry | null, hasEntry: boolean, roundIsOpen: boolean) {
-  if (!hasEntry || !entry) return 'Enter Game 27 on your dashboard, then pay by bank transfer.'
+function getNextAction(entry: GameEntry | null, hasEntry: boolean, roundIsOpen: boolean, gameNumber: number) {
+  if (!hasEntry || !entry) return `Enter Game ${gameNumber} on your dashboard, then pay by bank transfer.`
   if (entry.paid && roundIsOpen) return 'Round 1 is open — make your pick before the deadline.'
   if (entry.paid) return 'You are entered. Return when Round 1 opens to make your pick.'
   if (entry.payment_claimed) return 'Await admin payment verification on your dashboard.'
@@ -112,7 +112,7 @@ export function PaymentStatusCard({
 
       <div className="text-xs text-muted-ink">
         <span className="los-section-title">Next · </span>
-        {getNextAction(entry, Boolean(entry), roundIsOpen)}
+        {getNextAction(entry, Boolean(entry), roundIsOpen, game.game_number)}
       </div>
     </div>
   )

@@ -93,8 +93,8 @@ export function CurrentPicksPage() {
       title="Current picks"
       description={
         window
-          ? `Game ${CURRENT_GAME} · ${roundLabel} · Open to all players`
-          : `Game ${CURRENT_GAME} · Open to all players`
+          ? `Game ${game?.game_number ?? CURRENT_GAME} · ${roundLabel} · Open to all players`
+          : `Game ${game?.game_number ?? CURRENT_GAME} · Open to all players`
       }
       compact
     >

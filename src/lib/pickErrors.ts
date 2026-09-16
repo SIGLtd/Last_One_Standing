@@ -12,6 +12,7 @@ export type PickErrorCode =
   | 'CORRECTION_NOT_CONFIRMED'
   | 'RESULT_NOT_FINAL'
   | 'WINDOW_HAS_PICKS_ON_INVALID'
+  | 'GAME_COMPLETE'
 
 export function parsePickError(message: string): PickErrorCode | string {
   const codes: PickErrorCode[] = [
@@ -28,6 +29,7 @@ export function parsePickError(message: string): PickErrorCode | string {
     'CORRECTION_NOT_CONFIRMED',
     'RESULT_NOT_FINAL',
     'WINDOW_HAS_PICKS_ON_INVALID',
+    'GAME_COMPLETE',
   ]
   return codes.find((code) => message.includes(code)) ?? message
 }
@@ -60,6 +62,8 @@ export function pickErrorLabel(code: PickErrorCode | string): string {
       return 'The selected fixture does not yet have a stored final score.'
     case 'WINDOW_HAS_PICKS_ON_INVALID':
       return 'This round already has picks on the invalid Friday/Monday fixture. The snapshot was not changed.'
+    case 'GAME_COMPLETE':
+      return 'This game is complete. Picks stay with the finished game and a new round cannot be opened.'
     default:
       return code
   }

@@ -27,7 +27,11 @@ export function playerSurvivalStatusFromEntry(
   return 'other'
 }
 
-export function shouldShowEliminatedBanner(status: PlayerSurvivalStatus): boolean {
+export function shouldShowEliminatedBanner(
+  status: PlayerSurvivalStatus,
+  game?: { status?: string } | null,
+): boolean {
+  if (game?.status === 'complete' || game?.status === 'rolled_over' || game?.status === 'off_season') return false
   return status === 'eliminated'
 }
 

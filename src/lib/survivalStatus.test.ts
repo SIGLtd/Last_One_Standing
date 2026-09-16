@@ -116,9 +116,11 @@ describe('home survivor list', () => {
 describe('eliminated banner', () => {
   it('shows only for a confirmed eliminated logged-in player', () => {
     expect(shouldShowEliminatedBanner('eliminated')).toBe(true)
+    expect(shouldShowEliminatedBanner('eliminated', { status: 'complete' })).toBe(false)
     expect(shouldShowEliminatedBanner('active')).toBe(false)
     expect(shouldShowEliminatedBanner('unknown')).toBe(false)
     expect(shouldShowEliminatedBanner('other')).toBe(false)
+    expect(shouldShowEliminatedBanner(playerSurvivalStatusFromEntry({ status: 'pending_payment' }, true), { status: 'open' })).toBe(false)
     expect(playerSurvivalStatusFromEntry({ status: 'eliminated' }, false)).toBe('unknown')
     expect(playerSurvivalStatusFromEntry({ status: 'eliminated' }, true)).toBe('eliminated')
     expect(playerSurvivalStatusFromEntry({ status: 'active' }, true)).toBe('active')

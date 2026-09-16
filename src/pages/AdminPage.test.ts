@@ -35,6 +35,17 @@ describe('admin page mobile cockpit layout', () => {
   })
 })
 
+describe('admin game completion controls', () => {
+  it('keeps complete-game distinct from open-next-round', () => {
+    expect(adminPageSource).toContain('AdminGameStatusSection')
+    expect(adminPageSource).toContain('handleCompleteGame')
+    expect(adminPageSource).toContain('handleStartNewGame')
+    expect(adminPageSource).toContain('handleOpenNextRound')
+    expect(adminPageSource).toContain('adminCompleteGame')
+    expect(adminPageSource).toContain('adminStartNewGame')
+  })
+})
+
 describe('admin round results controls', () => {
   it('shows sync, preview, resolve, and open-next-round actions for admin only', () => {
     expect(resultsSectionSource).toContain('Sync latest results')

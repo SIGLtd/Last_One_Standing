@@ -51,6 +51,7 @@ import { londonDateTimeLocalToUtcIso, utcIsoToLondonDateTimeLocal } from '../lib
 import { londonDateFromKickoff } from '../../scripts/lib/fixtureValidation'
 import { canOpenFirstRound, isLiveGameStatus } from '../lib/gameLifecycle'
 import { canOpenNextRound } from '../lib/nextRound'
+import { UI_LAB_LINK_LABEL, UI_LAB_PATH } from '../lib/uiLabAccess'
 import { MIN_OPERATIONAL_WINDOW_NUMBER } from '../lib/windowGuards'
 import { mergeEligibleFixturesWithResults, resolveRoundPreview } from '../lib/roundResolution'
 import { getAdminLiveOpenWindow, getAdminResolutionWindow } from '../lib/adminResolutionWindow'
@@ -879,7 +880,14 @@ export function AdminPage() {
       <Card
         title="Organiser cockpit"
         description={game ? `Game ${game.game_number}` : 'Game 27'}
-        right={<Badge variant="muted">Admin</Badge>}
+        right={
+          <div className="flex items-center gap-2">
+            <ButtonLink to={UI_LAB_PATH} variant="secondary">
+              {UI_LAB_LINK_LABEL}
+            </ButtonLink>
+            <Badge variant="muted">Admin</Badge>
+          </div>
+        }
         compact
       >
         {pageError ? (

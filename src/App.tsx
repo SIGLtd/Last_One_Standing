@@ -11,6 +11,7 @@ import { MyPicksPage } from './pages/MyPicksPage'
 import { PickPage } from './pages/PickPage'
 import { RulesPage } from './pages/RulesPage'
 import { SignupPage } from './pages/SignupPage'
+import { UiLabPage } from './pages/UiLabPage'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/my-picks" element={<MyPicksPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/ui-lab" element={<UiLabPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell>

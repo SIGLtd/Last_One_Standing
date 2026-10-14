@@ -29,6 +29,13 @@ describe('app navigation', () => {
     expect(menuIncludesAdmin(playerMenu)).toBe(false)
   })
 
+  it('does not add UI Lab to the burger menu for players or admins', () => {
+    const adminMenu = buildAppMenuItems({ isAuthenticated: true, isAdmin: true })
+    const playerMenu = buildAppMenuItems({ isAuthenticated: true, isAdmin: false })
+    expect(menuIncludesPath(adminMenu, '/ui-lab')).toBe(false)
+    expect(menuIncludesPath(playerMenu, '/ui-lab')).toBe(false)
+  })
+
   it('puts ordinary destinations behind the menu', () => {
     const menu = buildAppMenuItems({ isAuthenticated: true, isAdmin: false })
     expect(menuIncludesPath(menu, '/')).toBe(true)

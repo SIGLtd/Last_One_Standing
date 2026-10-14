@@ -40,7 +40,7 @@ describe('fixture match rows', () => {
   })
 
   it('does not keep ugly inline v rows on Home', () => {
-    expect(homeSource).toContain('FixtureMatchRow')
+    expect(homeSource).toContain('PlayerHomePreview')
     expect(homeSource).not.toContain("text-muted-ink\">v</span>")
     expect(homeSource).not.toContain(' Hull City v ')
   })

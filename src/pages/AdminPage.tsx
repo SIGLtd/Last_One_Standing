@@ -49,9 +49,19 @@ import {
 } from '../lib/selections'
 import { londonDateTimeLocalToUtcIso, utcIsoToLondonDateTimeLocal } from '../lib/londonDeadline'
 import { londonDateFromKickoff } from '../../scripts/lib/fixtureValidation'
-import { canOpenFirstRound, isLiveGameStatus } from '../lib/gameLifecycle'
+import { canOpenFirstRound, isLiveGameStatus, survivingEntries } from '../lib/gameLifecycle'
 import { canOpenNextRound } from '../lib/nextRound'
 import { UI_LAB_LINK_LABEL, UI_LAB_PATH } from '../lib/uiLabAccess'
+import {
+  ADMIN_PREVIEW_SECTION_LABELS,
+  ADMIN_PREVIEW_SECTIONS,
+  LIVE_FIXTURE_REVIEW_WARNING,
+  UI_LAB_DEADLINE_RULE,
+  buildAdminOverview,
+  roundProgressionSteps,
+  settlementGateState,
+  type AdminPreviewSection,
+} from '../lib/uiLabPreview'
 import { MIN_OPERATIONAL_WINDOW_NUMBER } from '../lib/windowGuards'
 import { mergeEligibleFixturesWithResults, resolveRoundPreview } from '../lib/roundResolution'
 import { getAdminLiveOpenWindow, getAdminResolutionWindow } from '../lib/adminResolutionWindow'
@@ -121,6 +131,8 @@ export function AdminPage() {
   const [auditFixtures, setAuditFixtures] = useState<SelectionWindowEligibleFixture[]>([])
   const [gameSelections, setGameSelections] = useState<Selection[]>([])
   const [windowFixtures, setWindowFixtures] = useState<Record<string, SelectionWindowEligibleFixture[]>>({})
+  const [cockpitSection, setCockpitSection] = useState<AdminPreviewSection>('overview')
+  const [settlementOpen, setSettlementOpen] = useState(false)
 
   const openWindow =
     windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
@@ -875,6 +887,30 @@ export function AdminPage() {
     )
   }
 
+  const paidActive = survivingEntries(entries)
+  const overview = buildAdminOverview({
+    gameNumber: game?.game_number ?? null,
+    currentPot: game?.current_pot ?? currentPot ?? 0,
+    windowNumber: pickWindow?.window_number ?? null,
+    deadlineAt: pickWindow?.deadline_at ?? null,
+    windowStatus: pickWindow?.status ?? null,
+    gameStatus: game?.status ?? null,
+    survivorCount: paidActive.length,
+    picksSubmitted: selectionsMade,
+    paidActiveCount: paidActive.length,
+    unpickedCount: Math.max(paidActive.length - selectionsMade, 0),
+  })
+  if (roundControl && !roundControl.snapshotValid) {
+    overview.warnings.unshift(LIVE_FIXTURE_REVIEW_WARNING)
+  }
+  const gate = settlementGateState({ gameStatus: game?.status ?? null, survivorCount: paidActive.length })
+  const steps = roundProgressionSteps({
+    windowStatus: pickWindow?.status ?? null,
+    deadlineLabel: `${overview.deadlineLabel}. ${UI_LAB_DEADLINE_RULE}`,
+    survivorCount: paidActive.length,
+    gameStatus: game?.status ?? null,
+  })
+
   return (
     <div className="grid gap-3">
       <Card
@@ -901,145 +937,257 @@ export function AdminPage() {
         {reconcileMessage ? <div className="mb-2 los-alert los-alert-success">{reconcileMessage}</div> : null}
         {advancedLoading ? <p className="mb-2 text-xs text-muted-ink">Loading admin diagnostics…</p> : null}
 
+        <nav className="mb-3 grid grid-cols-3 gap-1 rounded-lg bg-surface-2 p-1" aria-label="Admin cockpit sections">
+          {ADMIN_PREVIEW_SECTIONS.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={[
+                'los-tap-target rounded-lg px-1 py-2 text-[11px] font-semibold',
+                cockpitSection === item ? 'bg-purple text-white' : 'text-muted-ink',
+              ].join(' ')}
+              onClick={() => setCockpitSection(item)}
+            >
+              {ADMIN_PREVIEW_SECTION_LABELS[item]}
+            </button>
+          ))}
+        </nav>
+
         <div className="grid gap-3">
-          {game ? (
-            <AdminGameStatusSection
-              game={game}
-              entries={entries}
-              firstRound={firstRoundCheck}
-              firstRoundDeadline={firstRoundDeadlineLocal}
-              onFirstRoundDeadlineChange={setFirstRoundDeadlineLocal}
-              showFirstRound={showFirstRound}
-              busy={
-                actionId === 'complete-game' ||
-                actionId === 'start-new-game' ||
-                actionId === 'open-first-round'
-              }
-              onComplete={(input) => void handleCompleteGame(input)}
-              onStartNewGame={(input) => void handleStartNewGame(input)}
-              onOpenFirstRound={() => void handleOpenFirstRound()}
-            />
-          ) : null}
-
-          {roundControl ? (
-            <AdminRoundControlCard
-              stats={roundControl}
-              currentPot={game?.current_pot ?? currentPot ?? 0}
-              potBusy={actionId === 'pot'}
-              onSavePot={(value) => void handleSavePot(value)}
-            />
-          ) : (
-            <section className="los-admin-section los-cockpit-card">
-              <h2 className="los-section-title">Round control</h2>
-              <p className="mt-2 text-xs text-muted-ink">
-                No live round is open yet. Use advanced operations to revalidate and publish when ready.
-              </p>
-            </section>
-          )}
-
-          {auditWindow && resolutionPreview ? (
-            <AdminRoundResultsSection
-              window={auditWindow}
-              preview={resolutionPreview}
-              fixtureCount={auditFixtures.length}
-              syncSummary={syncSummary}
-              nextRound={nextRoundCheck}
-              deadlineValue={nextDeadlineLocal}
-              onDeadlineChange={setNextDeadlineLocal}
-              syncBusy={actionId === 'sync-results'}
-              resolveBusy={actionId === 'resolve-round'}
-              openBusy={actionId === 'open-next-round'}
-              onSyncResults={() => void handleSyncLatestResults()}
-              onResolveRound={() => void handleResolveRound()}
-              onOpenNextRound={() => void handleOpenNextRound()}
-              schedulerConfigured={schedulerConfigured}
-            />
-          ) : null}
-
-          {pickWindow ? (
+          {cockpitSection === 'overview' ? (
             <>
-              <AdminThisRoundSection
-                openWindow={pickWindow}
-                fixtures={openFixtures}
+              <section className="los-card p-4" data-testid="admin-next-action">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">Next action</p>
+                <p className="mt-1 text-base font-semibold text-ink">{overview.nextAction}</p>
+                <p className="mt-1 text-sm text-muted-ink">
+                  {overview.gameLabel} · {overview.roundLabel} · {overview.potLabel}
+                </p>
+                <p className="mt-1 text-xs text-muted-ink">Deadline {overview.deadlineLabel}</p>
+                <p className="mt-1 text-xs text-muted-ink">{UI_LAB_DEADLINE_RULE}</p>
+              </section>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="los-card p-3">
+                  <p className="text-[11px] font-semibold uppercase text-muted-ink">Survivors</p>
+                  <p className="mt-1 text-lg font-bold text-ink">{overview.survivorCount}</p>
+                </div>
+                <div className="los-card p-3">
+                  <p className="text-[11px] font-semibold uppercase text-muted-ink">Picks in</p>
+                  <p className="mt-1 text-lg font-bold text-ink">{overview.picksSubmitted}</p>
+                </div>
+                <div className="los-card p-3">
+                  <p className="text-[11px] font-semibold uppercase text-muted-ink">Fixtures</p>
+                  <p className="mt-1 text-lg font-bold text-ink">{roundControl?.eligibleFixtureCount ?? 0}</p>
+                  <p className="text-[11px] text-muted-ink">Sat/Sun only</p>
+                </div>
+              </div>
+              {overview.warnings.map((warning) => (
+                <div key={warning} className="los-alert los-alert-warning text-sm">
+                  {warning}
+                </div>
+              ))}
+              {roundControl ? (
+                <AdminRoundControlCard
+                  stats={roundControl}
+                  currentPot={game?.current_pot ?? currentPot ?? 0}
+                  potBusy={actionId === 'pot'}
+                  onSavePot={(value) => void handleSavePot(value)}
+                />
+              ) : (
+                <section className="los-admin-section los-cockpit-card">
+                  <h2 className="los-section-title">Round control</h2>
+                  <p className="mt-2 text-xs text-muted-ink">
+                    No live round is open yet. Use advanced operations to revalidate and publish when ready.
+                  </p>
+                </section>
+              )}
+              {game ? (
+                <AdminPlayersPaymentsSection
+                  game={game}
+                  entries={entries}
+                  summary={paymentSummary}
+                  actionId={actionId}
+                  onVerifyPayment={(id) => void handleVerifyPayment(id)}
+                  onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
+                />
+              ) : null}
+              <AdminAdvancedOperationsSection
+                game={game}
+                entries={entries}
+                windows={windows}
+                candidates={candidates}
+                candidateFixtures={candidateFixtures}
+                syncRuns={syncRuns}
+                changeAlerts={changeAlerts}
+                window2Preview={window2Preview}
                 seasonFixtures={seasonFixtures}
-                whatsAppSummary={whatsAppSummary}
-                csvContents={csvContents}
-                stripBusy={actionId === 'strip-invalid'}
-                onStripInvalidFixtures={() => void handleStripInvalidFixtures()}
-              />
-              <AdminProxyPicksSection
-                players={players}
-                fixtures={playerFacingEligibleFixtures(openFixtures, seasonFixtures)}
-                existingSelectionByPlayer={existingSelectionByPlayer}
-                window={pickWindow}
-                busy={actionId === 'proxy-pick' || actionId === 'late-pick' || actionId === 'manual-player'}
-                onCreateManualPlayer={handleCreateManualPlayer}
-                onSaveProxyPick={handleSaveProxyPick}
-                onSaveLatePick={handleSaveLatePick}
+                providerConfigured={providerConfigured}
+                schedulerConfigured={schedulerConfigured}
+                openWindow={openWindow}
+                window2Draft={window2Draft}
+                window2Comparison={window2Comparison}
+                window2Snapshot={window2Snapshot}
+                fixtureBusy={fixtureBusy}
+                actionId={actionId}
+                testSatDate={testSatDate}
+                testSunDate={testSunDate}
+                onTestSatDateChange={setTestSatDate}
+                onTestSunDateChange={setTestSunDate}
+                onReconcile={(testWeekend) => void handleReconcile(testWeekend)}
+                onLockOpenWindow={() => void handleLockOpenWindow()}
+                onRevalidateDraft={(id) => void handleRevalidateDraft(id)}
+                onApproveCandidate={(id) => void handleApproveCandidate(id)}
+                onReviewCandidate={(id, outcome) => void handleReviewCandidate(id, outcome)}
+                onVerifyPayment={(id) => void handleVerifyPayment(id)}
+                onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
               />
             </>
           ) : null}
 
-          {game ? (
-            <AdminCorrectionsSection
-              game={game}
-              entries={entries}
-              players={players}
-              windows={windows}
-              openWindow={liveOpenWindow ?? openWindow}
-              seasonFixtures={seasonFixtures}
-              windowFixtures={windowFixtures}
-              gameSelections={gameSelections}
-              openPickCount={selectionsMade}
-              busy={actionId === 'reinstate-player' || actionId === 'edit-round'}
-              onNeedWindowFixtures={handleNeedWindowFixtures}
-              onReinstate={(input) => handleReinstatePlayer(input)}
-              onUpdateRound={(input) => handleUpdateRoundWindow(input)}
-            />
+          {cockpitSection === 'scores' ? (
+            auditWindow && resolutionPreview ? (
+              <AdminRoundResultsSection
+                window={auditWindow}
+                preview={resolutionPreview}
+                fixtureCount={auditFixtures.length}
+                syncSummary={syncSummary}
+                nextRound={nextRoundCheck}
+                deadlineValue={nextDeadlineLocal}
+                onDeadlineChange={setNextDeadlineLocal}
+                syncBusy={actionId === 'sync-results'}
+                resolveBusy={actionId === 'resolve-round'}
+                openBusy={actionId === 'open-next-round'}
+                onSyncResults={() => void handleSyncLatestResults()}
+                onResolveRound={() => void handleResolveRound()}
+                onOpenNextRound={() => void handleOpenNextRound()}
+                schedulerConfigured={schedulerConfigured}
+              />
+            ) : (
+              <p className="text-sm text-muted-ink">No round is ready for result sync yet.</p>
+            )
           ) : null}
 
-          {game ? (
-            <AdminPlayersPaymentsSection
-              game={game}
-              entries={entries}
-              summary={paymentSummary}
-              actionId={actionId}
-              onVerifyPayment={(id) => void handleVerifyPayment(id)}
-              onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
-            />
+          {cockpitSection === 'picks' ? (
+            pickWindow ? (
+              <>
+                <AdminThisRoundSection
+                  openWindow={pickWindow}
+                  fixtures={openFixtures}
+                  seasonFixtures={seasonFixtures}
+                  whatsAppSummary={whatsAppSummary}
+                  csvContents={csvContents}
+                  stripBusy={actionId === 'strip-invalid'}
+                  onStripInvalidFixtures={() => void handleStripInvalidFixtures()}
+                />
+                <AdminProxyPicksSection
+                  players={players}
+                  fixtures={playerFacingEligibleFixtures(openFixtures, seasonFixtures)}
+                  existingSelectionByPlayer={existingSelectionByPlayer}
+                  window={pickWindow}
+                  busy={actionId === 'proxy-pick' || actionId === 'late-pick' || actionId === 'manual-player'}
+                  onCreateManualPlayer={handleCreateManualPlayer}
+                  onSaveProxyPick={handleSaveProxyPick}
+                  onSaveLatePick={handleSaveLatePick}
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted-ink">No live round picks to show yet.</p>
+            )
           ) : null}
-          <AdminCommunicationsSection />
 
-          <AdminAdvancedOperationsSection
-            game={game}
-            entries={entries}
-            windows={windows}
-            candidates={candidates}
-            candidateFixtures={candidateFixtures}
-            syncRuns={syncRuns}
-            changeAlerts={changeAlerts}
-            window2Preview={window2Preview}
-            seasonFixtures={seasonFixtures}
-            providerConfigured={providerConfigured}
-            schedulerConfigured={schedulerConfigured}
-            openWindow={openWindow}
-            window2Draft={window2Draft}
-            window2Comparison={window2Comparison}
-            window2Snapshot={window2Snapshot}
-            fixtureBusy={fixtureBusy}
-            actionId={actionId}
-            testSatDate={testSatDate}
-            testSunDate={testSunDate}
-            onTestSatDateChange={setTestSatDate}
-            onTestSunDateChange={setTestSunDate}
-            onReconcile={(testWeekend) => void handleReconcile(testWeekend)}
-            onLockOpenWindow={() => void handleLockOpenWindow()}
-            onRevalidateDraft={(id) => void handleRevalidateDraft(id)}
-            onApproveCandidate={(id) => void handleApproveCandidate(id)}
-            onReviewCandidate={(id, outcome) => void handleReviewCandidate(id, outcome)}
-            onVerifyPayment={(id) => void handleVerifyPayment(id)}
-            onSetEntryType={(id, type) => void handleSetEntryType(id, type)}
-          />
+          {cockpitSection === 'corrections' ? (
+            game ? (
+              <>
+                {pickWindow ? (
+                  <AdminProxyPicksSection
+                    players={players}
+                    fixtures={playerFacingEligibleFixtures(openFixtures, seasonFixtures)}
+                    existingSelectionByPlayer={existingSelectionByPlayer}
+                    window={pickWindow}
+                    busy={actionId === 'proxy-pick' || actionId === 'late-pick' || actionId === 'manual-player'}
+                    onCreateManualPlayer={handleCreateManualPlayer}
+                    onSaveProxyPick={handleSaveProxyPick}
+                    onSaveLatePick={handleSaveLatePick}
+                  />
+                ) : null}
+                <AdminCorrectionsSection
+                  game={game}
+                  entries={entries}
+                  players={players}
+                  windows={windows}
+                  openWindow={liveOpenWindow ?? openWindow}
+                  seasonFixtures={seasonFixtures}
+                  windowFixtures={windowFixtures}
+                  gameSelections={gameSelections}
+                  openPickCount={selectionsMade}
+                  busy={actionId === 'reinstate-player' || actionId === 'edit-round'}
+                  onNeedWindowFixtures={handleNeedWindowFixtures}
+                  onReinstate={(input) => handleReinstatePlayer(input)}
+                  onUpdateRound={(input) => handleUpdateRoundWindow(input)}
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted-ink">No game loaded for corrections.</p>
+            )
+          ) : null}
+
+          {cockpitSection === 'lifecycle' ? (
+            <>
+              <section className="los-card p-4" data-testid="round-progression-gate">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">Round progression gate</h3>
+                <p className="mt-1 text-xs text-muted-ink">{UI_LAB_DEADLINE_RULE}</p>
+                <ol className="mt-3 grid gap-2">
+                  {steps.map((step) => (
+                    <li key={step.title} className="rounded-lg bg-surface-2 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-ink">{step.title}</span>
+                        <span className="text-[10px] font-bold uppercase text-muted-ink">{step.state}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-ink">{step.detail}</p>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+              <section className="los-card p-4" data-testid="settlement-gate">
+                <h3 className="text-sm font-semibold text-ink">Game settlement gate</h3>
+                <p className="mt-1 text-sm font-semibold text-ink">{gate.label}</p>
+                <p className="mt-1 text-sm text-muted-ink">{gate.reason}</p>
+                <button
+                  type="button"
+                  className="los-btn-secondary los-tap-target mt-3 w-full text-sm"
+                  onClick={() => setSettlementOpen((open) => !open)}
+                >
+                  {settlementOpen ? 'Hide settlement controls' : 'Open settlement safety gate'}
+                </button>
+                {settlementOpen && game ? (
+                  <div className="mt-3">
+                    {!gate.unlocked && paidActive.length > 1 ? (
+                      <p className="mb-2 text-xs text-muted-ink">
+                        Settlement stays protected while more than one player remains.
+                      </p>
+                    ) : null}
+                    <AdminGameStatusSection
+                      game={game}
+                      entries={entries}
+                      firstRound={firstRoundCheck}
+                      firstRoundDeadline={firstRoundDeadlineLocal}
+                      onFirstRoundDeadlineChange={setFirstRoundDeadlineLocal}
+                      showFirstRound={showFirstRound}
+                      busy={
+                        actionId === 'complete-game' ||
+                        actionId === 'start-new-game' ||
+                        actionId === 'open-first-round'
+                      }
+                      onComplete={(input) => void handleCompleteGame(input)}
+                      onStartNewGame={(input) => void handleStartNewGame(input)}
+                      onOpenFirstRound={() => void handleOpenFirstRound()}
+                    />
+                  </div>
+                ) : null}
+              </section>
+            </>
+          ) : null}
+
+          {cockpitSection === 'comms' ? <AdminCommunicationsSection /> : null}
         </div>
       </Card>
     </div>

@@ -325,7 +325,7 @@ describe('public and admin UI copy', () => {
     expect(homeRolloverOpeningLabel(next)).toContain('rollover from Game 27')
     expect(homeRolloverOpeningLabel(sampleGame({ opening_pot: 0, rolled_from_game_id: null }))).toBeNull()
     expect(homeSource).toContain('homeCompletionView')
-    expect(historySource).toContain('historyOutcomeNote')
+    expect(historySource).toContain('HistoryPreview')
   })
 
   it('does not leak old eliminated status into a new game', () => {

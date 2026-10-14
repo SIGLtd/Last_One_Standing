@@ -19,6 +19,7 @@ function read(relativePath: string): string {
 
 const appShellSource = read('components/AppShell.tsx')
 const rulesPageSource = read('pages/RulesPage.tsx')
+const rulesPreviewSource = read('components/ui-lab/RulesPreview.tsx')
 const rulesContentSource = read('lib/rulesContent.ts')
 const adminSource = read('pages/AdminPage.tsx')
 const homeSource = read('pages/HomePage.tsx')
@@ -34,7 +35,8 @@ describe('rules copy', () => {
     expect(entry?.items[0]).toBe('Returning players from Games 25 and 26 pay £10.00.')
     expect(entry?.items[1]).toBe('New players pay £30.00.')
     expect(entry?.items[2]).toBe('Newbie fee includes £10.00 entry plus £20.00 rollover fairness.')
-    expect(rulesPageSource).toContain('buildRulesSections')
+    expect(rulesPageSource).toContain('RulesPreview')
+    expect(rulesPreviewSource).toContain('rulesPreviewSections')
   })
 
   it('states the Friday 16:00 deadline, Saturday/Sunday-only fixtures, no repeat team, and audited corrections', () => {

@@ -63,7 +63,7 @@ describe('UI Lab route', () => {
 
   it('renders the lab landing and preview screens', () => {
     expect(uiLabPage).toContain('canAccessUiLab')
-    expect(previewShell).toContain('Testing the next version of Last One Standing')
+    expect(previewShell).toContain('UI Lab: now promoted to live. Kept for comparison.')
     expect(previewShell).toContain('UI_LAB_SCREEN_LABELS')
     expect(uiLabPreviewLib).toContain('Player Home Preview')
     expect(uiLabPreviewLib).toContain('Make Pick Preview')
@@ -102,13 +102,13 @@ describe('UI Lab access in Admin', () => {
 
 describe('live routes stay unchanged', () => {
   it('keeps production pages on their existing components', () => {
-    expect(homeSource).toContain('saveSelection')
+    expect(homeSource).not.toContain('saveSelection')
     expect(pickSource).toContain('saveSelection')
-    expect(homeSource).not.toContain('ui-lab')
-    expect(pickSource).not.toContain('ui-lab')
-    expect(currentPicksSource).not.toContain('ui-lab')
-    expect(rulesSource).not.toContain('ui-lab')
-    expect(historySource).not.toContain('ui-lab')
+    expect(homeSource).toContain('PlayerHomePreview')
+    expect(pickSource).toContain('PickPreview')
+    expect(currentPicksSource).toContain('CurrentPicksPreview')
+    expect(rulesSource).toContain('RulesPreview')
+    expect(historySource).toContain('HistoryPreview')
   })
 })
 

@@ -18,14 +18,32 @@ export function PickPreview({
   onPersonaChange,
   fixtures,
   usedTeamIds,
+  live = false,
+  canPick = false,
+  locked = false,
+  pending = false,
+  saving = false,
+  savedMessage = null,
+  error = null,
+  savedTeamId = null,
+  onSave,
 }: {
   roundLabel: string
   deadlineLabel: string
   spectator: boolean
-  persona: PreviewPersona
-  onPersonaChange: (persona: PreviewPersona) => void
+  persona?: PreviewPersona
+  onPersonaChange?: (persona: PreviewPersona) => void
   fixtures: SelectionWindowEligibleFixture[]
   usedTeamIds: string[]
+  live?: boolean
+  canPick?: boolean
+  locked?: boolean
+  pending?: boolean
+  saving?: boolean
+  savedMessage?: string | null
+  error?: string | null
+  savedTeamId?: string | null
+  onSave?: (teamId: string) => void
 }) {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const used = new Set(usedTeamIds)
@@ -42,7 +60,12 @@ export function PickPreview({
       }
     : null
   const canConfirm = pickPreviewCanConfirm({ spectator, selectedTeamId })
-  const canSubmit = pickPreviewCanSubmit({ spectator, selectedTeamId })
+  const canSubmit = pickPreviewCanSubmit({
+    spectator,
+    selectedTeamId,
+    operational: live,
+    canPick: canPick && !locked,
+  })
 
   return (
     <div className="grid gap-3 pb-24">
@@ -52,27 +75,43 @@ export function PickPreview({
           <p className="text-xs text-muted-ink">Current deadline {deadlineLabel}</p>
           <p className="mt-1 text-xs text-muted-ink">{UI_LAB_DEADLINE_RULE}</p>
         </div>
-        <span className="los-badge los-badge-open">Live round</span>
+        <span className={locked ? 'los-badge los-badge-muted' : 'los-badge los-badge-open'}>
+          {locked ? 'Locked' : 'Live round'}
+        </span>
       </div>
 
-      <div className="los-card flex flex-wrap gap-1 p-2">
-        {(['live', 'eliminated', 'reinstated'] as PreviewPersona[]).map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={[
-              'los-tap-target rounded-md px-2.5 text-xs font-semibold capitalize',
-              persona === item ? 'bg-purple text-white' : 'text-muted-ink',
-            ].join(' ')}
-            onClick={() => {
-              setSelectedTeamId(null)
-              onPersonaChange(item)
-            }}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
+      {!live && persona && onPersonaChange ? (
+        <div className="los-card flex flex-wrap gap-1 p-2">
+          {(['live', 'eliminated', 'reinstated'] as PreviewPersona[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={[
+                'los-tap-target rounded-md px-2.5 text-xs font-semibold capitalize',
+                persona === item ? 'bg-purple text-white' : 'text-muted-ink',
+              ].join(' ')}
+              onClick={() => {
+                setSelectedTeamId(null)
+                onPersonaChange(item)
+              }}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {savedTeamId ? (
+        <section className="los-card p-3">
+          <div className="flex items-center gap-2">
+            <TeamChip teamId={savedTeamId} size="md" />
+            <div>
+              <p className="text-sm font-semibold text-ink">Pick saved</p>
+              <p className="text-xs text-muted-ink">You can change this before the deadline.</p>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {usedTeamIds.length > 0 ? (
         <section className="los-card p-3">
@@ -89,7 +128,12 @@ export function PickPreview({
         </section>
       ) : null}
 
-      {spectator ? (
+      {pending ? (
+        <section className="los-card p-4">
+          <h2 className="text-sm font-semibold text-ink">Entry pending</h2>
+          <p className="mt-1 text-sm text-muted-ink">You will be able to pick once your entry is confirmed.</p>
+        </section>
+      ) : spectator ? (
         <section className="los-card p-4" data-testid="pick-spectator">
           <h2 className="text-sm font-semibold text-ink">Spectator mode</h2>
           <p className="mt-1 text-sm text-muted-ink">
@@ -99,6 +143,9 @@ export function PickPreview({
       ) : (
         <p className="px-1 text-xs text-muted-ink">No team is preselected. Tap a shirt to choose.</p>
       )}
+
+      {error ? <div className="los-alert los-alert-error text-sm">{error}</div> : null}
+      {savedMessage ? <div className="los-alert los-alert-success text-sm">{savedMessage}</div> : null}
 
       <div className="grid gap-2">
         {fixtures.map((fixture) => (
@@ -112,7 +159,7 @@ export function PickPreview({
                 teamName={fixture.home_team_name}
                 locked={used.has(fixture.home_team_id)}
                 selected={selectedTeamId === fixture.home_team_id}
-                disabled={spectator || used.has(fixture.home_team_id)}
+                disabled={spectator || pending || locked || used.has(fixture.home_team_id)}
                 onSelect={() => setSelectedTeamId(fixture.home_team_id)}
               />
               <TeamPickButton
@@ -120,7 +167,7 @@ export function PickPreview({
                 teamName={fixture.away_team_name}
                 locked={used.has(fixture.away_team_id)}
                 selected={selectedTeamId === fixture.away_team_id}
-                disabled={spectator || used.has(fixture.away_team_id)}
+                disabled={spectator || pending || locked || used.has(fixture.away_team_id)}
                 onSelect={() => setSelectedTeamId(fixture.away_team_id)}
               />
             </div>
@@ -130,21 +177,32 @@ export function PickPreview({
 
       {fixtures.length === 0 ? <p className="text-sm text-muted-ink">No eligible fixtures loaded.</p> : null}
 
-      <div className="sticky bottom-3 z-20 los-card flex items-center justify-between gap-2 p-3" data-testid="pick-confirm-bar">
-        <div className="flex min-w-0 items-center gap-2">
-          {selected ? <TeamChip teamId={selected.team_id} size="md" /> : null}
-          <div className="min-w-0">
-            <p className="text-xs text-muted-ink">{canConfirm ? 'Ready to confirm' : 'Current choice'}</p>
-            <p className="truncate text-sm font-semibold text-ink">{selected?.team_name ?? 'Select a team above'}</p>
+      <div className="sticky bottom-3 z-20 los-card grid gap-2 p-3" data-testid="pick-confirm-bar">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            {selected ? <TeamChip teamId={selected.team_id} size="md" /> : null}
+            <div className="min-w-0">
+              <p className="text-xs text-muted-ink">{canConfirm ? 'Confirm pick' : 'Current choice'}</p>
+              <p className="truncate text-sm font-semibold text-ink">{selected?.team_name ?? 'Select a team above'}</p>
+            </div>
           </div>
+          <button
+            type="button"
+            className="los-btn-primary los-tap-target shrink-0 text-sm"
+            disabled={!canConfirm || !canSubmit || saving}
+            onClick={() => {
+              if (selectedTeamId && onSave) onSave(selectedTeamId)
+            }}
+          >
+            {live ? (saving ? 'Saving...' : 'Save pick') : UI_LAB_PREVIEW_ONLY}
+          </button>
         </div>
-        <button
-          type="button"
-          className="los-btn-primary los-tap-target shrink-0 text-sm"
-          disabled={!canConfirm || !canSubmit}
-        >
-          {UI_LAB_PREVIEW_ONLY}
-        </button>
+        {canConfirm ? (
+          <p className="text-xs text-muted-ink">
+            You are picking {selected?.team_name} to win. If they draw or lose, you are eliminated.
+          </p>
+        ) : null}
+        {live && locked ? <p className="text-xs text-muted-ink">The deadline has passed. Normal picks are locked.</p> : null}
       </div>
     </div>
   )

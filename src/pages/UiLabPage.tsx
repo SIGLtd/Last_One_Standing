@@ -171,6 +171,7 @@ export function UiLabPage() {
     gameStatus: game?.status,
     hasCurrentPick: Boolean(selection?.team_id),
     currentPickName: selection?.team_id ? getTeamIdentity(selection.team_id).shortName : null,
+    currentPickTeamId: selection?.team_id ?? null,
     usedTeamIds: displayUsedTeamIds,
     survivorCount: paidActive.length,
   })
@@ -224,6 +225,7 @@ export function UiLabPage() {
           model={homeModel}
           persona={persona}
           onPersonaChange={setPersona}
+          live={false}
           pot={game?.current_pot ?? 0}
           survivorCount={paidActive.length}
           paidCount={entries.filter((row) => row.paid).length}
@@ -244,6 +246,7 @@ export function UiLabPage() {
           onPersonaChange={setPersona}
           fixtures={fixtures}
           usedTeamIds={displayUsedTeamIds}
+          live={false}
         />
       ) : null}
 

@@ -49,7 +49,7 @@ describe('player home preview', () => {
     expect(model.statusLabel).toBe('Still in')
     expect(model.nextAction).toBe('Make pick')
     expect(model.deadlineRule).toBe(UI_LAB_DEADLINE_RULE)
-    expect(model.subtext).toContain('16:00 UK time')
+    expect(model.subtext).toContain('Deadline')
     expect(model.spectator).toBe(false)
   })
 
@@ -181,13 +181,14 @@ describe('admin preview', () => {
       paidActiveCount: 22,
       unpickedCount: 6,
     })
-    expect(overview.nextAction).toContain('Friday 16:00')
+    expect(overview.nextAction).toContain('Wait for picks')
     expect(overview.deadlineRule).toBe(UI_LAB_DEADLINE_RULE)
     expect(overview.warnings.length).toBeGreaterThan(0)
     expect(settlementGateState({ gameStatus: 'open', survivorCount: 22 }).unlocked).toBe(false)
+    expect(settlementGateState({ gameStatus: 'open', survivorCount: 22 }).label).toBe('Settlement locked')
     expect(settlementGateState({ gameStatus: 'open', survivorCount: 1 }).unlocked).toBe(true)
     expect(adminNextAction({ gameStatus: 'open', windowStatus: 'open', survivorCount: 22, unpickedCount: 6 })).toContain(
-      'Friday 16:00',
+      'Wait for picks',
     )
   })
 

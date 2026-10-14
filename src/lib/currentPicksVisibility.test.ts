@@ -86,7 +86,7 @@ describe('current picks remain visible after deadline', () => {
     expect(fixtureOpsSource).toContain('fetchCurrentOperationalWindow')
     expect(currentPicksSource).toContain('fetchCurrentSelectionWindow')
     expect(currentPicksSource).toContain('canViewCurrentPicks')
-    expect(currentPicksSource).toContain('getPickSurvivalLabel')
+    expect(currentPicksSource).toContain('CurrentPicksPreview')
     expect(selectionsSource).toContain('public_current_window_picks')
     expect(homeSource).toContain('fetchLatestOperationalWindow')
     expect(homeSource).toContain('buildPickDistribution')
@@ -149,7 +149,7 @@ describe('current picks remain visible after deadline', () => {
     expect(canViewCurrentPicks(round1Window)).toBe(true)
     expect(isPlayerFacingOpenWindow(round1Window, afterDeadline)).toBe(false)
     expect(currentPicksSource).toContain('canViewCurrentPicks')
-    expect(currentPicksSource).toContain('getPickSurvivalLabel')
+    expect(currentPicksSource).toContain('CurrentPicksPreview')
   })
 
   it('does not change splash, navigation, or admin-only access', () => {

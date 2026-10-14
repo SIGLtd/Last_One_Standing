@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
-import { DataTable } from '../components/DataTable'
-import { TeamChip } from '../components/TeamChip'
-import { TEAM_ID_TO_NAME } from '../config/teams'
+import { CurrentPicksPreview } from '../components/ui-lab/CurrentPicksPreview'
 import { CURRENT_GAME } from '../lib/constants'
 import { fetchCurrentGame } from '../lib/gameEntries'
 import {
@@ -14,19 +11,10 @@ import {
   operationalWindowToRoundLabel,
 } from '../lib/round1'
 import { PUBLIC_PRE_LAUNCH_POINTS } from '../lib/preLaunch'
-import { adminEntryLabel } from '../lib/latePick'
-import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks, getPickStatusLabel, getPickSurvivalLabel } from '../lib/selections'
+import { fetchCurrentSelectionWindow, fetchCurrentWindowPicks } from '../lib/selections'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { canViewCurrentPicks } from '../lib/windowGuards'
 import type { Game, SelectionWindow, WindowPickRow } from '../types'
-
-function pickStatusVariant(label: string): 'success' | 'warning' | 'muted' | 'open' {
-  const lower = label.toLowerCase()
-  if (lower.includes('survived') || lower.includes('picked') || lower.includes('saved')) return 'success'
-  if (lower.includes('eliminated') || lower.includes('no pick') || lower.includes('missing')) return 'warning'
-  if (lower.includes('locked')) return 'muted'
-  return 'open'
-}
 
 export function CurrentPicksPage() {
   const [game, setGame] = useState<Game | null>(null)
@@ -88,131 +76,53 @@ export function CurrentPicksPage() {
   const submittedCount = rows.filter((row) => Boolean(row.team_id)).length
   const showPicksBoard = Boolean(window && CURRENT_PICKS_VISIBLE_WHILE_OPEN && canViewCurrentPicks(window))
 
-  return (
-    <Card
-      title="Current picks"
-      description={
-        window
-          ? `Game ${game?.game_number ?? CURRENT_GAME} · ${roundLabel} · Open to all players`
-          : `Game ${game?.game_number ?? CURRENT_GAME} · Open to all players`
-      }
-      compact
-    >
-      {pageError ? (
-        <div className="mb-2 los-alert los-alert-error">
+  if (pageError) {
+    return (
+      <Card title="Current picks" compact>
+        <div className="los-alert los-alert-error">
           {pageError}
           <button type="button" onClick={() => void loadPicks()} className="ml-2 underline">
             Retry
           </button>
         </div>
-      ) : null}
+      </Card>
+    )
+  }
 
-      {!isSupabaseConfigured ? (
+  if (!isSupabaseConfigured) {
+    return (
+      <Card title="Current picks" compact>
         <p className="text-xs text-muted-ink">Supabase is not configured.</p>
-      ) : !window || !showPicksBoard ? (
+      </Card>
+    )
+  }
+
+  if (!window || !showPicksBoard) {
+    return (
+      <Card title="Current picks" description={`Game ${game?.game_number ?? CURRENT_GAME} · Open to all players`} compact>
         <div className="grid gap-2">
           <p className="text-xs text-muted-ink">{PUBLIC_PRE_LAUNCH_POINTS[0]}</p>
           <p className="text-xs text-muted-ink">
-            When {ROUND1_PUBLIC_LABEL} is live, every player's pick will appear here automatically. You do not need
+            When {ROUND1_PUBLIC_LABEL} is live, every player&apos;s pick will appear here automatically. You do not need
             to submit your own pick first to view others.
           </p>
         </div>
-      ) : submittedCount === 0 ? (
-        <p className="text-xs text-muted-ink">{CURRENT_PICKS_EMPTY_MESSAGE}</p>
-      ) : (
-        <>
-          <p className="mb-2 text-xs text-muted-ink">{currentPicksBoardIntro(roundLabel)}</p>
-          <div className="hidden md:block">
-            <DataTable minWidth="640px">
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Pick</th>
-                  <th>Fixture / status</th>
-                  <th>Survival</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-muted-ink">
-                      No active players in Game {game?.game_number ?? CURRENT_GAME}.
-                    </td>
-                  </tr>
-                ) : (
-                  rows.map((row) => {
-                    const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
-                    const statusLabel = getPickStatusLabel(row, window)
-                    const survivalLabel = getPickSurvivalLabel(row)
-                    const entryLabel = adminEntryLabel({
-                      adminCorrected: row.admin_corrected,
-                      submittedAt: row.updated_at,
-                      deadlineAt: window?.deadline_at,
-                    })
-                    return (
-                      <tr key={row.player_id}>
-                        <td className="font-medium text-ink">{row.display_name}</td>
-                        <td className="font-medium">
-                          {teamName ? (
-                            <span className="inline-flex items-center gap-2">
-                              <TeamChip teamId={row.team_id} size="sm" />
-                              {teamName}
-                            </span>
-                          ) : (
-                            <span className="text-muted-ink font-normal">No pick</span>
-                          )}
-                          {entryLabel ? (
-                            <span className="ml-2 text-[0.625rem] font-normal text-muted-ink">{entryLabel}</span>
-                          ) : null}
-                        </td>
-                        <td>
-                          <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
-                        </td>
-                        <td className="text-muted-ink">{survivalLabel}</td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </DataTable>
-          </div>
+      </Card>
+    )
+  }
 
-          <div className="los-divider-list md:hidden">
-            {rows.length === 0 ? (
-              <div className="los-divider-row text-muted-ink">
-                No active players in Game {game?.game_number ?? CURRENT_GAME}.
-              </div>
-            ) : (
-              rows.map((row) => {
-                const teamName = row.team_id ? TEAM_ID_TO_NAME.get(row.team_id) : null
-                const statusLabel = getPickStatusLabel(row, window)
-                const survivalLabel = getPickSurvivalLabel(row)
-                const entryLabel = adminEntryLabel({
-                  adminCorrected: row.admin_corrected,
-                  submittedAt: row.updated_at,
-                  deadlineAt: window?.deadline_at,
-                })
-                return (
-                  <div key={row.player_id} className="los-divider-row">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-ink">{row.display_name}</span>
-                      <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 text-sm">
-                      {row.team_id ? <TeamChip teamId={row.team_id} size="md" /> : null}
-                      <span className="text-muted-ink">
-                        Pick: <span className="font-medium text-ink">{teamName ?? 'No pick'}</span>
-                      </span>
-                    </div>
-                    <div className="mt-0.5 text-[0.6875rem] text-muted-ink">{survivalLabel}</div>
-                    {entryLabel ? <div className="mt-0.5 text-[0.625rem] text-muted-ink">{entryLabel}</div> : null}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </>
-      )}
-    </Card>
+  if (submittedCount === 0) {
+    return (
+      <Card title="Current picks" description={`Game ${game?.game_number ?? CURRENT_GAME} · ${roundLabel}`} compact>
+        <p className="text-xs text-muted-ink">{CURRENT_PICKS_EMPTY_MESSAGE}</p>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="grid gap-3">
+      <p className="px-1 text-xs text-muted-ink">{currentPicksBoardIntro(roundLabel)}</p>
+      <CurrentPicksPreview roundLabel={roundLabel} window={window} rows={rows} />
+    </div>
   )
 }

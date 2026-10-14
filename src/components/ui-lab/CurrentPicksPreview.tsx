@@ -1,12 +1,22 @@
 import { useState } from 'react'
 import { Badge } from '../Badge'
 import { TeamChip } from '../TeamChip'
+import { adminEntryLabel } from '../../lib/latePick'
 import { formatPickCount } from '../../lib/pickDistribution'
-import { getPickStatusLabel } from '../../lib/selections'
+import { getPickStatusLabel, getPickSurvivalLabel } from '../../lib/selections'
+import { getTeamIdentity } from '../../lib/teamIdentity'
 import { groupPicksByTeam } from '../../lib/uiLabPreview'
 import type { SelectionWindow, WindowPickRow } from '../../types'
 
 type PicksView = 'player' | 'team'
+
+function pickStatusVariant(label: string): 'success' | 'warning' | 'muted' | 'open' {
+  const lower = label.toLowerCase()
+  if (lower.includes('survived') || lower.includes('picked') || lower.includes('saved')) return 'success'
+  if (lower.includes('eliminated') || lower.includes('no pick') || lower.includes('missing')) return 'warning'
+  if (lower.includes('locked')) return 'muted'
+  return 'open'
+}
 
 export function CurrentPicksPreview({
   roundLabel,
@@ -48,19 +58,35 @@ export function CurrentPicksPreview({
 
       {view === 'player' ? (
         <ul className="grid gap-2" data-testid="picks-by-player">
-          {rows.map((row) => (
-            <li key={row.player_id} className="los-card flex items-center justify-between gap-2 p-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-ink">{row.display_name}</p>
-                <p className="text-xs text-muted-ink">{getPickStatusLabel(row, window)}</p>
-              </div>
-              {row.team_id ? (
-                <TeamChip teamId={row.team_id} size="md" />
-              ) : (
-                <Badge variant="warning">No pick</Badge>
-              )}
-            </li>
-          ))}
+          {rows.map((row) => {
+            const statusLabel = getPickStatusLabel(row, window)
+            const survivalLabel = getPickSurvivalLabel(row)
+            const entryLabel = adminEntryLabel({
+              adminCorrected: row.admin_corrected,
+              submittedAt: row.updated_at,
+              deadlineAt: window?.deadline_at,
+            })
+            return (
+              <li key={row.player_id} className="los-card flex items-center justify-between gap-2 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">{row.display_name}</p>
+                  <p className="text-xs text-muted-ink">
+                    {row.team_id ? getTeamIdentity(row.team_id).shortName : 'No team selected'}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <Badge variant={pickStatusVariant(statusLabel)}>{statusLabel}</Badge>
+                    {survivalLabel ? <span className="text-xs text-muted-ink">{survivalLabel}</span> : null}
+                  </div>
+                  {entryLabel ? <p className="text-[0.625rem] text-muted-ink">{entryLabel}</p> : null}
+                </div>
+                {row.team_id ? (
+                  <TeamChip teamId={row.team_id} size="md" />
+                ) : (
+                  <Badge variant="warning">No pick</Badge>
+                )}
+              </li>
+            )
+          })}
         </ul>
       ) : (
         <ul className="grid gap-2" data-testid="picks-by-team">
@@ -70,7 +96,9 @@ export function CurrentPicksPreview({
                 <div className="flex min-w-0 items-center gap-2">
                   <TeamChip teamId={group.teamId} size="lg" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-ink">{group.teamName}</p>
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {group.teamName} ({group.count})
+                    </p>
                     <p className="text-xs text-muted-ink">{group.playerNames.join(', ')}</p>
                   </div>
                 </div>

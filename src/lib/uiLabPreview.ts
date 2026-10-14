@@ -62,7 +62,13 @@ export const ADMIN_PREVIEW_SECTION_LABELS: Record<AdminPreviewSection, string> =
 
 export type PreviewPersona = 'live' | 'eliminated' | 'reinstated' | 'complete'
 
-export type PreviewStatusKind = 'active' | 'eliminated' | 'reinstated' | 'complete'
+export type PreviewStatusKind =
+  | 'guest'
+  | 'pending'
+  | 'active'
+  | 'eliminated'
+  | 'reinstated'
+  | 'complete'
 
 export type PlayerHomePreviewModel = {
   gameLabel: string
@@ -75,10 +81,16 @@ export type PlayerHomePreviewModel = {
   pickStatus: string
   headline: string
   subtext: string
+  ticker: string | null
   nextAction: string
+  nextActionTo: string | null
+  currentPickTeamId: string | null
   usedTeamIds: string[]
   spectator: boolean
 }
+
+export const LIVE_FIXTURE_REVIEW_WARNING =
+  'Review required: this round includes a Friday, Monday or midweek fixture.'
 
 export type TeamPickGroup = {
   teamId: string
@@ -115,12 +127,16 @@ export function resolvePreviewStatus(input: {
   persona: PreviewPersona
   liveEntryStatus: EntryStatus | null | undefined
   gameStatus: string | null | undefined
+  isGuest?: boolean
+  paid?: boolean | null
 }): PreviewStatusKind {
   if (input.persona === 'eliminated') return 'eliminated'
   if (input.persona === 'reinstated') return 'reinstated'
   if (input.persona === 'complete') return 'complete'
   if (isCompletedGameStatus(input.gameStatus)) return 'complete'
+  if (input.isGuest) return 'guest'
   if (input.liveEntryStatus === 'eliminated') return 'eliminated'
+  if (input.paid === false || input.liveEntryStatus === 'pending_payment') return 'pending'
   return 'active'
 }
 
@@ -134,8 +150,14 @@ export function buildPlayerHomePreview(input: {
   gameStatus: string | null | undefined
   hasCurrentPick: boolean
   currentPickName: string | null
+  currentPickTeamId?: string | null
   usedTeamIds: string[]
   survivorCount: number
+  isGuest?: boolean
+  paid?: boolean | null
+  winnerName?: string | null
+  prizeAmount?: number | null
+  completionKind?: 'winner_paid' | 'rollover' | null
 }): PlayerHomePreviewModel {
   const statusKind = resolvePreviewStatus(input)
   const gameLabel = input.gameNumber ? `Game ${input.gameNumber}` : 'Current game'
@@ -143,8 +165,11 @@ export function buildPlayerHomePreview(input: {
   const potLabel = formatGBP(input.currentPot ?? 0)
   const deadlineLabel = input.deadlineAt ? formatCompactDeadlineLondon(input.deadlineAt) : 'No deadline set'
   const usedTeamIds = statusKind === 'reinstated' ? withReinstatedUsedTeams(input.usedTeamIds) : input.usedTeamIds
+  const currentPickTeamId = input.currentPickTeamId ?? null
 
   if (statusKind === 'complete') {
+    const rollover = input.completionKind === 'rollover'
+    const amount = formatGBP(input.prizeAmount ?? input.currentPot ?? 0)
     return {
       gameLabel,
       roundLabel,
@@ -153,10 +178,13 @@ export function buildPlayerHomePreview(input: {
       deadlineRule: UI_LAB_DEADLINE_RULE,
       statusLabel: 'Game complete',
       statusKind,
-      pickStatus: 'This game is finished',
-      headline: `${gameLabel} is complete`,
-      subtext: 'History keeps every pick, outcome and payment record.',
+      pickStatus: rollover ? 'No winner' : `Winner: ${input.winnerName ?? 'Winner'}`,
+      headline: 'Game complete',
+      subtext: rollover ? `${amount} rolls into the next game` : `Prize paid: ${amount}`,
+      ticker: null,
       nextAction: 'View history',
+      nextActionTo: '/history',
+      currentPickTeamId,
       usedTeamIds,
       spectator: true,
     }
@@ -171,19 +199,62 @@ export function buildPlayerHomePreview(input: {
       deadlineRule: UI_LAB_DEADLINE_RULE,
       statusLabel: 'Eliminated',
       statusKind,
-      pickStatus: 'Spectating',
-      headline: `${input.survivorCount} still in ${roundLabel}`,
+      pickStatus: "Let's hope for a rollover",
+      headline: 'Eliminated',
       subtext: 'You are out of this game, but you can still follow the picks.',
+      ticker: "Let's hope for a rollover",
       nextAction: "View everyone's picks",
+      nextActionTo: '/current-picks',
+      currentPickTeamId,
+      usedTeamIds,
+      spectator: true,
+    }
+  }
+
+  if (statusKind === 'guest') {
+    return {
+      gameLabel,
+      roundLabel,
+      potLabel,
+      deadlineLabel,
+      deadlineRule: UI_LAB_DEADLINE_RULE,
+      statusLabel: 'Log in',
+      statusKind,
+      pickStatus: `${roundLabel} pick required`,
+      headline: 'Log in to make your pick.',
+      subtext: `Deadline: ${deadlineLabel}`,
+      ticker: null,
+      nextAction: 'Log in',
+      nextActionTo: '/login',
+      currentPickTeamId: null,
+      usedTeamIds: [],
+      spectator: true,
+    }
+  }
+
+  if (statusKind === 'pending') {
+    return {
+      gameLabel,
+      roundLabel,
+      potLabel,
+      deadlineLabel,
+      deadlineRule: UI_LAB_DEADLINE_RULE,
+      statusLabel: 'Entry pending',
+      statusKind,
+      pickStatus: 'Entry pending',
+      headline: 'Entry pending',
+      subtext: 'You will be able to pick once your entry is confirmed.',
+      ticker: null,
+      nextAction: 'Open dashboard',
+      nextActionTo: '/dashboard',
+      currentPickTeamId: null,
       usedTeamIds,
       spectator: true,
     }
   }
 
   const reinstated = statusKind === 'reinstated'
-  const pickStatus = input.hasCurrentPick
-    ? `Picked ${input.currentPickName ?? 'a team'}`
-    : 'Pick not submitted'
+  const picked = input.hasCurrentPick
 
   return {
     gameLabel,
@@ -193,12 +264,15 @@ export function buildPlayerHomePreview(input: {
     deadlineRule: UI_LAB_DEADLINE_RULE,
     statusLabel: reinstated ? 'Still in (reinstated)' : 'Still in',
     statusKind,
-    pickStatus,
-    headline: input.hasCurrentPick ? `${roundLabel} pick saved` : `${roundLabel} pick required`,
-    subtext: reinstated
-      ? 'This player is active again. Used teams stay used, including Brighton if that pick already counted.'
-      : `Deadline ${deadlineLabel}. ${UI_LAB_DEADLINE_RULE}`,
-    nextAction: input.hasCurrentPick ? 'Change pick' : 'Make pick',
+    pickStatus: picked ? `You picked ${input.currentPickName ?? 'a team'}` : `${roundLabel} pick required`,
+    headline: picked ? 'Pick saved' : `${roundLabel} pick required`,
+    subtext: picked
+      ? 'You can change this before the deadline'
+      : `Deadline: ${deadlineLabel}`,
+    ticker: null,
+    nextAction: picked ? 'Change pick' : 'Make pick',
+    nextActionTo: '/pick',
+    currentPickTeamId: picked ? currentPickTeamId : null,
     usedTeamIds,
     spectator: false,
   }
@@ -208,8 +282,14 @@ export function pickPreviewCanConfirm(input: { spectator: boolean; selectedTeamI
   return !input.spectator && Boolean(input.selectedTeamId)
 }
 
-export function pickPreviewCanSubmit(_input: { spectator: boolean; selectedTeamId: string | null }): boolean {
-  return false
+export function pickPreviewCanSubmit(input: {
+  spectator: boolean
+  selectedTeamId: string | null
+  operational?: boolean
+  canPick?: boolean
+}): boolean {
+  if (!input.operational) return false
+  return !input.spectator && Boolean(input.selectedTeamId) && Boolean(input.canPick)
 }
 
 export function groupPicksByTeam(rows: WindowPickRow[]): TeamPickGroup[] {
@@ -299,24 +379,24 @@ export function adminNextAction(input: {
   unpickedCount: number
 }): string {
   if (isCompletedGameStatus(input.gameStatus)) {
-    return 'Start the next game from live Admin when you are ready.'
+    return 'Game complete. Next step: Start new game'
   }
   if (input.survivorCount === 1) {
-    return 'One player remains. Settlement is guarded until you confirm on live Admin.'
+    return 'Winner detected. Next step: Complete game'
   }
   if (input.survivorCount === 0 && isLiveGameStatus(input.gameStatus)) {
-    return 'Nobody remains. Rollover settlement is guarded until you confirm on live Admin.'
-  }
-  if (input.windowStatus === 'open') {
-    return 'Picks are open. Remind players before the Friday 16:00 UK deadline.'
+    return 'No survivors remain. Next step: Complete game as Rollover'
   }
   if (input.windowStatus === 'locked' || input.windowStatus === 'resolving') {
-    return 'Sync results, then resolve the round from live Admin.'
+    return 'Next step: Sync latest results'
   }
   if (input.windowStatus === 'resolved') {
-    return 'Open the next round from live Admin.'
+    return 'Next step: Open next round'
   }
-  return 'Review the current round on live Admin.'
+  if (input.windowStatus === 'open') {
+    return 'Next step: Wait for picks'
+  }
+  return 'Next step: Review the current round'
 }
 
 export function settlementGateState(input: {
@@ -326,60 +406,71 @@ export function settlementGateState(input: {
   if (isCompletedGameStatus(input.gameStatus)) {
     return {
       unlocked: false,
-      label: 'Game already settled',
-      reason: 'This game is complete. Start the next game from live Admin.',
+      label: 'Game complete',
+      reason: 'Next step: Start new game',
     }
   }
   if (input.survivorCount === 1) {
     return {
       unlocked: true,
-      label: 'Settlement available',
-      reason: 'One survivor remains. Winner paid stays behind this gate and is preview only here.',
+      label: 'Winner detected',
+      reason: 'Complete game as Winner paid or Rollover',
     }
   }
   if (input.survivorCount === 0) {
     return {
       unlocked: true,
-      label: 'Settlement available',
-      reason: 'Nobody remains. Rollover stays behind this gate and is preview only here.',
+      label: 'No survivors remain',
+      reason: 'Complete game as Rollover',
     }
   }
   return {
     unlocked: false,
-    label: 'Settlement Safety Gate (Protected)',
-    reason: 'Settlement unlocks only when one winner remains or nobody is left.',
+    label: 'Settlement locked',
+    reason: 'Game completion unlocks when one player remains or when Admin declares a rollover.',
   }
 }
 
 export function roundProgressionSteps(input: {
   windowStatus: string | null
   deadlineLabel: string
-}): Array<{ title: string; detail: string; state: 'done' | 'active' | 'waiting' }> {
+  survivorCount?: number
+  gameStatus?: string | null
+}): Array<{ title: string; detail: string; state: 'done' | 'active' | 'waiting' | 'blocked' }> {
   const status = input.windowStatus ?? ''
   const locked = status === 'locked' || status === 'resolving' || status === 'resolved'
   const resolving = status === 'resolving' || status === 'resolved'
   const resolved = status === 'resolved'
+  const complete = isCompletedGameStatus(input.gameStatus)
+  const settlementReady = (input.survivorCount ?? 99) <= 1
 
   return [
     {
       title: '1. Submissions open',
       detail: 'Players can change picks until the Friday 16:00 UK deadline.',
-      state: status === 'open' ? 'active' : locked ? 'done' : 'waiting',
+      state: status === 'open' ? 'active' : locked || complete ? 'done' : 'waiting',
     },
     {
       title: '2. Deadline lock',
       detail: input.deadlineLabel,
-      state: status === 'open' ? 'waiting' : locked && !resolving ? 'active' : locked ? 'done' : 'waiting',
+      state: status === 'open' ? 'waiting' : locked && !resolving ? 'active' : locked || complete ? 'done' : 'waiting',
     },
     {
       title: '3. Result sync',
-      detail: 'Outcomes arrive after Saturday and Sunday fixtures finish.',
-      state: status === 'resolving' ? 'active' : resolved ? 'done' : 'waiting',
+      detail: 'Sync latest results after Saturday and Sunday fixtures finish.',
+      state: status === 'resolving' ? 'active' : resolved || complete ? 'done' : locked ? 'waiting' : 'blocked',
     },
     {
       title: '4. Resolve round',
-      detail: 'Safe elimination tally. Unlocks after eligible matches complete.',
-      state: resolved ? 'done' : status === 'resolving' ? 'waiting' : 'waiting',
+      detail: 'Safe elimination tally after eligible matches complete.',
+      state: resolved || complete ? 'done' : status === 'resolving' ? 'active' : 'blocked',
+    },
+    {
+      title: '5. Open next round or complete game',
+      detail: settlementReady
+        ? 'Complete the game when one player remains or nobody is left.'
+        : 'Open the next round while more than one player remains.',
+      state: complete ? 'done' : resolved ? 'active' : 'blocked',
     },
   ]
 }

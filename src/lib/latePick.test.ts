@@ -26,6 +26,7 @@ const selectionsSource = readFileSync(join(root, 'src', 'lib', 'selections.ts'),
 const proxySource = readFileSync(join(root, 'src', 'components', 'admin', 'AdminProxyPicksSection.tsx'), 'utf8')
 const adminPageSource = readFileSync(join(root, 'src', 'pages', 'AdminPage.tsx'), 'utf8')
 const currentPicksSource = readFileSync(join(root, 'src', 'pages', 'CurrentPicksPage.tsx'), 'utf8')
+const currentPicksPreview = readFileSync(join(root, 'src', 'components', 'ui-lab', 'CurrentPicksPreview.tsx'), 'utf8')
 const myPicksSource = readFileSync(join(root, 'src', 'pages', 'MyPicksPage.tsx'), 'utf8')
 
 const openAfterDeadline = {
@@ -105,7 +106,8 @@ describe('admin late pick override rules', () => {
       }),
     ).toBe('Admin entered')
     expect(adminEntryLabel({ adminCorrected: false })).toBeNull()
-    expect(currentPicksSource).toContain('adminEntryLabel')
+    expect(currentPicksSource).toContain('CurrentPicksPreview')
+    expect(currentPicksPreview).toContain('adminEntryLabel')
     expect(currentPicksSource).not.toContain('row.email')
     expect(currentPicksSource).not.toContain('row.phone')
     expect(myPicksSource).toContain('row.adminEntryLabel')

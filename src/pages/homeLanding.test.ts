@@ -16,38 +16,29 @@ import { ROUND1_LIVE_DEADLINE_UTC } from '../lib/round1'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const homeSource = readFileSync(join(__dirname, 'HomePage.tsx'), 'utf8')
+const homePreview = readFileSync(join(__dirname, '..', 'components', 'ui-lab', 'PlayerHomePreview.tsx'), 'utf8')
 const appSource = readFileSync(join(__dirname, '..', 'App.tsx'), 'utf8')
 const authSource = readFileSync(join(__dirname, '..', 'contexts', 'AuthContext.tsx'), 'utf8')
 
 describe('home landing page', () => {
-  it('keeps round, deadline, dropdown and save in the primary view', () => {
-    expect(homeSource).toContain('formatCompactDeadlineLondon')
-    expect(homeSource).toContain('picks')
-    expect(homeSource).toContain('Choose your team')
-    expect(homeSource).toContain('Save pick')
-    expect(homeSource).toContain('Update pick')
-    expect(homeSource).toContain('<select')
-    expect(homeSource).toContain('saveSelection')
-    expect(homeSource).toContain('Most picked')
-    expect(homeSource).toContain('WhoSurvivedSection')
-    expect(homeSource).toContain('View all picks')
-    expect(homeSource).toContain('FixtureMatchRow')
+  it('uses the promoted player context without inline pick save', () => {
+    expect(homeSource).toContain('PlayerHomePreview')
+    expect(homeSource).toContain('buildPlayerHomePreview')
     expect(homeSource).toContain('fetchPlayerFacingWindowFixtures')
-    expect(homeSource).toContain('buildSelectableTeamOptions(result.windowFixtures)')
+    expect(homePreview).toContain('Most picked')
+    expect(homeSource).not.toContain('saveSelection')
+    expect(homeSource).not.toContain('<select')
     expect(formatCompactDeadlineLondon(ROUND1_LIVE_DEADLINE_UTC)).toContain('21')
     expect(formatCompactDeadlineLondon(ROUND1_LIVE_DEADLINE_UTC).toLowerCase()).toContain('4:00pm')
   })
 
-  it('does not force the full fixture list open by default', () => {
-    expect(homeSource).toContain('useState(false)')
-    expect(homeSource).toContain('Show')
-    expect(homeSource).toContain('fixture')
+  it('keeps eligible fixtures in the promoted home', () => {
+    expect(homeSource).toContain('fixtures')
     expect(homeSource).not.toContain('This week’s fixtures')
   })
 
   it('filters used teams for the signed-in player only', () => {
     expect(homeSource).toContain('fetchFinallyUsedTeamIds(player.id, game.id)')
-    expect(homeSource).toContain('filterSelectableTeamOptions')
   })
 
   it('loads current round without waiting for auth or distribution', () => {
@@ -99,7 +90,7 @@ describe('home cold load', () => {
   it('does not wait forever for a guest player profile', () => {
     expect(guestHomeWaitsForPlayerProfile()).toBe(false)
     expect(homeSource).toContain('if (!player)')
-    expect(homeSource).toContain('Log in to make your pick.')
+    expect(homeSource).toContain('isGuest')
   })
 
   it('does not block the pick UI when optional distribution fails', () => {
@@ -115,7 +106,7 @@ describe('home cold load', () => {
       }),
     ).toBe(false)
     expect(homeSource).toContain('Failed to load pick distribution')
-    expect(homeSource).toContain('Choose your team')
+    expect(homeSource).toContain('PlayerHomePreview')
   })
 
   it('shows retry/error instead of endless loading when the essential round fetch fails', () => {

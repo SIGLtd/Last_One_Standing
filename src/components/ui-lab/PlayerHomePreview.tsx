@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+import { ButtonLink } from '../ButtonLink'
 import { FixtureMatchRow } from '../FixtureMatchRow'
 import { PickDistributionRowView } from '../PickDistributionRowView'
 import { TeamChip } from '../TeamChip'
@@ -32,10 +34,13 @@ export function PlayerHomePreview({
   fixtures,
   survivors,
   survivorRoundLabel,
+  live = false,
+  showAllPicks = false,
+  onToggleAllPicks,
 }: {
   model: PlayerHomePreviewModel
-  persona: PreviewPersona
-  onPersonaChange: (persona: PreviewPersona) => void
+  persona?: PreviewPersona
+  onPersonaChange?: (persona: PreviewPersona) => void
   pot: number
   survivorCount: number
   paidCount: number
@@ -44,27 +49,34 @@ export function PlayerHomePreview({
   fixtures: SelectionWindowEligibleFixture[]
   survivors: HomeSurvivorRow[]
   survivorRoundLabel: string | null
+  live?: boolean
+  showAllPicks?: boolean
+  onToggleAllPicks?: () => void
 }) {
+  const visibleDistribution = showAllPicks ? distribution : distribution.slice(0, 5)
+
   return (
     <div className="grid gap-3">
-      <div className="los-card flex flex-wrap items-center justify-between gap-2 p-2">
-        <span className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-ink">View mode</span>
-        <div className="flex flex-wrap gap-1">
-          {PERSONAS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={[
-                'los-tap-target rounded-md px-2.5 text-xs font-semibold',
-                persona === item.id ? 'bg-purple text-white' : 'text-muted-ink',
-              ].join(' ')}
-              onClick={() => onPersonaChange(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
+      {!live && persona && onPersonaChange ? (
+        <div className="los-card flex flex-wrap items-center justify-between gap-2 p-2">
+          <span className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-ink">View mode</span>
+          <div className="flex flex-wrap gap-1">
+            {PERSONAS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={[
+                  'los-tap-target rounded-md px-2.5 text-xs font-semibold',
+                  persona === item.id ? 'bg-purple text-white' : 'text-muted-ink',
+                ].join(' ')}
+                onClick={() => onPersonaChange(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <section className="los-card p-4" data-testid="player-context-anchor">
         <div className="flex items-center justify-between gap-2">
@@ -75,14 +87,32 @@ export function PlayerHomePreview({
         </div>
         <h2 className="mt-2 text-lg font-semibold tracking-tight text-ink">{model.headline}</h2>
         <p className="mt-1 text-sm text-muted-ink">{model.subtext}</p>
-        <p className="mt-2 text-sm text-ink">
-          {model.pickStatus}
-          <span className="mx-1 text-muted-ink" aria-hidden="true">
-            ·
-          </span>
-          Deadline {model.deadlineLabel}
-        </p>
+        {model.ticker ? <p className="mt-1 text-sm font-semibold text-ink">{model.ticker}</p> : null}
+        {model.statusKind !== 'eliminated' ? (
+          <p className="mt-2 text-sm text-ink">
+            {model.pickStatus}
+            {model.statusKind !== 'complete' && model.statusKind !== 'pending' ? (
+              <>
+                <span className="mx-1 text-muted-ink" aria-hidden="true">
+                  ·
+                </span>
+                Deadline: {model.deadlineLabel}
+              </>
+            ) : null}
+          </p>
+        ) : null}
         <p className="mt-1 text-xs text-muted-ink">{UI_LAB_DEADLINE_RULE}</p>
+        {model.currentPickTeamId ? (
+          <div className="los-home-pick mt-3">
+            <TeamChip teamId={model.currentPickTeamId} size="lg" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">Your pick</p>
+              <p className="truncate text-base font-semibold text-ink">
+                {getTeamIdentity(model.currentPickTeamId).shortName}
+              </p>
+            </div>
+          </div>
+        ) : null}
         {model.usedTeamIds.length > 0 ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-ink">Used teams</span>
@@ -94,9 +124,20 @@ export function PlayerHomePreview({
             ))}
           </div>
         ) : null}
-        <button type="button" className="los-btn-primary los-tap-target mt-3 w-full text-sm" disabled>
-          {model.nextAction}
-        </button>
+        {live && model.nextActionTo ? (
+          <ButtonLink to={model.nextActionTo} className="los-tap-target mt-3 w-full text-sm">
+            {model.nextAction}
+          </ButtonLink>
+        ) : (
+          <button type="button" className="los-btn-primary los-tap-target mt-3 w-full text-sm" disabled>
+            {model.nextAction}
+          </button>
+        )}
+        {live && model.statusKind === 'guest' ? (
+          <ButtonLink to="/signup" variant="secondary" className="los-tap-target mt-2 w-full text-sm">
+            Sign up
+          </ButtonLink>
+        ) : null}
       </section>
 
       <div className="grid grid-cols-2 gap-2">
@@ -116,17 +157,29 @@ export function PlayerHomePreview({
       </div>
 
       <section className="los-card p-4">
-        <h3 className="text-sm font-semibold text-ink">Most picked</h3>
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="text-sm font-semibold text-ink">Most picked</h3>
+          {live ? (
+            <Link to="/current-picks" className="text-sm font-semibold text-purple">
+              See everyone&apos;s picks
+            </Link>
+          ) : null}
+        </div>
         <p className="mt-0.5 text-xs text-muted-ink">Community consensus for {model.roundLabel}</p>
         {distribution.length === 0 ? (
           <p className="mt-2 text-sm text-muted-ink">No picks yet.</p>
         ) : (
           <ul className="mt-2 grid gap-2">
-            {distribution.slice(0, 5).map((row) => (
-              <PickDistributionRowView key={row.teamId} row={row} compact />
+            {visibleDistribution.map((row) => (
+              <PickDistributionRowView key={row.teamId} row={row} compact={!showAllPicks} />
             ))}
           </ul>
         )}
+        {onToggleAllPicks && distribution.length > 3 ? (
+          <button type="button" className="los-home-ghost" onClick={onToggleAllPicks}>
+            {showAllPicks ? 'Hide all picks' : 'View all picks'}
+          </button>
+        ) : null}
       </section>
 
       {survivors.length > 0 && survivorRoundLabel ? (

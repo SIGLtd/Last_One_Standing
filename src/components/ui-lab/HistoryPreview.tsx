@@ -19,6 +19,9 @@ export function HistoryPreview({ history }: { history: HistoricalResult[] }) {
       <section className="los-card p-4">
         <h2 className="text-sm font-semibold text-ink">History</h2>
         <p className="mt-0.5 text-xs text-muted-ink">{history.length} games</p>
+        <p className="mt-1 text-xs text-muted-ink">
+          Seasons marked TBC are waiting for Iain to confirm historic winner years. Completed games stay in this list.
+        </p>
         <MetricStrip className="mt-3">
           <MetricCell label="Paid to winners" value={formatGBP(summary.totalPaidOut)} />
           <MetricCell
@@ -45,7 +48,11 @@ export function HistoryPreview({ history }: { history: HistoricalResult[] }) {
                 </Badge>
               </div>
               <p className="mt-2 text-sm text-ink">
-                {kind === 'winner-paid' ? row.winner_name ?? 'Winner' : kind === 'rollover' ? 'Pot rolled over' : 'In play'}
+                {kind === 'winner-paid'
+                  ? `Winner: ${row.winner_name ?? 'Winner'}`
+                  : kind === 'rollover'
+                    ? 'Pot rolled over'
+                    : 'In play'}
               </p>
               <p className="mt-0.5 text-sm font-semibold text-ink">{formatGBP(row.pot)}</p>
               <p className="mt-1 text-xs text-muted-ink">{historyOutcomeNote(row)}</p>

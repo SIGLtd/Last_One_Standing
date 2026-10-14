@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { AppLogo } from './AppLogo'
 import { AppMenu } from './AppMenu'
 import { EliminatedBanner } from './EliminatedBanner'
@@ -17,6 +17,7 @@ import {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, player, loading: authLoading, signOut } = useAuth()
   const { game, currentPot } = useGame()
+  const { pathname } = useLocation()
   const [signingOut, setSigningOut] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [survivalStatus, setSurvivalStatus] = useState<PlayerSurvivalStatus>('unknown')
@@ -105,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="mx-auto w-full max-w-xl px-3 py-2 md:max-w-2xl md:py-4">
-        {shouldShowEliminatedBanner(survivalStatus, game) ? <EliminatedBanner /> : null}
+        {shouldShowEliminatedBanner(survivalStatus, game) && pathname !== '/' ? <EliminatedBanner /> : null}
         {children}
       </main>
     </div>

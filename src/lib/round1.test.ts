@@ -63,7 +63,8 @@ describe('round 1 player experience', () => {
 
   it('does not let an eliminated player pick the next round', () => {
     expect(derivePlayerEntryState({ paid: true, status: 'eliminated' } as GameEntry, true)).not.toBe('entered_can_pick')
-    expect(pickPageSource).toContain("entry.status !== 'active'")
+    expect(pickPageSource).toContain("entry.status === 'active'")
+    expect(pickPageSource).toContain('spectator={eliminated}')
   })
 })
 

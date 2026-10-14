@@ -37,7 +37,7 @@ export function PickLabV2({
 
   return (
     <div className="grid gap-3">
-      <div className="flex items-center justify-between rounded-xl border border-[#3A1C54] bg-[#1B0C2A] p-2">
+      <div className="lab-card flex items-center justify-between rounded-xl p-2">
         <div>
           <p className="text-[13px] font-semibold text-white">{roundLabel} selection</p>
           <p className="text-[11px] text-[#cfc3d0]">Deadline: {deadlineLabel}</p>
@@ -47,7 +47,7 @@ export function PickLabV2({
         </span>
       </div>
 
-      <section className="relative overflow-hidden rounded-xl border border-[#621A8A] bg-gradient-to-br from-[#3B0D54] to-[#4E146B] p-3.5">
+      <section className="lab-hero relative overflow-hidden rounded-xl p-3.5">
         <p className="lab-label text-[11px] uppercase tracking-wide text-[#caf300]">
           {spectator ? 'Spectator' : 'Active survivor'}
         </p>
@@ -56,12 +56,12 @@ export function PickLabV2({
           team twice in this game.
         </p>
         {usedTeamIds.length > 0 ? (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-lg border border-[#3A1C54]/50 bg-[#14081F]/70 p-1.5">
+          <div className="lab-well mt-2 flex flex-wrap items-center gap-1.5 rounded-lg p-1.5">
             <span className="text-[11px] text-[#cfc3d0]">Used so far</span>
             {usedTeamIds.map((teamId) => (
               <span
                 key={teamId}
-                className="inline-flex items-center gap-1 rounded border border-[#531375] bg-[#2C1242] px-2 py-0.5"
+                className="lab-chip inline-flex items-center gap-1 rounded px-2 py-0.5"
               >
                 <TeamChip teamId={teamId} size="sm" />
                 <span className="text-[11px] font-semibold text-white">{getTeamIdentity(teamId).shortName}</span>
@@ -72,14 +72,14 @@ export function PickLabV2({
         <p className="mt-2 text-[11px] text-[#cfc3d0]">{UI_LAB_DEADLINE_RULE}</p>
       </section>
 
-      <div className="flex flex-wrap gap-1">
+      <div className="lab-well flex flex-wrap gap-1 rounded-lg p-0.5">
         {(['live', 'eliminated'] as const).map((id) => (
           <button
             key={id}
             type="button"
             className={[
               'rounded-md px-2.5 py-1 text-[11px] font-semibold',
-              persona === id ? 'bg-[#3B0D54] text-white' : 'text-[#cfc3d0]',
+              persona === id ? 'bg-[#4E146B] text-white shadow-sm' : 'text-[#cfc3d0]',
             ].join(' ')}
             onClick={() => onPersonaChange(id)}
           >
@@ -89,7 +89,7 @@ export function PickLabV2({
       </div>
 
       {spectator ? (
-        <div className="rounded-xl border border-[#3A1C54] bg-[#1F0E30] p-3" data-testid="pick-spectator">
+        <div className="lab-tint-lavender rounded-xl p-3" data-testid="pick-spectator">
           <p className="text-sm font-semibold text-white">Spectator mode</p>
           <p className="mt-1 text-sm text-[#cfc3d0]">
             Eliminated players cannot submit. You can still follow the picks.
@@ -104,7 +104,7 @@ export function PickLabV2({
 
       <div className="grid gap-2">
         {fixtures.map((fixture) => (
-          <article key={fixture.id} className="rounded-xl border border-[#3A1C54] bg-[#1F0E30] p-3.5">
+          <article key={fixture.id} className="lab-card rounded-xl p-3.5">
             <p className="mb-2 text-[11px] text-[#cfc3d0]">{formatCompactKickoffLondon(fixture.kickoff_at)}</p>
             <div className="grid grid-cols-2 gap-2">
               <TeamPickButton
@@ -131,7 +131,7 @@ export function PickLabV2({
       {fixtures.length === 0 ? <p className="text-sm text-[#cfc3d0]">No eligible fixtures loaded.</p> : null}
 
       <div
-        className="sticky bottom-3 z-20 flex items-center justify-between gap-2 rounded-xl border border-[#3A1C54] bg-[#1B0C2A]/95 p-2"
+        className="lab-chrome sticky bottom-3 z-20 flex items-center justify-between gap-2 rounded-xl border p-2"
         data-testid="pick-confirm-bar"
       >
         <div className="flex min-w-0 items-center gap-2">
@@ -152,7 +152,7 @@ export function PickLabV2({
       </div>
 
       {confirmOpen && selected ? (
-        <div className="rounded-2xl border border-[#3A1C54] bg-[#1B0C2A] p-4">
+        <div className="lab-hero rounded-2xl p-4">
           <p className="lab-label text-[11px] uppercase tracking-wider text-[#caf300]">Confirm {roundLabel} pick</p>
           <p className="mt-2 text-lg font-bold text-white">{selected.team_name}</p>
           <p className="mt-1 text-sm text-[#f0dbfc]/90">
@@ -164,7 +164,7 @@ export function PickLabV2({
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="button"
-              className="rounded-lg border border-[#3A1C54] bg-[#2C1242] py-2.5 text-sm font-semibold text-white"
+              className="lab-chip rounded-lg py-2.5 text-sm font-semibold text-white"
               onClick={() => setConfirmOpen(false)}
             >
               Go back
@@ -202,7 +202,7 @@ function TeamPickButton({
       data-locked={locked ? 'true' : 'false'}
       className={[
         'flex min-h-[76px] flex-col justify-between rounded-lg border p-2 text-left',
-        selected ? 'border-[#caf300] bg-[#531375]' : 'border-[#3A1C54] bg-[#241138]',
+        selected ? 'border-[#caf300] bg-[#531375] shadow-[0_0_0_1px_#caf300]' : 'lab-row',
         locked ? 'opacity-45' : '',
       ].join(' ')}
       onClick={onSelect}

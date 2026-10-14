@@ -55,8 +55,13 @@ describe('UI Lab visual v2 stays off live routes', () => {
 
   it('uses the new palette, shirts, Friday 16:00, and no betting copy', () => {
     expect(v2Sources).toContain('#14081F')
+    expect(v2Sources).toContain('#0e0517')
+    expect(v2Sources).toContain('#27123d')
     expect(v2Sources).toContain('#d4ff00')
     expect(v2Sources).toContain('#00e5a3')
+    expect(v2Sources).toContain('lab-tint-gold')
+    expect(v2Sources).toContain('lab-tint-teal')
+    expect(v2Sources).toContain('lab-well')
     expect(homeV2).toContain('TeamChip')
     expect(pickV2).toContain('TeamChip')
     expect(pickV2).toContain('useState<string | null>(null)')

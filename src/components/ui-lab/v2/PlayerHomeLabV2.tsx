@@ -54,16 +54,16 @@ export function PlayerHomeLabV2({
 
   return (
     <div className="grid gap-3">
-      <div className="flex items-center justify-between rounded-xl border border-[#381A54] bg-[#1C0C2D] p-1.5">
+      <div className="lab-card flex items-center justify-between rounded-xl p-1.5">
         <span className="lab-label px-2 text-[11px] uppercase text-[#cfc3d0]">View mode</span>
-        <div className="flex flex-wrap gap-1">
+        <div className="lab-well flex flex-wrap gap-1 rounded-lg p-0.5">
           {PERSONAS.map((item) => (
             <button
               key={item.id}
               type="button"
               className={[
                 'rounded-md px-2.5 py-1 text-[11px] font-semibold',
-                persona === item.id ? 'bg-[#3B0D54] text-white' : 'text-[#cfc3d0]',
+                persona === item.id ? 'bg-[#4E146B] text-white shadow-sm' : 'text-[#cfc3d0]',
               ].join(' ')}
               onClick={() => onPersonaChange(item.id)}
             >
@@ -74,7 +74,7 @@ export function PlayerHomeLabV2({
       </div>
 
       <section
-        className="relative overflow-hidden rounded-xl border border-[#5d2182] bg-gradient-to-br from-[#3B0D54] via-[#481263] to-[#250838] p-3.5"
+        className="lab-hero relative overflow-hidden rounded-xl p-3.5"
         data-testid="player-context-anchor-v2"
       >
         <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-gradient-to-br from-[#e7b3ff]/20 via-[#00e5a3]/10 to-transparent blur-xl" />
@@ -97,7 +97,7 @@ export function PlayerHomeLabV2({
           <p className="mt-1 text-[13px] leading-relaxed text-[#f0dbfc]/80">{model.subtext}</p>
           {model.ticker ? <p className="mt-1 text-sm font-semibold text-white">{model.ticker}</p> : null}
           {model.currentPickTeamId ? (
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#5d2182] bg-[#14081F]/60 p-2">
+            <div className="lab-well mt-3 flex items-center gap-2 rounded-lg p-2">
               <TeamChip teamId={model.currentPickTeamId} size="lg" />
               <div>
                 <p className="lab-label text-[10px] uppercase text-[#cfc3d0]">Your pick</p>
@@ -111,7 +111,7 @@ export function PlayerHomeLabV2({
               {model.usedTeamIds.map((teamId) => (
                 <span
                   key={teamId}
-                  className="inline-flex items-center gap-1 rounded border border-[#531375] bg-[#2C1242] px-2 py-0.5"
+                  className="lab-chip inline-flex items-center gap-1 rounded px-2 py-0.5"
                 >
                   <TeamChip teamId={teamId} size="sm" />
                   <span className="text-[11px] font-semibold text-white">{getTeamIdentity(teamId).shortName}</span>
@@ -134,8 +134,8 @@ export function PlayerHomeLabV2({
       </section>
 
       <div className="grid grid-cols-2 gap-2">
-        <section className="relative overflow-hidden rounded-xl border border-[#381A54] bg-[#200E32] p-3.5">
-          <p className="lab-label text-[11px] uppercase tracking-wider text-[#cfc3d0]">Total prize</p>
+        <section className="lab-tint-gold relative overflow-hidden rounded-xl p-3.5">
+          <p className="lab-label lab-section-gold text-[11px] uppercase tracking-wider">Total prize</p>
           <p className="mt-2 text-[26px] font-extrabold leading-none text-[#ffc107]">
             {potParts[0]}
             {potParts[1] ? <span className="text-[14px] font-semibold text-[#cfc3d0]">.{potParts[1]}</span> : null}
@@ -145,8 +145,8 @@ export function PlayerHomeLabV2({
             Winner takes all
           </p>
         </section>
-        <section className="rounded-xl border border-[#381A54] bg-[#200E32] p-3.5">
-          <p className="lab-label text-[11px] uppercase tracking-wider text-[#cfc3d0]">Field count</p>
+        <section className="lab-tint-teal rounded-xl p-3.5">
+          <p className="lab-label lab-section-teal text-[11px] uppercase tracking-wider">Field count</p>
           <p className="mt-2 text-[26px] font-extrabold leading-none text-white">
             {survivorCount} <span className="text-[16px] font-normal text-[#cfc3d0]">/ {paidCount || survivorCount}</span>
           </p>
@@ -157,15 +157,15 @@ export function PlayerHomeLabV2({
         </section>
       </div>
 
-      <section className="space-y-3 rounded-xl border border-[#381A54] bg-[#1C0C2D] p-3.5">
+      <section className="lab-card space-y-3 rounded-xl p-3.5">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-[13px] font-bold text-white">Community consensus</h3>
+            <h3 className="lab-section-teal text-[13px] font-bold">Community consensus</h3>
             <p className="text-[12px] text-[#cfc3d0]">
               {model.roundLabel} distribution across remaining {survivorCount} entries
             </p>
           </div>
-          <span className="rounded-full border border-[#381A54] bg-[#27123D] px-2.5 py-0.5 text-[11px] font-semibold text-[#e7b3ff]">
+          <span className="lab-chip rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-[#e7b3ff]">
             {submittedCount} picks in
           </span>
         </div>
@@ -173,7 +173,7 @@ export function PlayerHomeLabV2({
           <p className="text-sm text-[#cfc3d0]">No picks yet.</p>
         ) : (
           visibleDistribution.map((row, index) => (
-            <div key={row.teamId} className="space-y-2 rounded-lg border border-[#351750] bg-[#200E32] p-2">
+            <div key={row.teamId} className="lab-row space-y-2 rounded-lg p-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <TeamChip teamId={row.teamId} size="sm" />
@@ -183,7 +183,7 @@ export function PlayerHomeLabV2({
                   {row.percent}% <span className="text-xs font-normal text-[#cfc3d0]">({row.count})</span>
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full border border-[#381A54]/60 bg-[#14081F]">
+              <div className="lab-well h-2 overflow-hidden rounded-full">
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -201,15 +201,15 @@ export function PlayerHomeLabV2({
       </section>
 
       {survivors.length > 0 && survivorRoundLabel ? (
-        <section className="rounded-xl border border-[#381A54] bg-[#1C0C2D] p-3.5">
-          <h3 className="text-[13px] font-bold text-white">{survivorRoundLabel} audit summary</h3>
+        <section className="lab-card rounded-xl p-3.5">
+          <h3 className="lab-section-lime text-[13px] font-bold">{survivorRoundLabel} audit summary</h3>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="rounded-lg border border-[#351750] bg-[#200E32] p-2.5">
+            <div className="lab-tint-teal rounded-lg p-2.5">
               <p className="text-sm font-bold text-white">{survivors.length} survived</p>
               <p className="text-[11px] text-[#cfc3d0]">Through to the next round</p>
             </div>
-            <div className="rounded-lg border border-[#351750] bg-[#200E32] p-2.5">
-              <p className="text-sm font-bold text-[#ff7886]">Who survived</p>
+            <div className="lab-tint-lavender rounded-lg p-2.5">
+              <p className="text-sm font-bold text-[#e7b3ff]">Who survived</p>
               <p className="text-[11px] text-[#cfc3d0]">Shirts and names only</p>
             </div>
           </div>
@@ -217,7 +217,7 @@ export function PlayerHomeLabV2({
             {survivors.slice(0, 6).map((row) => (
               <span
                 key={row.playerId}
-                className="inline-flex items-center gap-1.5 rounded-md border border-[#381A54] bg-[#200E32] px-2 py-1"
+                className="lab-chip inline-flex items-center gap-1.5 rounded-md px-2 py-1"
               >
                 <TeamChip teamId={row.teamId} size="sm" />
                 <span className="text-[11px] font-medium text-white">{row.displayName}</span>
@@ -227,9 +227,9 @@ export function PlayerHomeLabV2({
         </section>
       ) : null}
 
-      <section className="space-y-3 rounded-xl border border-[#381A54] bg-[#1C0C2D] p-3.5">
+      <section className="lab-card space-y-3 rounded-xl p-3.5">
         <div>
-          <h3 className="text-[13px] font-bold text-white">Eligible fixtures</h3>
+          <h3 className="lab-section-lavender text-[13px] font-bold">Eligible fixtures</h3>
           <p className="text-[12px] text-[#cfc3d0]">Saturday and Sunday only · UK times</p>
         </div>
         {fixtureGroups.map((group) => (
@@ -241,12 +241,12 @@ export function PlayerHomeLabV2({
               return (
                 <div
                   key={fixture.id}
-                  className="relative overflow-hidden rounded-lg border border-[#351750] bg-[#1E0D30] p-2.5"
+                  className="lab-row relative overflow-hidden rounded-lg p-2.5"
                 >
                   {popular ? <div className="absolute bottom-0 left-0 top-0 w-1 bg-[#00e5a3]" /> : null}
                   <div className="flex items-center justify-between gap-2 pl-1">
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="rounded border border-[#381A54] bg-[#14081F] px-1.5 py-0.5 font-mono text-[11px] text-[#ffc107]">
+                      <span className="lab-well rounded px-1.5 py-0.5 font-mono text-[11px] text-[#ffc107]">
                         {londonKickoffClock(fixture.kickoff_at)}
                       </span>
                       <div className="min-w-0">
@@ -276,7 +276,7 @@ export function PlayerHomeLabV2({
         {fixtures.length === 0 ? <p className="text-sm text-[#cfc3d0]">No eligible fixtures loaded.</p> : null}
       </section>
 
-      <p className="rounded-xl border border-[#381A54] bg-[#1C0C2D] p-2.5 text-[11.5px] leading-relaxed text-[#cfc3d0]">
+      <p className="lab-well rounded-xl p-2.5 text-[11.5px] leading-relaxed text-[#cfc3d0]">
         Once a team is chosen, it cannot be used again in this game. {UI_LAB_DEADLINE_RULE}
       </p>
     </div>

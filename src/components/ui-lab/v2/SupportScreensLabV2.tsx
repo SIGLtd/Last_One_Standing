@@ -32,12 +32,12 @@ export function PicksLabV2({
 
   return (
     <div className="grid gap-3">
-      <section className="rounded-xl border border-[#381A54] bg-[#1C0C2D] p-4">
+      <section className="lab-card rounded-xl p-4">
         <h2 className="text-sm font-semibold text-white">Everyone&apos;s picks</h2>
         <p className="mt-0.5 text-xs text-[#cfc3d0]">
           {roundLabel} · {submitted} submitted · display names only
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-[#14081F] p-1">
+        <div className="lab-well mt-3 grid grid-cols-2 gap-1 rounded-lg p-1">
           <button
             type="button"
             className={['rounded-md py-2 text-xs font-semibold', view === 'player' ? 'bg-[#4e146b] text-white' : 'text-[#cfc3d0]'].join(' ')}
@@ -63,7 +63,7 @@ export function PicksLabV2({
               deadlineAt: window?.deadline_at,
             })
             return (
-              <li key={row.player_id} className="flex items-center justify-between gap-2 rounded-xl border border-[#381A54] bg-[#200E32] p-3">
+              <li key={row.player_id} className="lab-row flex items-center justify-between gap-2 rounded-xl p-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-white">{row.display_name}</p>
                   <p className="text-xs text-[#cfc3d0]">
@@ -81,7 +81,7 @@ export function PicksLabV2({
       ) : (
         <ul className="grid gap-2" data-testid="picks-by-team">
           {groups.map((group) => (
-            <li key={group.teamId} className="rounded-xl border border-[#381A54] bg-[#200E32] p-3">
+            <li key={group.teamId} className="lab-row rounded-xl p-3">
               <div className="flex items-center gap-2">
                 <TeamChip teamId={group.teamId} size="lg" />
                 <div>
@@ -106,7 +106,7 @@ export function HistoryLabV2({ history }: { history: HistoricalResult[] }) {
   const rows = [...history].reverse()
   return (
     <div className="grid gap-3">
-      <section className="rounded-xl border border-[#381A54] bg-[#1C0C2D] p-4">
+      <section className="lab-card rounded-xl p-4">
         <h2 className="text-sm font-semibold text-white">History</h2>
         <p className="text-xs text-[#cfc3d0]">{history.length} games</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -123,7 +123,14 @@ export function HistoryLabV2({ history }: { history: HistoricalResult[] }) {
         {rows.map((row) => {
           const kind = historyCardKind(row.result_type)
           return (
-            <li key={row.id} className="rounded-xl border border-[#381A54] bg-[#200E32] p-4" data-history-kind={kind}>
+            <li
+              key={row.id}
+              className={[
+                'rounded-xl p-4',
+                kind === 'winner-paid' ? 'lab-tint-teal' : kind === 'rollover' ? 'lab-tint-gold' : 'lab-row',
+              ].join(' ')}
+              data-history-kind={kind}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-white">Game {row.game_number}</p>
@@ -159,12 +166,12 @@ export function RulesLabV2() {
   const sections = rulesPreviewSections()
   return (
     <div className="grid gap-3">
-      <section className="rounded-xl border border-[#381A54] bg-[#1C0C2D] p-4">
+      <section className="lab-hero rounded-xl p-4">
         <h2 className="text-sm font-semibold text-white">Rules</h2>
         <p className="mt-1 text-sm text-[#cfc3d0]">{UI_LAB_DEADLINE_RULE}</p>
       </section>
       {sections.map((section) => (
-        <article key={section.title} className="rounded-xl border border-[#381A54] bg-[#200E32] p-4">
+        <article key={section.title} className="lab-card rounded-xl p-4">
           <h3 className="text-sm font-semibold text-white">{section.title}</h3>
           <ul className="mt-2 grid gap-1.5">
             {section.items.map((item) => (
@@ -181,7 +188,7 @@ export function RulesLabV2() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[#351750] bg-[#200E32] p-2.5">
+    <div className="lab-row rounded-lg p-2.5">
       <p className="text-[10px] uppercase text-[#cfc3d0]">{label}</p>
       <p className="mt-1 text-sm font-semibold text-white">{value}</p>
     </div>

@@ -24,9 +24,9 @@ export function LabV2Frame({
 }) {
   return (
     <div className="ui-lab-v2" data-testid="ui-lab-v2">
-      <header className="flex items-center justify-between gap-2 border-b border-[#381A54] bg-[#1B0C2A]/95 px-3 py-3">
+      <header className="lab-chrome flex items-center justify-between gap-2 border-b px-3 py-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e7b3ff]/30 bg-[#27123D]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#e7b3ff]/40 bg-[#3B0D54]">
             <span className="lab-label text-[11px] text-[#caf300]">LOS</span>
           </div>
           <div className="min-w-0">
@@ -37,14 +37,14 @@ export function LabV2Frame({
             </p>
           </div>
         </div>
-        <div className="rounded-full border border-[#381A54] bg-[#27123D] px-2.5 py-1 text-[11px] font-medium text-white">
+        <div className="rounded-full border border-[#caf300]/40 bg-[#27123D] px-2.5 py-1 text-[11px] font-medium text-[#caf300]">
           Preview
         </div>
       </header>
 
-      <div className="min-h-[32rem] bg-[#14081F] px-3 py-3 pb-20">{children}</div>
+      <div className="lab-canvas min-h-[32rem] px-3 py-3 pb-20">{children}</div>
 
-      <nav className="grid grid-cols-4 border-t border-[#381A54] bg-[#14081F]/95 px-2 py-2" aria-label="UI Lab v2 mock navigation">
+      <nav className="lab-chrome grid grid-cols-4 border-t px-2 py-2" aria-label="UI Lab v2 mock navigation">
         {NAV.map((item) => {
           const active = item.screen === screen
           return (

@@ -1,41 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  --los-purple: #37003c;
-  --los-purple-dark: #1b1022;
-  --los-cyan: #00ffea;
-  --los-magenta: #ff2882;
-  --los-lime: #d0ff00;
+  --los-purple: #3b0d54;
+  --los-purple-dark: #14081f;
+  --los-header: #1b0c2a;
+  --los-card: #1c0c2d;
+  --los-row: #27123d;
+  --los-well: #0e0517;
+  --los-cyan: #00e5a3;
+  --los-magenta: #e7b3ff;
+  --los-lime: #d4ff00;
+  --los-gold: #ffc107;
   --los-white: #ffffff;
-  --los-grey: #f4f5f7;
-  --los-ink: #14121a;
-  --los-muted: #6b6574;
-  --los-radius: 6px;
-  --los-radius-sm: 4px;
+  --los-grey: #27123d;
+  --los-ink: #f0dbfc;
+  --los-muted: #cfc3d0;
+  --los-danger: #ff7886;
+  --los-radius: 0.75rem;
+  --los-radius-sm: 0.5rem;
 
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 @theme {
-  --font-sans: Inter, Arial, Helvetica, sans-serif;
+  --font-sans: Outfit, Inter, Arial, Helvetica, sans-serif;
 
   --color-purple: var(--los-purple);
-  --color-purple-dark: var(--los-purple-dark);
+  --color-purple-dark: var(--los-header);
   --color-cyan: var(--los-cyan);
   --color-magenta: var(--los-magenta);
   --color-lime: var(--los-lime);
-  --color-surface-card: var(--los-grey);
+  --color-surface-card: var(--los-card);
   --color-ink: var(--los-ink);
   --color-muted-ink: var(--los-muted);
 
   --color-bg: var(--los-purple-dark);
-  --color-surface: var(--los-white);
-  --color-surface-2: var(--los-grey);
-  --color-border: rgba(20, 18, 26, 0.12);
+  --color-surface: var(--los-card);
+  --color-surface-2: var(--los-row);
+  --color-border: #4a2168;
   --color-text: var(--los-ink);
   --color-muted: var(--los-muted);
-  --color-accent: var(--los-purple);
-  --color-success: #1a6b4a;
+  --color-accent: var(--los-lime);
+  --color-success: var(--los-cyan);
 }
 
 html,
@@ -46,7 +52,10 @@ body {
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: var(--los-purple-dark);
+  background:
+    radial-gradient(120% 55% at 100% -10%, rgba(231, 179, 255, 0.14), transparent 52%),
+    radial-gradient(90% 45% at -10% 110%, rgba(0, 229, 163, 0.08), transparent 48%),
+    var(--los-purple-dark);
   color: var(--los-ink);
   -webkit-font-smoothing: antialiased;
   font-size: 0.875rem;
@@ -64,15 +73,17 @@ body {
 /* Page shell */
 .los-card {
   border-radius: var(--los-radius);
-  background: var(--los-white);
+  background: linear-gradient(180deg, #241138 0%, var(--los-card) 42%);
   color: var(--los-ink);
   border: 1px solid var(--color-border);
-  box-shadow: 0 1px 2px rgba(20, 18, 26, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(231, 179, 255, 0.12),
+    0 10px 24px rgba(8, 2, 14, 0.35);
 }
 
 .los-card-header {
   border-bottom: 1px solid var(--color-border);
-  background: var(--los-white);
+  background: var(--los-row);
 }
 
 .los-section-title {
@@ -85,8 +96,8 @@ body {
 
 .los-panel {
   border-radius: var(--los-radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--los-grey);
+  border: 1px solid #351750;
+  background: var(--los-well);
 }
 
 .los-metric {
@@ -120,7 +131,7 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   border: 1px solid var(--color-border);
   border-radius: var(--los-radius-sm);
-  background: var(--los-white);
+  background: var(--los-well);
   overflow: hidden;
 }
 
@@ -132,16 +143,16 @@ body {
   border-radius: var(--los-radius-sm);
   padding: 0.4rem 0.75rem;
   font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--los-white);
-  background: var(--los-purple);
-  border: 1px solid var(--los-purple);
+  font-weight: 700;
+  color: var(--los-purple-dark);
+  background: var(--los-lime);
+  border: 1px solid var(--los-lime);
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .los-btn-primary:hover:not(:disabled) {
-  background: #4a0a52;
-  border-color: #4a0a52;
+  background: #caf300;
+  border-color: #caf300;
 }
 
 .los-btn-primary:disabled {
@@ -157,15 +168,15 @@ body {
   padding: 0.4rem 0.75rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--los-purple);
-  background: var(--los-white);
+  color: var(--los-ink);
+  background: var(--los-row);
   border: 1px solid var(--color-border);
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 .los-btn-secondary:hover:not(:disabled) {
-  background: var(--los-grey);
-  border-color: rgba(55, 0, 60, 0.25);
+  background: #32164c;
+  border-color: #6d2a96;
 }
 
 .los-input {
@@ -173,7 +184,7 @@ body {
   width: 100%;
   border-radius: var(--los-radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--los-white);
+  background: var(--los-well);
   padding: 0 0.6rem;
   font-size: 0.8125rem;
   color: var(--los-ink);
@@ -182,7 +193,7 @@ body {
 }
 
 .los-input:focus {
-  border-color: var(--los-purple);
+  border-color: var(--los-lime);
 }
 
 /* Status pills */
@@ -199,27 +210,27 @@ body {
 }
 
 .los-badge-success {
-  background: rgba(26, 107, 74, 0.1);
-  color: var(--color-success);
-  border: 1px solid rgba(26, 107, 74, 0.2);
+  background: rgba(0, 229, 163, 0.14);
+  color: var(--los-cyan);
+  border: 1px solid rgba(0, 229, 163, 0.35);
 }
 
 .los-badge-warning {
-  background: rgba(180, 83, 9, 0.08);
-  color: #9a3412;
-  border: 1px solid rgba(180, 83, 9, 0.18);
+  background: rgba(255, 193, 7, 0.14);
+  color: var(--los-gold);
+  border: 1px solid rgba(255, 193, 7, 0.35);
 }
 
 .los-badge-muted {
-  background: rgba(20, 18, 26, 0.05);
+  background: rgba(14, 5, 23, 0.7);
   color: var(--los-muted);
-  border: 1px solid rgba(20, 18, 26, 0.1);
+  border: 1px solid #351750;
 }
 
 .los-badge-open {
-  background: rgba(55, 0, 60, 0.08);
-  color: var(--los-purple);
-  border: 1px solid rgba(55, 0, 60, 0.15);
+  background: var(--los-lime);
+  color: var(--los-purple-dark);
+  border: 1px solid var(--los-lime);
 }
 
 /* Pick tiles */
@@ -230,7 +241,7 @@ body {
   gap: 0.5rem;
   border-radius: var(--los-radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--los-white);
+  background: var(--los-row);
   padding: 0.45rem 0.6rem;
   font-size: 0.8125rem;
   text-align: left;
@@ -238,19 +249,19 @@ body {
 }
 
 .los-fixture-tile:hover:not(:disabled) {
-  border-color: rgba(55, 0, 60, 0.3);
-  background: var(--los-grey);
+  border-color: #6d2a96;
+  background: #32164c;
 }
 
 .los-fixture-tile-selected {
-  border-color: var(--los-purple);
-  background: rgba(55, 0, 60, 0.04);
-  box-shadow: inset 3px 0 0 var(--los-purple);
+  border-color: var(--los-lime);
+  background: #531375;
+  box-shadow: inset 3px 0 0 var(--los-lime);
 }
 
 .los-fixture-tile-used {
   opacity: 0.55;
-  background: var(--los-grey);
+  background: var(--los-well);
 }
 
 /* Notices */
@@ -262,29 +273,29 @@ body {
 }
 
 .los-alert-success {
-  border-color: rgba(26, 107, 74, 0.25);
-  background: rgba(26, 107, 74, 0.06);
+  border-color: rgba(0, 229, 163, 0.35);
+  background: rgba(0, 229, 163, 0.12);
   color: var(--los-ink);
 }
 
 .los-alert-error {
-  border-color: rgba(185, 28, 28, 0.2);
-  background: rgba(185, 28, 28, 0.05);
+  border-color: rgba(255, 120, 134, 0.4);
+  background: rgba(255, 120, 134, 0.12);
   color: var(--los-ink);
 }
 
 .los-alert-warning {
-  border-color: rgba(180, 83, 9, 0.25);
-  background: rgba(180, 83, 9, 0.08);
-  color: var(--los-ink);
+  border-color: rgba(255, 193, 7, 0.4);
+  background: rgba(255, 193, 7, 0.12);
+  color: var(--los-gold);
 }
 
 .los-notice {
-  border-left: 3px solid var(--los-purple);
+  border-left: 3px solid var(--los-lime);
   padding: 0.4rem 0.6rem;
   font-size: 0.8125rem;
   color: var(--los-muted);
-  background: var(--los-grey);
+  background: var(--los-well);
 }
 
 /* Admin */
@@ -301,7 +312,7 @@ body {
 .los-admin-btn {
   border-radius: var(--los-radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--los-white);
+  background: var(--los-row);
   padding: 0.2rem 0.45rem;
   font-size: 0.6875rem;
   font-weight: 600;
@@ -310,7 +321,7 @@ body {
 }
 
 .los-admin-btn:hover:not(:disabled) {
-  background: var(--los-grey);
+  background: #32164c;
 }
 
 .los-admin-btn:disabled {
@@ -345,14 +356,15 @@ body {
 .los-pick-bar {
   height: 0.42rem;
   border-radius: 999px;
-  background: rgba(55, 0, 60, 0.1);
+  background: var(--los-well);
   overflow: hidden;
+  border: 1px solid #351750;
 }
 
 .los-pick-bar > span {
   display: block;
   height: 100%;
-  background: var(--los-purple);
+  background: var(--los-cyan);
 }
 
 .los-home {
@@ -364,8 +376,11 @@ body {
   border-radius: var(--los-radius);
   padding: 0.85rem 0.9rem;
   color: var(--los-white);
-  background: linear-gradient(135deg, #37003c 0%, #5a1468 55%, #003a63 100%);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(135deg, #3b0d54 0%, #531375 48%, #250838 100%);
+  border: 1px solid #6d2a96;
+  box-shadow:
+    inset 0 1px 0 rgba(231, 179, 255, 0.22),
+    0 12px 28px rgba(59, 13, 84, 0.45);
 }
 
 .los-home-round p {
@@ -396,13 +411,13 @@ body {
 
 .los-home-status-open {
   background: var(--los-lime);
-  color: #14121a;
+  color: var(--los-purple-dark);
 }
 
 .los-home-panel {
   border-radius: var(--los-radius);
   padding: 0.85rem 0.9rem;
-  background: var(--los-white);
+  background: var(--los-card);
   border: 1px solid var(--color-border);
 }
 
@@ -419,7 +434,8 @@ body {
   gap: 0.65rem;
   padding: 0.55rem 0.65rem;
   border-radius: var(--los-radius-sm);
-  background: var(--los-grey);
+  background: var(--los-well);
+  border: 1px solid #351750;
 }
 
 .los-home-ghost {
@@ -430,7 +446,7 @@ body {
   width: 100%;
   border: 0;
   background: transparent;
-  color: var(--los-purple);
+  color: var(--los-lime);
   font-size: 0.875rem;
   font-weight: 600;
   padding: 0;
@@ -444,7 +460,7 @@ body {
 
 .los-match {
   padding: 0.7rem 0;
-  border-top: 1px solid rgba(20, 18, 26, 0.08);
+  border-top: 1px solid #351750;
 }
 
 .los-match:first-child {
@@ -631,7 +647,7 @@ body {
   width: 100%;
   height: 100%;
   padding: 2rem;
-  background: radial-gradient(circle at center, rgba(55, 0, 60, 0.35), var(--los-purple-dark) 70%);
+  background: radial-gradient(circle at center, rgba(59, 13, 84, 0.45), var(--los-purple-dark) 70%);
 }
 
 .los-splash-tagline {
@@ -655,14 +671,14 @@ body {
 }
 
 .los-splash-skip:hover {
-  background: rgba(55, 0, 60, 0.85);
+  background: rgba(59, 13, 84, 0.85);
 }
 
 .los-cockpit-card {
   border: 1px solid var(--color-border);
   border-radius: var(--los-radius-sm);
   padding: 0.75rem;
-  background: var(--los-white);
+  background: var(--los-card);
 }
 
 /* Data tables */
@@ -686,12 +702,12 @@ body {
 
 .los-data-table tbody td {
   padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid rgba(20, 18, 26, 0.06);
+  border-bottom: 1px solid #351750;
   vertical-align: middle;
 }
 
 .los-data-table tbody tr:hover td {
-  background: rgba(20, 18, 26, 0.02);
+  background: rgba(231, 179, 255, 0.06);
 }
 
 .los-data-table thead th.num,
@@ -709,7 +725,7 @@ body {
 
 .los-divider-row {
   padding: 0.45rem 0.6rem;
-  border-bottom: 1px solid rgba(20, 18, 26, 0.06);
+  border-bottom: 1px solid #351750;
   font-size: 0.8125rem;
 }
 
@@ -737,15 +753,15 @@ body {
 
 .los-rules-section .los-section-title {
   font-size: 0.75rem;
-  color: var(--los-purple);
+  color: var(--los-lime);
 }
 
 .los-elim-banner {
   margin-bottom: 0.75rem;
   overflow: hidden;
-  border: 1px solid rgba(255, 40, 130, 0.35);
+  border: 1px solid rgba(255, 120, 134, 0.4);
   border-radius: var(--los-radius-sm);
-  background: #2a1020;
+  background: #2a0d28;
   color: var(--los-white);
 }
 
@@ -769,8 +785,8 @@ body {
   position: relative;
   overflow: hidden;
   min-height: 2rem;
-  border-top: 1px solid rgba(255, 40, 130, 0.25);
-  background: rgba(0, 255, 234, 0.08);
+  border-top: 1px solid rgba(255, 120, 134, 0.25);
+  background: rgba(0, 229, 163, 0.08);
 }
 
 .los-elim-ticker-static {
@@ -822,7 +838,7 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--los-radius-sm);
   padding: 0 0.5rem 0.4rem;
-  background: var(--los-white);
+  background: var(--los-card);
 }
 
 .los-audit-summary {
@@ -835,4 +851,19 @@ body {
 
 .los-audit-summary::-webkit-details-marker {
   color: var(--los-muted);
+}
+
+.los-tint-gold {
+  background: linear-gradient(160deg, rgba(255, 193, 7, 0.22) 0%, #241138 38%, #1a0a28 100%);
+  border-color: rgba(255, 193, 7, 0.42);
+}
+
+.los-tint-teal {
+  background: linear-gradient(160deg, rgba(0, 229, 163, 0.18) 0%, #241138 38%, #1a0a28 100%);
+  border-color: rgba(0, 229, 163, 0.38);
+}
+
+.los-tint-lavender {
+  background: linear-gradient(160deg, rgba(231, 179, 255, 0.18) 0%, #241138 38%, #1a0a28 100%);
+  border-color: rgba(231, 179, 255, 0.38);
 }

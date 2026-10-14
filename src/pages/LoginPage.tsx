@@ -52,7 +52,7 @@ export function LoginPage() {
   return (
     <div className="mx-auto grid max-w-sm gap-2">
       <div className="flex justify-center py-1">
-        <AppLogo losClassName="h-8 w-8" plClassName="h-6 w-auto max-w-[8rem]" />
+        <AppLogo onDark losClassName="h-8 w-8" plClassName="h-6 w-auto max-w-[8rem]" />
       </div>
       <Card title="Log in" description="Email/password" compact>
         <form className="grid gap-2" onSubmit={onSubmit}>

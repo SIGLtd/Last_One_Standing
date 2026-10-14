@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-purple-dark">
+      <header className="sticky top-0 z-30 border-b border-[#4a2168] bg-purple-dark/95 backdrop-blur-xl">
         <div className="relative mx-auto max-w-6xl px-3 py-2">
           <div className="flex items-center justify-between gap-2">
             <NavLink to="/" className="flex min-w-0 items-center gap-2">

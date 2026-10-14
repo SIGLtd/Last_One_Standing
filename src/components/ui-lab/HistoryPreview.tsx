@@ -37,7 +37,14 @@ export function HistoryPreview({ history }: { history: HistoricalResult[] }) {
         {rows.map((row) => {
           const kind = historyCardKind(row.result_type)
           return (
-            <li key={row.id} className="los-card p-4" data-history-kind={kind}>
+            <li
+              key={row.id}
+              className={[
+                'los-card p-4',
+                kind === 'winner-paid' ? 'los-tint-teal' : kind === 'rollover' ? 'los-tint-gold' : '',
+              ].join(' ')}
+              data-history-kind={kind}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-ink">Game {row.game_number}</p>

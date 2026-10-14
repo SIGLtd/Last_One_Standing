@@ -78,7 +78,7 @@ export function PlayerHomePreview({
         </div>
       ) : null}
 
-      <section className="los-card p-4" data-testid="player-context-anchor">
+      <section className="los-home-round p-4" data-testid="player-context-anchor">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">
             {model.gameLabel} · {model.roundLabel}
@@ -141,12 +141,12 @@ export function PlayerHomePreview({
       </section>
 
       <div className="grid grid-cols-2 gap-2">
-        <section className="los-card p-3">
+        <section className="los-card los-tint-gold p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">Pot</p>
-          <p className="mt-1 text-xl font-bold text-ink">{formatGBP(pot)}</p>
+          <p className="mt-1 text-xl font-bold text-[#ffc107]">{formatGBP(pot)}</p>
           <p className="mt-1 text-xs text-muted-ink">Winner takes all</p>
         </section>
-        <section className="los-card p-3">
+        <section className="los-card los-tint-teal p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">Still in</p>
           <p className="mt-1 text-xl font-bold text-ink">
             {survivorCount}
@@ -160,7 +160,7 @@ export function PlayerHomePreview({
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="text-sm font-semibold text-ink">Most picked</h3>
           {live ? (
-            <Link to="/current-picks" className="text-sm font-semibold text-purple">
+            <Link to="/current-picks" className="text-sm font-semibold text-lime">
               See everyone&apos;s picks
             </Link>
           ) : null}

@@ -956,7 +956,7 @@ export function AdminPage() {
         <div className="grid gap-3">
           {cockpitSection === 'overview' ? (
             <>
-              <section className="los-card p-4" data-testid="admin-next-action">
+              <section className="los-home-round p-4" data-testid="admin-next-action">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">Next action</p>
                 <p className="mt-1 text-base font-semibold text-ink">{overview.nextAction}</p>
                 <p className="mt-1 text-sm text-muted-ink">
@@ -966,15 +966,15 @@ export function AdminPage() {
                 <p className="mt-1 text-xs text-muted-ink">{UI_LAB_DEADLINE_RULE}</p>
               </section>
               <div className="grid grid-cols-3 gap-2">
-                <div className="los-card p-3">
+                <div className="los-card los-tint-teal p-3">
                   <p className="text-[11px] font-semibold uppercase text-muted-ink">Survivors</p>
                   <p className="mt-1 text-lg font-bold text-ink">{overview.survivorCount}</p>
                 </div>
-                <div className="los-card p-3">
+                <div className="los-card los-tint-lavender p-3">
                   <p className="text-[11px] font-semibold uppercase text-muted-ink">Picks in</p>
                   <p className="mt-1 text-lg font-bold text-ink">{overview.picksSubmitted}</p>
                 </div>
-                <div className="los-card p-3">
+                <div className="los-card los-tint-gold p-3">
                   <p className="text-[11px] font-semibold uppercase text-muted-ink">Fixtures</p>
                   <p className="mt-1 text-lg font-bold text-ink">{roundControl?.eligibleFixtureCount ?? 0}</p>
                   <p className="text-[11px] text-muted-ink">Sat/Sun only</p>

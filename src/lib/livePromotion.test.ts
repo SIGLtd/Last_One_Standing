@@ -25,6 +25,7 @@ const pickPreview = read('components/ui-lab/PickPreview.tsx')
 const picksPreview = read('components/ui-lab/CurrentPicksPreview.tsx')
 const historyPreview = read('components/ui-lab/HistoryPreview.tsx')
 const rulesPreview = read('components/ui-lab/RulesPreview.tsx')
+const indexCss = read('index.css')
 const resultsSource = read('components/admin/AdminRoundResultsSection.tsx')
 const correctionsSource = read('components/admin/AdminCorrectionsSection.tsx')
 const proxySource = read('components/admin/AdminProxyPicksSection.tsx')
@@ -172,6 +173,17 @@ describe('promoted live routes', () => {
     expect(items.join(' ')).not.toContain('RPC')
     expect(items.join(' ')).not.toContain('snapshot')
     expect(rulesPreview).not.toContain('August')
+  })
+
+  it('uses the v2 dark royal-purple look without changing live actions', () => {
+    expect(indexCss).toContain('#14081f')
+    expect(indexCss).toContain('#d4ff00')
+    expect(indexCss).toContain('#00e5a3')
+    expect(indexCss).toContain('#1c0c2d')
+    expect(homePreview).toContain('los-home-round')
+    expect(homePreview).toContain('los-tint-gold')
+    expect(pickSource).toContain('saveSelection')
+    expect(adminSource).toContain('handleResolveRound')
   })
 
   it('uses a segmented admin cockpit with protected settlement and live actions', () => {

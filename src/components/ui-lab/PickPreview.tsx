@@ -231,7 +231,7 @@ function TeamPickButton({
       data-locked={locked ? 'true' : 'false'}
       className={[
         'flex min-h-[76px] flex-col justify-between rounded-lg border p-2 text-left',
-        selected ? 'border-ink bg-surface-2' : 'border-border bg-surface-2',
+        selected ? 'border-lime bg-[#531375]' : 'border-border bg-surface-2',
         locked ? 'opacity-50' : '',
       ].join(' ')}
       onClick={onSelect}

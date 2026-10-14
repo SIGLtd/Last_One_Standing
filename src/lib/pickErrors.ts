@@ -13,6 +13,11 @@ export type PickErrorCode =
   | 'RESULT_NOT_FINAL'
   | 'WINDOW_HAS_PICKS_ON_INVALID'
   | 'GAME_COMPLETE'
+  | 'WINNING_PICK_REQUIRED'
+  | 'PICK_DID_NOT_WIN'
+  | 'DEADLINE_AFTER_KICKOFF'
+  | 'ROUND_NOT_EDITABLE'
+  | 'INVALID_DEADLINE'
 
 export function parsePickError(message: string): PickErrorCode | string {
   const codes: PickErrorCode[] = [
@@ -30,6 +35,11 @@ export function parsePickError(message: string): PickErrorCode | string {
     'RESULT_NOT_FINAL',
     'WINDOW_HAS_PICKS_ON_INVALID',
     'GAME_COMPLETE',
+    'WINNING_PICK_REQUIRED',
+    'PICK_DID_NOT_WIN',
+    'DEADLINE_AFTER_KICKOFF',
+    'ROUND_NOT_EDITABLE',
+    'INVALID_DEADLINE',
   ]
   return codes.find((code) => message.includes(code)) ?? message
 }
@@ -64,6 +74,16 @@ export function pickErrorLabel(code: PickErrorCode | string): string {
       return 'This round already has picks on the invalid Friday/Monday fixture. The snapshot was not changed.'
     case 'GAME_COMPLETE':
       return 'This game is complete. Picks stay with the finished game and a new round cannot be opened.'
+    case 'WINNING_PICK_REQUIRED':
+      return 'A proven winning pick is required, or a stronger organiser reason if reinstating without one.'
+    case 'PICK_DID_NOT_WIN':
+      return 'The selected team did not win according to the stored result.'
+    case 'DEADLINE_AFTER_KICKOFF':
+      return 'The deadline cannot be moved to or after the first eligible kick-off.'
+    case 'ROUND_NOT_EDITABLE':
+      return 'Only an open round can have its deadline edited.'
+    case 'INVALID_DEADLINE':
+      return 'Enter a valid deadline date and time.'
     default:
       return code
   }

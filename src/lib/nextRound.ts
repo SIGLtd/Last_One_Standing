@@ -1,5 +1,6 @@
 import { londonDateFromKickoff, londonDayOfWeek } from '../../scripts/lib/fixtureValidation'
 import type { SeasonFixture, SelectionWindowWithMeta } from '../types'
+import { proposedFriday1600DeadlineFromEarliestKickoff } from './londonDeadline'
 import { MIN_OPERATIONAL_WINDOW_NUMBER } from './windowGuards'
 import { inspectWeekendSnapshot, selectEligibleWeekendFixtures } from './weekendSnapshot'
 
@@ -14,8 +15,7 @@ export type NextRoundWeekend = {
 }
 
 export function proposedDeadlineFromEarliestKickoff(earliestKickoffAt: string | null): string | null {
-  if (!earliestKickoffAt) return null
-  return new Date(Date.parse(earliestKickoffAt) - 60 * 60 * 1000).toISOString()
+  return proposedFriday1600DeadlineFromEarliestKickoff(earliestKickoffAt)
 }
 
 function addDays(isoDate: string, days: number): string {

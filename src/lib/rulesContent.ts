@@ -1,5 +1,4 @@
 import { FEES, formatEligibleSelectionDays, formatGBP } from './constants'
-import { ROUND1_DEADLINE_PLAYER_LABEL } from './round1'
 
 export type RulesSection = {
   title: string
@@ -11,36 +10,38 @@ const eligibleDays = formatEligibleSelectionDays()
 export function buildRulesSections(): RulesSection[] {
   return [
     {
-      title: 'Entry and pot',
+      title: 'How to play',
       items: [
-        `Returning players from Games 25 and 26 pay ${formatGBP(FEES.returning_player)}.`,
-        `New players pay ${formatGBP(FEES.new_player)}.`,
-        `Newbie fee includes ${formatGBP(FEES.returning_player)} entry plus ${formatGBP(FEES.new_player_rollover_fairness_contribution)} rollover fairness.`,
+        'Pick one Premier League team each round.',
+        'If your team wins, you survive.',
+        'If your team draws or loses, you are eliminated.',
+        'You cannot pick the same team twice in the same game.',
       ],
     },
     {
       title: 'Eligible fixtures',
       items: [
-        `${eligibleDays} Premier League games only.`,
-        'Friday and Monday fixtures excluded.',
-        'Midweek fixtures excluded unless organiser creates an exception.',
-      ],
-    },
-    {
-      title: 'Weekly picks',
-      items: [
-        `One team per round from eligible ${eligibleDays} fixtures.`,
-        'Win to survive. Draw, loss, or missed deadline eliminates.',
-        'Each team once per player per game. You can change your pick before the deadline.',
+        `Only ${eligibleDays} Premier League fixtures count by default.`,
+        'Friday, Monday and midweek fixtures are excluded unless Admin announces an exception.',
       ],
     },
     {
       title: 'Deadlines',
       items: [
-        'The organiser sets the deadline for each round.',
-        `Current Round 1 deadline: ${ROUND1_DEADLINE_PLAYER_LABEL}.`,
-        'Selections are read-only after the deadline.',
-        'If no special round deadline is set, the default is one hour before the first eligible fixture.',
+        'The normal deadline is 16:00 on the Friday before the Saturday/Sunday fixtures start.',
+        'You can change your pick before the deadline.',
+        'After the deadline, normal picks are locked.',
+        'Admin may record an organiser-approved correction. Corrections are marked and audited.',
+      ],
+    },
+    {
+      title: 'Entry and pot',
+      items: [
+        `Returning players from Games 25 and 26 pay ${formatGBP(FEES.returning_player)}.`,
+        `New players pay ${formatGBP(FEES.new_player)}.`,
+        `Newbie fee includes ${formatGBP(FEES.returning_player)} entry plus ${formatGBP(FEES.new_player_rollover_fairness_contribution)} rollover fairness.`,
+        'If one player remains, they win the pot.',
+        'If nobody wins, Admin may roll the pot into the next game.',
       ],
     },
     {
@@ -50,20 +51,13 @@ export function buildRulesSections(): RulesSection[] {
         'You do not need to submit a pick first to view others.',
       ],
     },
-    {
-      title: 'Winning',
-      items: [
-        'Last survivor wins the pot.',
-        'No survivors means a rollover. No points or tie-breaks.',
-      ],
-    },
   ]
 }
 
 export function rulesHeadlineDeadline(): string {
-  return `Current Round 1 deadline: ${ROUND1_DEADLINE_PLAYER_LABEL}.`
+  return 'The normal deadline is 16:00 on the Friday before the Saturday/Sunday fixtures start.'
 }
 
 export function rulesDefaultDeadlineNote(): string {
-  return 'If no special round deadline is set, the default is one hour before the first eligible fixture.'
+  return 'The normal deadline is 16:00 on the Friday before the Saturday/Sunday fixtures start.'
 }

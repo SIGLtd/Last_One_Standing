@@ -35,6 +35,22 @@ describe('admin page mobile cockpit layout', () => {
   })
 })
 
+describe('admin corrections controls', () => {
+  it('places reinstatement and round edits in Corrections', () => {
+    expect(adminPageSource).toContain('AdminCorrectionsSection')
+    expect(adminPageSource).toContain('adminReinstatePlayer')
+    expect(adminPageSource).toContain('adminUpdateRoundWindow')
+    expect(adminPageSource).toContain('londonDateTimeLocalToUtcIso')
+    const correctionsSource = readFileSync(
+      join(__dirname, '..', 'components', 'admin', 'AdminCorrectionsSection.tsx'),
+      'utf8',
+    )
+    expect(correctionsSource).toContain('Corrections')
+    expect(correctionsSource).toContain('Reinstate player')
+    expect(correctionsSource).toContain('Edit current round')
+  })
+})
+
 describe('admin game completion controls', () => {
   it('keeps complete-game distinct from open-next-round', () => {
     expect(adminPageSource).toContain('AdminGameStatusSection')

@@ -320,6 +320,7 @@ describe('used teams and next round', () => {
     expect(weekend?.eligible.some((fixture) => fixture.home_team_id === 'avl')).toBe(false)
     expect(weekend?.fridayExcluded).toBeGreaterThanOrEqual(1)
     expect(weekend?.mondayExcluded).toBeGreaterThanOrEqual(1)
+    expect(weekend?.proposedDeadline).toBe('2026-08-28T15:00:00.000Z')
   })
 
   it('excludes Ipswich v Liverpool when its canonical key is Friday even if kickoff is Saturday', () => {

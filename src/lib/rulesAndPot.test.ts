@@ -37,25 +37,24 @@ describe('rules copy', () => {
     expect(rulesPageSource).toContain('buildRulesSections')
   })
 
-  it('shows Friday 21 August 4:00pm as the live Round 1 deadline headline', () => {
-    const deadlines = buildRulesSections().find((section) => section.title === 'Deadlines')
-    expect(deadlines?.items[0]).toBe('The organiser sets the deadline for each round.')
-    expect(deadlines?.items[1]).toBe('Current Round 1 deadline: 4:00pm Friday 21 August.')
-    expect(deadlines?.items[2]).toBe('Selections are read-only after the deadline.')
-    expect(rulesHeadlineDeadline()).toBe('Current Round 1 deadline: 4:00pm Friday 21 August.')
+  it('states the Friday 16:00 deadline, Saturday/Sunday-only fixtures, no repeat team, and audited corrections', () => {
+    const allItems = buildRulesSections().flatMap((section) => section.items)
+    expect(allItems).toContain('The normal deadline is 16:00 on the Friday before the Saturday/Sunday fixtures start.')
+    expect(allItems).toContain('Only Saturday and Sunday Premier League fixtures count by default.')
+    expect(allItems).toContain('You cannot pick the same team twice in the same game.')
+    expect(allItems).toContain('Admin may record an organiser-approved correction. Corrections are marked and audited.')
+    expect(rulesHeadlineDeadline()).toContain('16:00')
+    expect(rulesDefaultDeadlineNote()).toContain('Friday')
   })
 
-  it('keeps the one-hour default as secondary, not the live deadline', () => {
-    const deadlines = buildRulesSections().find((section) => section.title === 'Deadlines')
-    const liveIndex = deadlines?.items.findIndex((item) => item.includes('Current Round 1 deadline')) ?? -1
-    const defaultIndex = deadlines?.items.findIndex((item) => item === rulesDefaultDeadlineNote()) ?? -1
-
-    expect(liveIndex).toBe(1)
-    expect(defaultIndex).toBeGreaterThan(liveIndex)
-    expect(deadlines?.items[0]).not.toMatch(/1 hour before first eligible/i)
-    expect(rulesContentSource).not.toContain(
-      'Deadline: 1 hour before first eligible Saturday and Sunday fixture, unless the organiser sets a round deadline.',
-    )
+  it('does not expose technical terms on the Rules page', () => {
+    expect(rulesContentSource.toLowerCase()).not.toContain('rpc')
+    expect(rulesContentSource.toLowerCase()).not.toContain('window')
+    expect(rulesContentSource.toLowerCase()).not.toContain('snapshot')
+    expect(rulesContentSource.toLowerCase()).not.toContain('database')
+    expect(rulesContentSource.toLowerCase()).not.toContain('provider')
+    expect(rulesPageSource.toLowerCase()).not.toContain('rpc')
+    expect(rulesPageSource.toLowerCase()).not.toContain('snapshot')
   })
 
   it('has no em dashes in rules copy', () => {

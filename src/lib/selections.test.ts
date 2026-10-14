@@ -101,4 +101,15 @@ describe('selection save path', () => {
     expect(selectionsSource).toContain('adminApplyPostResultSelectionCorrection')
     expect(selectionsSource).not.toContain('p_admin_corrected')
   })
+
+  it('adds admin reinstatement and round-window RPCs without weakening submit_selection', () => {
+    const migration15 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '15_admin_reinstate_and_round_window.sql'), 'utf8')
+    expect(migration15).toContain('admin_reinstate_player')
+    expect(migration15).toContain('admin_update_round_window')
+    expect(migration15).toContain('if not public.is_admin() then')
+    expect(migration4).toContain("perform public.pick_error('DEADLINE_PASSED')")
+    expect(selectionsSource).toContain('adminReinstatePlayer')
+    expect(selectionsSource).toContain('adminUpdateRoundWindow')
+    expect(selectionsSource).not.toContain('p_admin_corrected')
+  })
 })

@@ -3,6 +3,7 @@ import { ButtonLink } from '../components/ButtonLink'
 import { Badge } from '../components/Badge'
 import { Card } from '../components/Card'
 import { AdminAdvancedOperationsSection } from '../components/admin/AdminAdvancedOperationsSection'
+import { AdminCorrectionsSection } from '../components/admin/AdminCorrectionsSection'
 import { AdminGameStatusSection, type CompleteGameSubmit, type StartNewGameSubmit } from '../components/admin/AdminGameStatusSection'
 import { AdminCommunicationsSection } from '../components/admin/AdminCommunicationsSection'
 import { AdminPlayersPaymentsSection } from '../components/admin/AdminPlayersPaymentsSection'
@@ -35,14 +36,18 @@ import {
   adminApplyRoundResolution,
   adminCountSelectionsForWindow,
   adminFetchAllWindowSelections,
+  adminFetchGameSelections,
   adminFetchSelectionWindows,
   adminFetchWindowSelections,
   adminLockSelectionWindow,
   adminOpenNextRound,
   adminOpenFirstRound,
+  adminReinstatePlayer,
   adminStripNonWeekendSnapshotFixtures,
   adminSubmitSelection,
+  adminUpdateRoundWindow,
 } from '../lib/selections'
+import { londonDateTimeLocalToUtcIso, utcIsoToLondonDateTimeLocal } from '../lib/londonDeadline'
 import { londonDateFromKickoff } from '../../scripts/lib/fixtureValidation'
 import { canOpenFirstRound, isLiveGameStatus } from '../lib/gameLifecycle'
 import { canOpenNextRound } from '../lib/nextRound'
@@ -113,6 +118,8 @@ export function AdminPage() {
   const [firstRoundDeadlineLocal, setFirstRoundDeadlineLocal] = useState('')
   const [allWindowSelections, setAllWindowSelections] = useState<Selection[]>([])
   const [auditFixtures, setAuditFixtures] = useState<SelectionWindowEligibleFixture[]>([])
+  const [gameSelections, setGameSelections] = useState<Selection[]>([])
+  const [windowFixtures, setWindowFixtures] = useState<Record<string, SelectionWindowEligibleFixture[]>>({})
 
   const openWindow =
     windows.find((w) => w.status === 'open' && !isProtectedHistoricWindow(w.window_number)) ?? null
@@ -143,6 +150,8 @@ export function AdminPage() {
         setWindowSelections([])
         setAllWindowSelections([])
         setAuditFixtures([])
+        setGameSelections([])
+        setWindowFixtures({})
         setSelectionsMade(0)
         return
       }
@@ -161,8 +170,12 @@ export function AdminPage() {
       const audit = getAdminResolutionWindow(gameWindows)
       const thisRound = liveOpen ?? audit
 
-      const [seasonRows] = await Promise.all([fetchSeasonFixtures(currentGame.season || '2026/27')])
+      const [seasonRows, gamePicks] = await Promise.all([
+        fetchSeasonFixtures(currentGame.season || '2026/27'),
+        adminFetchGameSelections(currentGame.id),
+      ])
       setSeasonFixtures(seasonRows)
+      setGameSelections(gamePicks)
 
       async function loadWindowBundle(windowId: string) {
         const [fixtures, pickCount, picks, allPicks] = await Promise.all([
@@ -181,6 +194,7 @@ export function AdminPage() {
         setOpenFixtures(liveBundle.fixtures)
         setSelectionsMade(liveBundle.pickCount)
         setWindowSelections(liveBundle.picks)
+        setWindowFixtures({ [audit.id]: auditBundle.fixtures, [thisRound.id]: liveBundle.fixtures })
       } else if (audit) {
         const bundle = await loadWindowBundle(audit.id)
         setOpenFixtures(bundle.fixtures)
@@ -188,6 +202,7 @@ export function AdminPage() {
         setWindowSelections(bundle.picks)
         setAuditFixtures(bundle.fixtures)
         setAllWindowSelections(bundle.allPicks)
+        setWindowFixtures({ [audit.id]: bundle.fixtures })
       } else if (thisRound) {
         const bundle = await loadWindowBundle(thisRound.id)
         setOpenFixtures(bundle.fixtures)
@@ -195,12 +210,14 @@ export function AdminPage() {
         setWindowSelections(bundle.picks)
         setAuditFixtures(bundle.fixtures)
         setAllWindowSelections(bundle.allPicks)
+        setWindowFixtures({ [thisRound.id]: bundle.fixtures })
       } else {
         setOpenFixtures([])
         setSelectionsMade(0)
         setWindowSelections([])
         setAllWindowSelections([])
         setAuditFixtures([])
+        setWindowFixtures({})
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load admin data.'
@@ -368,6 +385,56 @@ export function AdminPage() {
     }
   }
 
+  async function handleNeedWindowFixtures(windowId: string) {
+    const existing = windowFixtures[windowId]
+    if (existing) return existing
+    const fixtures = await fetchWindowEligibleFixtures(windowId)
+    setWindowFixtures((current) => ({ ...current, [windowId]: fixtures }))
+    return fixtures
+  }
+
+  async function handleReinstatePlayer(input: {
+    playerId: string
+    gameId: string
+    windowId: string
+    reason: string
+    confirm: boolean
+    teamId: string | null
+    confirmWithoutWinningPick: boolean
+  }) {
+    setActionId('reinstate-player')
+    setPageError(null)
+    try {
+      await adminReinstatePlayer(input)
+      await loadAdminCore()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to reinstate player.')
+      throw err
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  async function handleUpdateRoundWindow(input: {
+    windowId: string
+    deadlineAt: string
+    reason: string
+    confirm: boolean
+  }) {
+    setActionId('edit-round')
+    setPageError(null)
+    try {
+      await adminUpdateRoundWindow(input)
+      setReconcileMessage('Round deadline updated.')
+      await loadAdminCore()
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Failed to update round details.')
+      throw err
+    } finally {
+      setActionId(null)
+    }
+  }
+
   async function handleReconcile(testWeekend = false) {
     setFixtureBusy(true)
     setPageError(null)
@@ -505,7 +572,7 @@ export function AdminPage() {
       if (!check.canOpen) {
         throw new Error(check.reason ?? 'Cannot open the next round.')
       }
-      const deadlineAt = nextDeadlineLocal ? new Date(nextDeadlineLocal).toISOString() : check.weekend?.proposedDeadline
+      const deadlineAt = nextDeadlineLocal ? londonDateTimeLocalToUtcIso(nextDeadlineLocal) : check.weekend?.proposedDeadline
       if (!check.weekend || !deadlineAt) {
         throw new Error('Choose a deadline before opening the next round.')
       }
@@ -621,7 +688,7 @@ export function AdminPage() {
       if (!check.canOpen) {
         throw new Error(check.reason ?? 'Cannot open Round 1.')
       }
-      const deadlineAt = firstRoundDeadlineLocal ? new Date(firstRoundDeadlineLocal).toISOString() : check.weekend?.proposedDeadline
+      const deadlineAt = firstRoundDeadlineLocal ? londonDateTimeLocalToUtcIso(firstRoundDeadlineLocal) : check.weekend?.proposedDeadline
       if (!check.weekend || !deadlineAt) {
         throw new Error('Choose a deadline before opening Round 1.')
       }
@@ -737,26 +804,14 @@ export function AdminPage() {
   useEffect(() => {
     const proposed = nextRoundCheck.weekend?.proposedDeadline
     if (proposed && !nextDeadlineLocal) {
-      const date = new Date(proposed)
-      if (!Number.isNaN(date.getTime())) {
-        const pad = (n: number) => String(n).padStart(2, '0')
-        setNextDeadlineLocal(
-          `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`,
-        )
-      }
+      setNextDeadlineLocal(utcIsoToLondonDateTimeLocal(proposed))
     }
   }, [nextRoundCheck.weekend?.proposedDeadline, nextDeadlineLocal])
 
   useEffect(() => {
     const proposed = firstRoundCheck.weekend?.proposedDeadline
     if (proposed && !firstRoundDeadlineLocal) {
-      const date = new Date(proposed)
-      if (!Number.isNaN(date.getTime())) {
-        const pad = (n: number) => String(n).padStart(2, '0')
-        setFirstRoundDeadlineLocal(
-          `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`,
-        )
-      }
+      setFirstRoundDeadlineLocal(utcIsoToLondonDateTimeLocal(proposed))
     }
   }, [firstRoundCheck.weekend?.proposedDeadline, firstRoundDeadlineLocal])
 
@@ -915,6 +970,24 @@ export function AdminPage() {
                 onSaveLatePick={handleSaveLatePick}
               />
             </>
+          ) : null}
+
+          {game ? (
+            <AdminCorrectionsSection
+              game={game}
+              entries={entries}
+              players={players}
+              windows={windows}
+              openWindow={liveOpenWindow ?? openWindow}
+              seasonFixtures={seasonFixtures}
+              windowFixtures={windowFixtures}
+              gameSelections={gameSelections}
+              openPickCount={selectionsMade}
+              busy={actionId === 'reinstate-player' || actionId === 'edit-round'}
+              onNeedWindowFixtures={handleNeedWindowFixtures}
+              onReinstate={(input) => handleReinstatePlayer(input)}
+              onUpdateRound={(input) => handleUpdateRoundWindow(input)}
+            />
           ) : null}
 
           {game ? (

@@ -250,6 +250,74 @@ export async function adminApplyPostResultSelectionCorrection(input: {
   return (data ?? {}) as Record<string, unknown>
 }
 
+export async function adminReinstatePlayer(input: {
+  playerId: string
+  gameId: string
+  windowId: string
+  reason: string
+  confirm: boolean
+  teamId?: string | null
+  confirmWithoutWinningPick?: boolean
+}): Promise<Record<string, unknown>> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_reinstate_player', {
+    p_player_id: input.playerId,
+    p_game_id: input.gameId,
+    p_window_id: input.windowId,
+    p_reason: input.reason,
+    p_confirm: input.confirm,
+    p_team_id: input.teamId ?? null,
+    p_confirm_without_winning_pick: Boolean(input.confirmWithoutWinningPick),
+  })
+
+  if (error) {
+    if (error.message.includes('ADMIN_REQUIRED')) {
+      throw new Error('Admin access is required to reinstate a player.')
+    }
+    const code = parsePickError(error.message)
+    throw new Error(pickErrorLabel(code))
+  }
+
+  return (data ?? {}) as Record<string, unknown>
+}
+
+export async function adminUpdateRoundWindow(input: {
+  windowId: string
+  deadlineAt: string
+  reason: string
+  confirm: boolean
+}): Promise<Record<string, unknown>> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client.rpc('admin_update_round_window', {
+    p_window_id: input.windowId,
+    p_deadline: input.deadlineAt,
+    p_reason: input.reason,
+    p_confirm: input.confirm,
+  })
+
+  if (error) {
+    if (error.message.includes('ADMIN_REQUIRED')) {
+      throw new Error('Admin access is required to edit round details.')
+    }
+    const code = parsePickError(error.message)
+    throw new Error(pickErrorLabel(code))
+  }
+
+  return (data ?? {}) as Record<string, unknown>
+}
+
+export async function adminFetchGameSelections(gameId: string): Promise<Selection[]> {
+  const client = getSupabaseOrThrow()
+  const { data, error } = await client
+    .from('selections')
+    .select('*')
+    .eq('game_id', gameId)
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return data ?? []
+}
+
 export async function adminFetchWindowSelections(windowId: string): Promise<Selection[]> {
   const client = getSupabaseOrThrow()
   const { data, error } = await client

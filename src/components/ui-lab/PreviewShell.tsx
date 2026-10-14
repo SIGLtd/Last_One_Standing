@@ -14,9 +14,9 @@ export function PreviewShell({
     <div className="grid gap-3">
       <header className="los-card p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-ink">UI Lab</p>
-        <h1 className="mt-1 text-lg font-semibold tracking-tight text-ink">Preview new UI</h1>
+        <h1 className="mt-1 text-lg font-semibold tracking-tight text-ink">Visual v2 preview</h1>
         <p className="mt-1 text-sm text-muted-ink">
-          UI Lab: now promoted to live. Kept for comparison.
+          UI Lab visual v2. Preview only. Live routes unchanged.
         </p>
       </header>
 

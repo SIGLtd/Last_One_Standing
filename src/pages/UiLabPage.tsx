@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ButtonLink } from '../components/ButtonLink'
 import { Card } from '../components/Card'
-import { AdminCockpitPreview } from '../components/ui-lab/AdminCockpitPreview'
-import { CurrentPicksPreview } from '../components/ui-lab/CurrentPicksPreview'
-import { HistoryPreview } from '../components/ui-lab/HistoryPreview'
-import { PickPreview } from '../components/ui-lab/PickPreview'
-import { PlayerHomePreview } from '../components/ui-lab/PlayerHomePreview'
 import { PreviewShell } from '../components/ui-lab/PreviewShell'
-import { RulesPreview } from '../components/ui-lab/RulesPreview'
+import { AdminCockpitLabV2 } from '../components/ui-lab/v2/AdminCockpitLabV2'
+import { LabV2Frame } from '../components/ui-lab/v2/LabV2Frame'
+import { PickLabV2 } from '../components/ui-lab/v2/PickLabV2'
+import { PlayerHomeLabV2 } from '../components/ui-lab/v2/PlayerHomeLabV2'
+import { HistoryLabV2, PicksLabV2, RulesLabV2 } from '../components/ui-lab/v2/SupportScreensLabV2'
 import { HISTORY_GAMES_1_TO_27 } from '../config/history'
 import { useAuth } from '../contexts/AuthContext'
 import { canAccessUiLab, uiLabBlockedCopy } from '../lib/uiLabAccess'
@@ -219,53 +218,60 @@ export function UiLabPage() {
   return (
     <PreviewShell screen={screen} onScreenChange={setScreen}>
       {pageError ? <div className="los-alert los-alert-error text-sm">{pageError}</div> : null}
+      <LabV2Frame
+        screen={screen}
+        onScreenChange={setScreen}
+        gameLabel={homeModel.gameLabel}
+        potLabel={homeModel.potLabel}
+      >
+        {screen === 'player-home' ? (
+          <PlayerHomeLabV2
+            model={homeModel}
+            persona={persona}
+            onPersonaChange={setPersona}
+            pot={game?.current_pot ?? 0}
+            survivorCount={paidActive.length}
+            paidCount={entries.filter((row) => row.paid).length}
+            submittedCount={submittedCount}
+            distribution={distribution}
+            fixtures={fixtures}
+            survivors={survivors}
+            survivorRoundLabel={survivorRoundLabel}
+            onGoPick={() => setScreen('make-pick')}
+            onGoPicks={() => setScreen('everyones-picks')}
+          />
+        ) : null}
 
-      {screen === 'player-home' ? (
-        <PlayerHomePreview
-          model={homeModel}
-          persona={persona}
-          onPersonaChange={setPersona}
-          live={false}
-          pot={game?.current_pot ?? 0}
-          survivorCount={paidActive.length}
-          paidCount={entries.filter((row) => row.paid).length}
-          submittedCount={submittedCount}
-          distribution={distribution}
-          fixtures={fixtures}
-          survivors={survivors}
-          survivorRoundLabel={survivorRoundLabel}
-        />
-      ) : null}
+        {screen === 'make-pick' ? (
+          <PickLabV2
+            roundLabel={roundLabel}
+            deadlineLabel={deadlineLabel}
+            spectator={homeModel.spectator}
+            persona={persona === 'complete' ? 'live' : persona}
+            onPersonaChange={setPersona}
+            fixtures={fixtures}
+            usedTeamIds={displayUsedTeamIds}
+          />
+        ) : null}
 
-      {screen === 'make-pick' ? (
-        <PickPreview
-          roundLabel={roundLabel}
-          deadlineLabel={deadlineLabel}
-          spectator={homeModel.spectator}
-          persona={persona === 'complete' ? 'live' : persona}
-          onPersonaChange={setPersona}
-          fixtures={fixtures}
-          usedTeamIds={displayUsedTeamIds}
-          live={false}
-        />
-      ) : null}
+        {screen === 'everyones-picks' ? (
+          <PicksLabV2 roundLabel={roundLabel} window={window} rows={picks} />
+        ) : null}
 
-      {screen === 'everyones-picks' ? (
-        <CurrentPicksPreview roundLabel={roundLabel} window={window} rows={picks} />
-      ) : null}
+        {screen === 'history' ? <HistoryLabV2 history={history} /> : null}
 
-      {screen === 'history' ? <HistoryPreview history={history} /> : null}
+        {screen === 'rules' ? <RulesLabV2 /> : null}
 
-      {screen === 'rules' ? <RulesPreview /> : null}
-
-      {screen === 'admin-cockpit' ? (
-        <AdminCockpitPreview
-          overview={overview}
-          windowStatus={window?.status ?? null}
-          gameStatus={game?.status ?? null}
-          survivorCount={paidActive.length}
-        />
-      ) : null}
+        {screen === 'admin-cockpit' ? (
+          <AdminCockpitLabV2
+            overview={overview}
+            windowStatus={window?.status ?? null}
+            gameStatus={game?.status ?? null}
+            survivorCount={paidActive.length}
+            fixtureCount={fixtures.length}
+          />
+        ) : null}
+      </LabV2Frame>
     </PreviewShell>
   )
 }

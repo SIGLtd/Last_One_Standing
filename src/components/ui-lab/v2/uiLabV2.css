@@ -1,0 +1,40 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+
+.ui-lab-v2 {
+  --lab-bg: #14081f;
+  --lab-header: #1b0c2a;
+  --lab-card: #1c0c2d;
+  --lab-card-2: #200e32;
+  --lab-card-3: #1f0e30;
+  --lab-border: #381a54;
+  --lab-border-strong: #5d2182;
+  --lab-hero-from: #3b0d54;
+  --lab-hero-via: #481263;
+  --lab-hero-to: #250838;
+  --lab-lime: #d4ff00;
+  --lab-lime-2: #caf300;
+  --lab-teal: #00e5a3;
+  --lab-gold: #ffc107;
+  --lab-lavender: #e7b3ff;
+  --lab-pink: #f0dbfc;
+  --lab-muted: #cfc3d0;
+  --lab-danger: #ff7886;
+  --lab-on-lime: #14081f;
+  font-family: Outfit, Inter, Arial, sans-serif;
+  background: var(--lab-bg);
+  color: var(--lab-pink);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--lab-border);
+}
+
+.ui-lab-v2 .lab-label {
+  font-family: "Space Grotesk", Outfit, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ui-lab-v2 button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

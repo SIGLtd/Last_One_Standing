@@ -11,11 +11,17 @@ function read(relativePath: string): string {
 }
 
 function readUiLabSources(): string {
+  const labDir = join(src, 'components', 'ui-lab')
   const files = [
     'pages/UiLabPage.tsx',
     'lib/uiLabAccess.ts',
     'lib/uiLabPreview.ts',
-    ...readdirSync(join(src, 'components', 'ui-lab')).map((name) => `components/ui-lab/${name}`),
+    ...readdirSync(labDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts')))
+      .map((entry) => `components/ui-lab/${entry.name}`),
+    ...readdirSync(join(labDir, 'v2'))
+      .filter((name) => name.endsWith('.tsx') || name.endsWith('.ts'))
+      .map((name) => `components/ui-lab/v2/${name}`),
   ]
   return files.map((file) => read(file)).join('\n')
 }
@@ -63,7 +69,7 @@ describe('UI Lab route', () => {
 
   it('renders the lab landing and preview screens', () => {
     expect(uiLabPage).toContain('canAccessUiLab')
-    expect(previewShell).toContain('UI Lab: now promoted to live. Kept for comparison.')
+    expect(previewShell).toContain('UI Lab visual v2. Preview only. Live routes unchanged.')
     expect(previewShell).toContain('UI_LAB_SCREEN_LABELS')
     expect(uiLabPreviewLib).toContain('Player Home Preview')
     expect(uiLabPreviewLib).toContain('Make Pick Preview')
@@ -71,12 +77,12 @@ describe('UI Lab route', () => {
     expect(uiLabPreviewLib).toContain('History Preview')
     expect(uiLabPreviewLib).toContain('Rules Preview')
     expect(uiLabPreviewLib).toContain('Admin Cockpit Preview')
-    expect(uiLabPage).toContain('PlayerHomePreview')
-    expect(uiLabPage).toContain('PickPreview')
-    expect(uiLabPage).toContain('CurrentPicksPreview')
-    expect(uiLabPage).toContain('HistoryPreview')
-    expect(uiLabPage).toContain('RulesPreview')
-    expect(uiLabPage).toContain('AdminCockpitPreview')
+    expect(uiLabPage).toContain('PlayerHomeLabV2')
+    expect(uiLabPage).toContain('PickLabV2')
+    expect(uiLabPage).toContain('PicksLabV2')
+    expect(uiLabPage).toContain('HistoryLabV2')
+    expect(uiLabPage).toContain('RulesLabV2')
+    expect(uiLabPage).toContain('AdminCockpitLabV2')
   })
 
   it('does not call production mutation functions', () => {
@@ -86,6 +92,8 @@ describe('UI Lab route', () => {
     expect(pickPreview).toContain('UI_LAB_PREVIEW_ONLY')
     expect(adminPreview).toContain('UI_LAB_PREVIEW_ONLY')
     expect(pickPreview).toContain("useState<string | null>(null)")
+    expect(uiLabPage).toContain('LabV2Frame')
+    expect(uiLabSources).toContain('UI_LAB_PREVIEW_ONLY')
   })
 })
 
